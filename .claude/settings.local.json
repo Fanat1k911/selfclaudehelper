@@ -20,7 +20,8 @@
       "Bash(kill 11375)",
       "mcp__claude_ai_Google_Drive__read_file_content",
       "mcp__claude_ai_Google_Drive__get_file_metadata",
-      "mcp__claude_ai_Google_Drive__download_file_content"
+      "mcp__claude_ai_Google_Drive__download_file_content",
+      "Bash(curl -s -o /dev/null -w \"HTTP %{http_code}\\\\n\" http://localhost:8501)"
     ]
   }
 }

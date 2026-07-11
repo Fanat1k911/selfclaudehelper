@@ -3,15 +3,34 @@ import streamlit as st
 from core.auth import current_user, logout, try_login
 from views.syrye import page as syrye_page
 
-st.set_page_config(page_title="Мыловарня: Учёт", page_icon="🧼")
+st.set_page_config(page_title="Мыловарня: Учёт", page_icon="🧼", initial_sidebar_state="collapsed")
 
 
 def login_form() -> None:
-    st.title("🧼 Мыловарня — вход")
+    # До входа никакого меню/сайдбара быть не должно — только форма логина (см. CLAUDE.md:
+    # ни один пункт интерфейса не должен намекать на структуру приложения раньше времени).
+    st.markdown(
+        """
+        <style>
+        [data-testid="stSidebar"], [data-testid="collapsedControl"] { display: none; }
+        .block-container { max-width: 420px; padding-top: 12vh; }
+        [data-testid="stForm"] {
+            background: #FFFFFF;
+            border-radius: 16px;
+            padding: 2rem 2rem 1rem 2rem;
+            box-shadow: 0 8px 24px rgba(74, 59, 51, 0.08);
+        }
+        </style>
+        """,
+        unsafe_allow_html=True,
+    )
+    st.markdown("<h1 style='text-align:center'>🧼</h1>", unsafe_allow_html=True)
+    st.markdown("<h3 style='text-align:center; margin-top:-0.5rem;'>Мыловарня</h3>", unsafe_allow_html=True)
+
     with st.form("login_form"):
         login = st.text_input("Логин")
         password = st.text_input("Пароль", type="password")
-        submitted = st.form_submit_button("Войти")
+        submitted = st.form_submit_button("Войти", use_container_width=True)
 
     if submitted:
         if try_login(login, password):
