@@ -26,12 +26,16 @@ TRANSACTIONS_HEADERS = ("id", "дата", "material_id", "тип", "кол-во"
 
 MATERIAL_CATEGORY_BULK = "сыпучее"
 MATERIAL_CATEGORY_LIQUID = "жидкое"
-MATERIAL_CATEGORIES = (MATERIAL_CATEGORY_BULK, MATERIAL_CATEGORY_LIQUID)
+MATERIAL_CATEGORY_PACKAGING = "тара"
+MATERIAL_CATEGORIES = (MATERIAL_CATEGORY_BULK, MATERIAL_CATEGORY_LIQUID, MATERIAL_CATEGORY_PACKAGING)
 
 TRANSACTION_INCOME = "приход"
 TRANSACTION_EXPENSE = "расход"
 TRANSACTION_ADJUSTMENT = "корректировка"
 TRANSACTION_TYPES = (TRANSACTION_INCOME, TRANSACTION_EXPENSE, TRANSACTION_ADJUSTMENT)
+
+RECIPES_HEADERS = ("id", "название", "что производим", "выход партии", "технология")
+RECIPE_ITEMS_HEADERS = ("recipe_id", "material_id", "кол-во на 1 партию")
 
 # --- Файл 2: "Мыловарня: Доступы" (отдельный закрытый файл) ---
 ACCESS_SPREADSHEET_KEY = "access_spreadsheet_id"

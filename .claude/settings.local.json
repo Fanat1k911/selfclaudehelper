@@ -17,7 +17,10 @@
       "Bash(curl -s http://localhost:8501)",
       "Bash(kill 10824)",
       "Bash(xargs -r kill)",
-      "Bash(kill 11375)"
+      "Bash(kill 11375)",
+      "mcp__claude_ai_Google_Drive__read_file_content",
+      "mcp__claude_ai_Google_Drive__get_file_metadata",
+      "mcp__claude_ai_Google_Drive__download_file_content"
     ]
   }
 }

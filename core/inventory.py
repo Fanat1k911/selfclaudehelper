@@ -52,9 +52,12 @@ def with_balances(materials: pd.DataFrame, transactions: pd.DataFrame) -> pd.Dat
     return result
 
 
-def add_material(name: str, category: str, unit: str, min_stock: float) -> None:
-    row = [uuid.uuid4().hex[:8], name, category, unit, min_stock, ""]
+def add_material(name: str, category: str, unit: str, min_stock: float) -> str:
+    """Возвращает id созданного материала — не нужно перечитывать весь лист, чтобы его узнать."""
+    material_id = uuid.uuid4().hex[:8]
+    row = [material_id, name, category, unit, min_stock, ""]
     append_row(SHEET_MATERIALS, row, headers=MATERIALS_HEADERS)
+    return material_id
 
 
 def add_transaction(
