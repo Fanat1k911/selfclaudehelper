@@ -19,18 +19,29 @@ def login_form() -> None:
             st.error("Неверный логин или пароль.")
 
 
-def main_page(user: dict) -> None:
+def home_page() -> None:
+    user = current_user()
     st.title("🧼 Мыловарня")
     st.write(f"Привет, **{user['fio']}**! Роль: `{user['role']}`.")
-    st.info("Разделы (Сырьё, Производство, Продажи и т.д.) появятся в левом меню по мере готовности.")
+    st.info("Разделы (Сырьё, Производство, Продажи и т.д.) появятся в меню слева по мере готовности.")
 
     if st.button("Выйти"):
         logout()
         st.rerun()
 
 
+def build_pages(role: str) -> list[st.Page]:
+    """Список страниц зависит от роли — недоступные разделы физически не попадают в навигацию,
+    их нельзя открыть даже прямой ссылкой (см. CLAUDE.md: проверка роли не через скрытие меню)."""
+    pages = [st.Page(home_page, title="Главная", icon="🏠", default=True)]
+    # Сюда будут добавляться разделы по мере готовности, например:
+    # if role in (config.FOUNDER, config.WORKER, config.DEVELOPER):
+    #     pages.append(st.Page(syrye_page, title="Сырьё", icon="🧴"))
+    return pages
+
+
 user = current_user()
 if user is None:
     login_form()
 else:
-    main_page(user)
+    st.navigation(build_pages(user["role"])).run()
