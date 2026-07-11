@@ -173,7 +173,7 @@ def main() -> None:
     for b in blocks:
         recipe_id = add_recipe(b["name"], "скраб", 1, b["technology"] or "")
         for name, qty in b["ingredients"] + b["packaging"]:
-            add_recipe_item(recipe_id, name_to_id[name], qty)
+            add_recipe_item(recipe_id, b["name"], name_to_id[name], name, qty)
         print(f"  + {b['name']} -> recipe_id={recipe_id}")
 
     print("\nГотово.")

@@ -68,10 +68,20 @@ def read_sheet(sheet_name: str, *, access: bool = False, headers: tuple[str, ...
 
     value_render_option=UNFORMATTED_VALUE обязателен: без него gspread читает число таким,
     каким оно отображается (по локали таблицы — с запятой вместо точки, "0,5"), и его
-    собственный numericise() ломает такие строки (например "-0,5" превращается в -5)."""
+    собственный numericise() ломает такие строки (например "-0,5" превращается в -5).
+
+    numericise_ignore=["all"] обязателен по той же причине, но для строк, а не чисел:
+    gspread сам, на клиенте, пытается float()/int() каждую ячейку — id вида "1e640937"
+    (обычный uuid4().hex[:8]) выглядит как научная нотация числа и превращается в
+    гигантский float, id вида "12345678" — в int с потерей ведущих нулей. Все id-шники
+    в проекте — строки, никогда не должны проходить через это автоопределение; конкретные
+    числовые колонки (кол-во, цена и т.д.) каждый вызывающий код сам приводит через
+    pd.to_numeric — так безопаснее, чем доверять угадыванию типа."""
     worksheet = get_worksheet(sheet_name, access=access, headers=headers)
     records = _with_retry(
-        worksheet.get_all_records, value_render_option=gspread.utils.ValueRenderOption.unformatted
+        worksheet.get_all_records,
+        value_render_option=gspread.utils.ValueRenderOption.unformatted,
+        numericise_ignore=["all"],
     )
     return pd.DataFrame(records)
 

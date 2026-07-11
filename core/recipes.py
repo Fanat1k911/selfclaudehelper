@@ -24,6 +24,8 @@ def add_recipe(name: str, produces: str, batch_yield: float, technology: str = "
     return recipe_id
 
 
-def add_recipe_item(recipe_id: str, material_id: str, qty_per_batch: float) -> None:
-    row = [recipe_id, material_id, qty_per_batch]
+def add_recipe_item(recipe_id: str, recipe_name: str, material_id: str, material_name: str, qty_per_batch: float) -> None:
+    """Названия пишем рядом с id намеренно — Founder читает этот лист напрямую в Google Sheets,
+    id ей ничего не скажут (см. CLAUDE.md). id остаются главными для связи между таблицами."""
+    row = [recipe_id, recipe_name, material_id, material_name, qty_per_batch]
     append_row(SHEET_RECIPE_ITEMS, row, headers=RECIPE_ITEMS_HEADERS)
