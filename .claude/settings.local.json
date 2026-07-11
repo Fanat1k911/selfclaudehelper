@@ -16,7 +16,8 @@
       "Read(//private/tmp/**)",
       "Bash(curl -s http://localhost:8501)",
       "Bash(kill 10824)",
-      "Bash(xargs -r kill)"
+      "Bash(xargs -r kill)",
+      "Bash(kill 11375)"
     ]
   }
 }

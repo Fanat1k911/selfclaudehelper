@@ -1,6 +1,7 @@
 import streamlit as st
 
 from core.auth import current_user, logout, try_login
+from views.syrye import page as syrye_page
 
 st.set_page_config(page_title="Мыловарня: Учёт", page_icon="🧼")
 
@@ -34,9 +35,8 @@ def build_pages(role: str) -> list[st.Page]:
     """Список страниц зависит от роли — недоступные разделы физически не попадают в навигацию,
     их нельзя открыть даже прямой ссылкой (см. CLAUDE.md: проверка роли не через скрытие меню)."""
     pages = [st.Page(home_page, title="Главная", icon="🏠", default=True)]
-    # Сюда будут добавляться разделы по мере готовности, например:
-    # if role in (config.FOUNDER, config.WORKER, config.DEVELOPER):
-    #     pages.append(st.Page(syrye_page, title="Сырьё", icon="🧴"))
+    # Сырьё доступно всем ролям (см. таблицу прав в CLAUDE.md — "Внести производство/остатки").
+    pages.append(st.Page(syrye_page, title="Сырьё", icon="🧴"))
     return pages
 
 

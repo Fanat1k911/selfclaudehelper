@@ -37,21 +37,34 @@ def _spreadsheet(secret_key: str) -> gspread.Spreadsheet:
     return _client().open_by_key(_secret("sheets", secret_key))
 
 
-def get_worksheet(sheet_name: str, *, access: bool = False) -> gspread.Worksheet:
-    """access=True — лист из закрытого файла "Доступы", иначе из "Учёт"."""
+def get_worksheet(sheet_name: str, *, access: bool = False, headers: tuple[str, ...] | None = None) -> gspread.Worksheet:
+    """access=True — лист из закрытого файла "Доступы", иначе из "Учёт".
+    headers — если лист не существует, создать его самим с этой шапкой (для рабочих
+    каталогов вроде Materials/Transactions). Без headers отсутствие листа — ошибка:
+    так и должно быть для Users — этот файл ведётся вручную осознанно."""
     key = ACCESS_SPREADSHEET_KEY if access else DATA_SPREADSHEET_KEY
     spreadsheet = _spreadsheet(key)
     try:
         return spreadsheet.worksheet(sheet_name)
     except gspread.exceptions.WorksheetNotFound:
-        st.error(f"В таблице нет листа «{sheet_name}». Создай его вручную в Google Sheets.")
-        st.stop()
+        if headers is None:
+            st.error(f"В таблице нет листа «{sheet_name}». Создай его вручную в Google Sheets.")
+            st.stop()
+        ws = spreadsheet.add_worksheet(title=sheet_name, rows=1000, cols=max(len(headers), 10))
+        ws.append_row(list(headers), value_input_option="RAW")
+        return ws
 
 
 @st.cache_data(ttl=300, show_spinner=False)
-def read_sheet(sheet_name: str, *, access: bool = False) -> pd.DataFrame:
-    """Лист целиком как DataFrame. Кэш 5 мин — сбрасывать вручную через clear_sheet_cache."""
-    records = get_worksheet(sheet_name, access=access).get_all_records()
+def read_sheet(sheet_name: str, *, access: bool = False, headers: tuple[str, ...] | None = None) -> pd.DataFrame:
+    """Лист целиком как DataFrame. Кэш 5 мин — сбрасывать вручную через clear_sheet_cache.
+
+    value_render_option=UNFORMATTED_VALUE обязателен: без него gspread читает число таким,
+    каким оно отображается (по локали таблицы — с запятой вместо точки, "0,5"), и его
+    собственный numericise() ломает такие строки (например "-0,5" превращается в -5)."""
+    records = get_worksheet(sheet_name, access=access, headers=headers).get_all_records(
+        value_render_option=gspread.utils.ValueRenderOption.unformatted
+    )
     return pd.DataFrame(records)
 
 
@@ -62,10 +75,10 @@ def _sanitize_for_sheets(value):
     return value
 
 
-def append_row(sheet_name: str, row: list, *, access: bool = False) -> None:
+def append_row(sheet_name: str, row: list, *, access: bool = False, headers: tuple[str, ...] | None = None) -> None:
     safe_row = [_sanitize_for_sheets(v) for v in row]
-    get_worksheet(sheet_name, access=access).append_row(safe_row, value_input_option="USER_ENTERED")
-    read_sheet.clear(sheet_name, access=access)
+    get_worksheet(sheet_name, access=access, headers=headers).append_row(safe_row, value_input_option="USER_ENTERED")
+    read_sheet.clear(sheet_name, access=access, headers=headers)
 
 
 def clear_sheet_cache(sheet_name: str | None = None, *, access: bool = False) -> None:

@@ -21,6 +21,18 @@ SHEET_SALES = "Sales"
 SHEET_PRODUCTION_LOG = "ProductionLog"
 SHEET_FEEDBACK = "Feedback"
 
+MATERIALS_HEADERS = ("id", "название", "категория", "ед.измерения", "мин.остаток", "текущий остаток")
+TRANSACTIONS_HEADERS = ("id", "дата", "material_id", "тип", "кол-во", "цена", "recipe_id", "комментарий")
+
+MATERIAL_CATEGORY_BULK = "сыпучее"
+MATERIAL_CATEGORY_LIQUID = "жидкое"
+MATERIAL_CATEGORIES = (MATERIAL_CATEGORY_BULK, MATERIAL_CATEGORY_LIQUID)
+
+TRANSACTION_INCOME = "приход"
+TRANSACTION_EXPENSE = "расход"
+TRANSACTION_ADJUSTMENT = "корректировка"
+TRANSACTION_TYPES = (TRANSACTION_INCOME, TRANSACTION_EXPENSE, TRANSACTION_ADJUSTMENT)
+
 # --- Файл 2: "Мыловарня: Доступы" (отдельный закрытый файл) ---
 ACCESS_SPREADSHEET_KEY = "access_spreadsheet_id"
 
