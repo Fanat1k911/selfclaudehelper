@@ -30,7 +30,7 @@ def login_form() -> None:
     with st.form("login_form"):
         login = st.text_input("Логин")
         password = st.text_input("Пароль", type="password")
-        submitted = st.form_submit_button("Войти", use_container_width=True)
+        submitted = st.form_submit_button("Войти", type="primary", width="stretch")
 
     if submitted:
         if try_login(login, password):
@@ -42,10 +42,10 @@ def login_form() -> None:
 def home_page() -> None:
     user = current_user()
     st.title("🧼 Мыловарня")
-    st.write(f"Привет, **{user['fio']}**! Роль: `{user['role']}`.")
-    st.info("Разделы (Сырьё, Производство, Продажи и т.д.) появятся в меню слева по мере готовности.")
+    st.caption(f"{user['fio']} · роль: {user['role']}")
+    st.info("Разделы (Производство, Продажи и т.д.) появятся в меню слева по мере готовности.")
 
-    if st.button("Выйти"):
+    if st.button("Выйти", type="secondary"):
         logout()
         st.rerun()
 
