@@ -1,5 +1,6 @@
 """Подключение к Google Sheets через service account (gspread)."""
 
+import re
 import time
 
 import gspread
@@ -15,6 +16,12 @@ SCOPES = [
 
 # Символы, с которых Google Sheets начинает трактовать ячейку как формулу.
 _FORMULA_TRIGGER_CHARS = ("=", "+", "-", "@")
+
+# ISO-дата (2026-07-12) и время (09:00) — с value_input_option="USER_ENTERED" Google Sheets
+# сам распознаёт такие строки как дату/время и хранит числом (серийная дата / доля суток),
+# а не текстом. При чтении обратно приходит число вместо исходной строки. Экранируем тем же
+# способом, что и formula injection — ведущий апостроф форсирует текстовый тип ячейки.
+_DATE_OR_TIME_PATTERN = re.compile(r"^\d{4}-\d{2}-\d{2}$|^\d{1,2}:\d{2}$")
 
 
 def _secret(*path: str):
@@ -104,8 +111,9 @@ def _with_retry(func, *args, max_attempts: int = 5, **kwargs):
 
 
 def _sanitize_for_sheets(value):
-    """Гасит formula injection: ячейка, начинающаяся с =+-@, не должна выполняться как формула."""
-    if isinstance(value, str) and value[:1] in _FORMULA_TRIGGER_CHARS:
+    """Гасит formula injection (=+-@ в начале ячейки) и авто-распознавание дат/времени —
+    в обоих случаях Sheets меняет тип ячейки сама, апостроф форсирует текст."""
+    if isinstance(value, str) and (value[:1] in _FORMULA_TRIGGER_CHARS or _DATE_OR_TIME_PATTERN.match(value)):
         return "'" + value
     return value
 
@@ -119,6 +127,18 @@ def append_row(sheet_name: str, row: list, *, access: bool = False, headers: tup
     # сигнатуре — явный access=False здесь не совпадает по ключу с вызовами read_sheet(...),
     # которые полагаются на дефолт access=False неявно. Из-за этого точечный clear() чистил
     # несуществующую запись, а реальный кэш жил до истечения TTL (5 мин).
+    read_sheet.clear()
+
+
+def append_rows(sheet_name: str, rows: list[list], *, access: bool = False, headers: tuple[str, ...] | None = None) -> None:
+    """Пакетная запись — один сетевой вызов вместо N append_row подряд. Использовать, когда
+    пишешь несколько связанных строк за раз (например списание сырья по рецепту сразу по
+    нескольким материалам): экономит квоту API так же, как кэш get_worksheet (см. его докстрing)."""
+    if not rows:
+        return
+    safe_rows = [[_sanitize_for_sheets(v) for v in row] for row in rows]
+    worksheet = get_worksheet(sheet_name, access=access, headers=headers)
+    _with_retry(worksheet.append_rows, safe_rows, value_input_option="USER_ENTERED")
     read_sheet.clear()
 
 

@@ -1,6 +1,7 @@
 import streamlit as st
 
 from core.auth import current_user, logout, try_login
+from views.proizvodstvo import page as proizvodstvo_page
 from views.syrye import page as syrye_page
 
 st.set_page_config(page_title="Мыловарня: Учёт", page_icon="🧼", initial_sidebar_state="collapsed")
@@ -87,9 +88,14 @@ def home_page() -> None:
 def build_pages(role: str) -> list[st.Page]:
     """Список страниц зависит от роли — недоступные разделы физически не попадают в навигацию,
     их нельзя открыть даже прямой ссылкой (см. CLAUDE.md: проверка роли не через скрытие меню)."""
-    pages = [st.Page(home_page, title="Главная", icon="🏠", default=True)]
-    # Сырьё доступно всем ролям (см. таблицу прав в CLAUDE.md — "Внести производство/остатки").
-    pages.append(st.Page(syrye_page, title="Сырьё", icon="🧴"))
+    # url_path — явно, а не по умолчанию: все страницы объявляют функцию с одинаковым
+    # именем `page()` в своём модуле, Streamlit иначе выводит путь из имени callable
+    # и ловит коллизию "Multiple Pages specified with URL pathname page".
+    pages = [st.Page(home_page, title="Главная", icon="🏠", default=True, url_path="glavnaya")]
+    # Сырьё и Производство доступны всем ролям (см. таблицу прав в CLAUDE.md —
+    # "Внести производство/остатки" и "Свой КПД" — ✅ у всех трёх ролей).
+    pages.append(st.Page(syrye_page, title="Сырьё", icon="🧴", url_path="syrye"))
+    pages.append(st.Page(proizvodstvo_page, title="Производство", icon="🏭", url_path="proizvodstvo"))
     return pages
 
 

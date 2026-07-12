@@ -15,7 +15,7 @@ from core.config import (
     TRANSACTION_INCOME,
     TRANSACTIONS_HEADERS,
 )
-from core.sheets import append_row, read_sheet
+from core.sheets import append_row, append_rows, read_sheet
 
 _SIGN_BY_TYPE = {TRANSACTION_INCOME: 1, TRANSACTION_EXPENSE: -1, TRANSACTION_ADJUSTMENT: 1}
 
@@ -60,6 +60,20 @@ def add_material(name: str, category: str, unit: str, min_stock: float) -> str:
     return material_id
 
 
+def build_transaction_row(
+    material_id: str,
+    transaction_type: str,
+    qty: float,
+    *,
+    price: float | str = "",
+    recipe_id: str = "",
+    comment: str = "",
+) -> list:
+    """Собирает строку Transactions без записи — нужно, когда пишешь несколько движений
+    одним батчем через add_transactions (например списание сырья по рецепту)."""
+    return [uuid.uuid4().hex[:8], date.today().isoformat(), material_id, transaction_type, qty, price, recipe_id, comment]
+
+
 def add_transaction(
     material_id: str,
     transaction_type: str,
@@ -69,5 +83,9 @@ def add_transaction(
     recipe_id: str = "",
     comment: str = "",
 ) -> None:
-    row = [uuid.uuid4().hex[:8], date.today().isoformat(), material_id, transaction_type, qty, price, recipe_id, comment]
+    row = build_transaction_row(material_id, transaction_type, qty, price=price, recipe_id=recipe_id, comment=comment)
     append_row(SHEET_TRANSACTIONS, row, headers=TRANSACTIONS_HEADERS)
+
+
+def add_transactions(rows: list[list]) -> None:
+    append_rows(SHEET_TRANSACTIONS, rows, headers=TRANSACTIONS_HEADERS)
