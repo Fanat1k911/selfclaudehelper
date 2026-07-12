@@ -5,6 +5,28 @@ from views.syrye import page as syrye_page
 
 st.set_page_config(page_title="Мыловарня: Учёт", page_icon="🧼", initial_sidebar_state="collapsed")
 
+# Кнопки открыть/закрыть боковое меню — на всех страницах, не только на логине.
+st.markdown(
+    """
+    <style>
+    [data-testid="stExpandSidebarButton"], [data-testid="stSidebarCollapseButton"] {
+        background: #C97B63;
+        border-radius: 10px;
+        box-shadow: 0 2px 8px rgba(74, 59, 51, 0.18);
+        transition: transform 0.15s ease;
+    }
+    [data-testid="stExpandSidebarButton"] svg, [data-testid="stSidebarCollapseButton"] svg {
+        color: #FFFFFF;
+        fill: #FFFFFF;
+    }
+    [data-testid="stExpandSidebarButton"]:hover, [data-testid="stSidebarCollapseButton"]:hover {
+        transform: scale(1.08);
+    }
+    </style>
+    """,
+    unsafe_allow_html=True,
+)
+
 
 def login_form() -> None:
     # До входа никакого меню/сайдбара быть не должно — только форма логина (см. CLAUDE.md:
@@ -12,20 +34,32 @@ def login_form() -> None:
     st.markdown(
         """
         <style>
-        [data-testid="stSidebar"], [data-testid="collapsedControl"] { display: none; }
-        .block-container { max-width: 420px; padding-top: 12vh; }
+        [data-testid="stSidebar"], [data-testid="stExpandSidebarButton"] { display: none; }
+        .block-container { max-width: 680px; padding-top: 8vh; }
         [data-testid="stForm"] {
             background: #FFFFFF;
-            border-radius: 16px;
-            padding: 2rem 2rem 1rem 2rem;
+            border-radius: 24px;
+            padding: 3.5rem 3.5rem 2rem 3.5rem;
             box-shadow: 0 8px 24px rgba(74, 59, 51, 0.08);
         }
+        [data-testid="stForm"] input {
+            font-size: 1.5rem;
+            padding: 0.9rem 1.1rem;
+        }
+        [data-testid="stForm"] label p {
+            font-size: 1.15rem;
+            font-style: italic;
+        }
+        [data-testid="InputInstructions"] { display: none; }
         </style>
         """,
         unsafe_allow_html=True,
     )
-    st.markdown("<h1 style='text-align:center'>🧼</h1>", unsafe_allow_html=True)
-    st.markdown("<h3 style='text-align:center; margin-top:-0.5rem;'>Мыловарня</h3>", unsafe_allow_html=True)
+    st.markdown("<h1 style='text-align:center; font-size:4.5rem;'>🧼</h1>", unsafe_allow_html=True)
+    st.markdown(
+        "<h1 style='text-align:center; margin-top:-0.5rem; font-style:italic;'>Мыловарня</h1>",
+        unsafe_allow_html=True,
+    )
 
     with st.form("login_form"):
         login = st.text_input("Логин")

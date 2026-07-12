@@ -24,7 +24,11 @@
       "Bash(curl -s -o /dev/null -w \"HTTP %{http_code}\\\\n\" http://localhost:8501)",
       "Bash(ipconfig getifaddr *)",
       "Bash(/usr/libexec/ApplicationFirewall/socketfilterfw --getglobalstate)",
-      "Bash(pkill -f \"streamlit run app.py\")"
+      "Bash(pkill -f \"streamlit run app.py\")",
+      "Bash(git rm *)",
+      "Bash(grep -o '\"InputInstructions\"[^}]\\\\{0,80\\\\}' /Users/alex/PycharmProjects/PythonProject/oinarri/.venv/lib/python3.13/site-packages/streamlit/static/static/js/index.BfkDCGNp.js)",
+      "Skill(fewer-permission-prompts)",
+      "Bash(xargs -0 ls -t)"
     ]
   }
 }
