@@ -114,13 +114,18 @@ def append_row(sheet_name: str, row: list, *, access: bool = False, headers: tup
     safe_row = [_sanitize_for_sheets(v) for v in row]
     worksheet = get_worksheet(sheet_name, access=access, headers=headers)
     _with_retry(worksheet.append_row, safe_row, value_input_option="USER_ENTERED")
-    read_sheet.clear(sheet_name, access=access, headers=headers)
+    # Полный сброс, а не read_sheet.clear(sheet_name, access=access, headers=headers):
+    # Streamlit хэширует кэш-ключ по буквально переданным аргументам, а не по нормализованной
+    # сигнатуре — явный access=False здесь не совпадает по ключу с вызовами read_sheet(...),
+    # которые полагаются на дефолт access=False неявно. Из-за этого точечный clear() чистил
+    # несуществующую запись, а реальный кэш жил до истечения TTL (5 мин).
+    read_sheet.clear()
 
 
 def clear_sheet_cache(sheet_name: str | None = None, *, access: bool = False) -> None:
     """Вызывать после ручных изменений строк (не только append) — например при увольнении сотрудника.
-    Без sheet_name сбрасывает кэш всех листов."""
-    if sheet_name is None:
-        read_sheet.clear()
-    else:
-        read_sheet.clear(sheet_name, access=access)
+
+    sheet_name/access принимаются для читаемости на месте вызова, но всегда чистят кэш
+    целиком: точечный read_sheet.clear(sheet_name, ...) не работает надёжно — см. комментарий
+    в append_row про несовпадение кэш-ключей у Streamlit при неявных дефолтных аргументах."""
+    read_sheet.clear()
