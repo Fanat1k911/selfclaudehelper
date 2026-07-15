@@ -58,3 +58,49 @@ export async function apiFetch<T>(path: string, options: RequestInit = {}): Prom
   if (res.status === 204) return undefined as T
   return res.json() as Promise<T>
 }
+
+export async function apiUpload<T>(path: string, file: File): Promise<T> {
+  const token = getToken()
+  const form = new FormData()
+  form.append('file', file)
+
+  const res = await fetch(`/api${path}`, {
+    method: 'POST',
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
+    body: form,
+  })
+
+  if (res.status === 401) {
+    clearSession()
+    window.location.href = '/login'
+    throw new ApiError(401, 'Сессия истекла, войдите снова.')
+  }
+
+  if (!res.ok) {
+    let message = 'Ошибка запроса.'
+    try {
+      const body = await res.json()
+      message = body.detail ?? message
+    } catch {
+      // тело не JSON — оставляем стандартное сообщение
+    }
+    throw new ApiError(res.status, message)
+  }
+
+  return res.json() as Promise<T>
+}
+
+export async function apiDownload(path: string, filename: string): Promise<void> {
+  const token = getToken()
+  const res = await fetch(`/api${path}`, {
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
+  })
+  if (!res.ok) throw new ApiError(res.status, 'Не удалось скачать файл.')
+  const blob = await res.blob()
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = filename
+  a.click()
+  URL.revokeObjectURL(url)
+}

@@ -2,9 +2,13 @@
 см. core/inventory.py). Остаток по-прежнему нигде не хранится статично — считается
 на лету из Transaction по каждому material_id (см. CLAUDE.md)."""
 
+import io
 from datetime import date
+from urllib.parse import quote
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
+from fastapi.responses import StreamingResponse
+from openpyxl import Workbook, load_workbook
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
@@ -12,7 +16,7 @@ from app.constants import TRANSACTION_ADJUSTMENT, TRANSACTION_EXPENSE, TRANSACTI
 
 from app.db import get_db
 from app.models import Material, Transaction
-from app.schemas import AdjustmentRequest, NewMaterialRequest, TransactionRequest
+from app.schemas import AdjustmentRequest, ImportCommitRequest, NewMaterialRequest, TransactionRequest
 from app.security import get_current_user
 
 router = APIRouter(prefix="/api/ingredients", tags=["ingredients"], dependencies=[Depends(get_current_user)])
@@ -133,3 +137,153 @@ def add_adjustment(material_id: str, body: AdjustmentRequest, db: Session = Depe
     )
     db.commit()
     return {"ok": True, "delta": delta}
+
+
+@router.get("/export-template")
+def export_template(db: Session = Depends(get_db)) -> StreamingResponse:
+    """Шаблон для массовой инвентаризации: те же названия, что видит Founder на
+    экране, плюс пустая колонка «Новый остаток» — заполняется руками и грузится
+    обратно через /import/preview."""
+    materials = db.scalars(select(Material)).all()
+    balances, _ = _balances_and_last_movement(db)
+
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Ингредиенты"
+    ws.append(["Название", "Категория", "Ед.измерения", "Текущий остаток", "Новый остаток"])
+    for m in materials:
+        ws.append([m.name, m.category, m.unit, balances.get(m.id, 0.0), None])
+
+    buf = io.BytesIO()
+    wb.save(buf)
+    buf.seek(0)
+    # Content-Disposition — только latin-1, кириллицу передаём через filename* (RFC 5987).
+    filename_utf8 = quote("ингредиенты.xlsx")
+    return StreamingResponse(
+        buf,
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers={"Content-Disposition": f"attachment; filename=\"ingredients.xlsx\"; filename*=UTF-8''{filename_utf8}"},
+    )
+
+
+@router.get("/export")
+def export_ingredients(db: Session = Depends(get_db)) -> StreamingResponse:
+    """Экспорт для просмотра/пересылки (например, в Google Таблицы) — без
+    служебной колонки «Новый остаток» из /export-template."""
+    materials = db.scalars(select(Material)).all()
+    balances, last_movement = _balances_and_last_movement(db)
+
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Ингредиенты"
+    ws.append(["Название", "Категория", "Ед.измерения", "Остаток", "Мин.остаток", "Обновлено"])
+    for m in materials:
+        lm = last_movement.get(m.id)
+        ws.append([m.name, m.category, m.unit, balances.get(m.id, 0.0), float(m.min_stock), lm.isoformat() if lm else None])
+
+    buf = io.BytesIO()
+    wb.save(buf)
+    buf.seek(0)
+    filename_utf8 = quote("ингредиенты.xlsx")
+    return StreamingResponse(
+        buf,
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers={"Content-Disposition": f"attachment; filename=\"ingredients.xlsx\"; filename*=UTF-8''{filename_utf8}"},
+    )
+
+
+def _parse_import_file(content: bytes) -> list[dict]:
+    try:
+        wb = load_workbook(io.BytesIO(content), data_only=True)
+    except Exception:
+        raise HTTPException(400, "Не удалось прочитать файл. Поддерживается формат .xlsx.")
+    ws = wb.active
+    rows = list(ws.iter_rows(values_only=True))
+    if not rows:
+        raise HTTPException(400, "Файл пуст.")
+
+    header = [str(c).strip().casefold() if c is not None else "" for c in rows[0]]
+    col_name = next((i for i, h in enumerate(header) if h == "название"), None)
+    col_new = next((i for i, h in enumerate(header) if h == "новый остаток"), None)
+    if col_new is None:
+        col_new = next((i for i, h in enumerate(header) if h == "остаток"), None)
+    if col_name is None or col_new is None:
+        raise HTTPException(400, "В файле нет колонок «Название» и «Новый остаток» (или «Остаток»).")
+
+    parsed = []
+    for row in rows[1:]:
+        if row is None or all(c is None for c in row):
+            continue
+        name = row[col_name]
+        if name is None or str(name).strip() == "":
+            continue
+        parsed.append({"name": str(name).strip(), "new_qty": row[col_new]})
+    return parsed
+
+
+@router.post("/import/preview")
+async def import_preview(file: UploadFile = File(...), db: Session = Depends(get_db)) -> list[dict]:
+    content = await file.read()
+    parsed = _parse_import_file(content)
+
+    materials = db.scalars(select(Material)).all()
+    by_name: dict[str, list[Material]] = {}
+    for m in materials:
+        by_name.setdefault(m.name.strip().casefold(), []).append(m)
+    balances, _ = _balances_and_last_movement(db)
+
+    result = []
+    for item in parsed:
+        matches = by_name.get(item["name"].casefold(), [])
+        new_qty = item["new_qty"]
+        row = {
+            "name": item["name"],
+            "material_id": None,
+            "current_qty": None,
+            "new_qty": None,
+            "delta": None,
+            "status": "",
+        }
+        if len(matches) == 0:
+            row["status"] = "не найден"
+        elif len(matches) > 1:
+            row["status"] = "неоднозначное совпадение"
+        elif not isinstance(new_qty, (int, float)):
+            row["status"] = "не число"
+        else:
+            m = matches[0]
+            current = balances.get(m.id, 0.0)
+            row.update(
+                material_id=m.id,
+                current_qty=current,
+                new_qty=float(new_qty),
+                delta=float(new_qty) - current,
+                status="ok",
+            )
+        result.append(row)
+    return result
+
+
+@router.post("/import/commit")
+def import_commit(body: ImportCommitRequest, db: Session = Depends(get_db)) -> dict:
+    """Строки прилетают уже подтверждённые фронтом после превью — здесь без
+    повторного парсинга файла, только запись движений."""
+    balances, _ = _balances_and_last_movement(db)
+    applied = 0
+    for row in body.rows:
+        current = balances.get(row.material_id, 0.0)
+        delta = row.new_qty - current
+        if delta == 0:
+            continue
+        db.add(
+            Transaction(
+                material_id=row.material_id,
+                type=TRANSACTION_ADJUSTMENT,
+                qty=delta,
+                comment=body.comment or "импорт из файла",
+            )
+        )
+        balances[row.material_id] = row.new_qty
+        applied += 1
+    db.commit()
+    return {"ok": True, "applied": applied}

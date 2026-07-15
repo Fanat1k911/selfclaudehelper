@@ -93,3 +93,13 @@ class UpdateUserRequest(BaseModel):
 
 class ResetPasswordRequest(BaseModel):
     new_password: str
+
+
+class ImportCommitRow(BaseModel):
+    material_id: str
+    new_qty: float
+
+
+class ImportCommitRequest(BaseModel):
+    rows: list[ImportCommitRow]
+    comment: str = "импорт из файла"
