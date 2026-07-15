@@ -14,11 +14,12 @@ export function RecipesPage() {
   const [loading, setLoading] = useState(true)
   const [showCreate, setShowCreate] = useState(false)
   const [selected, setSelected] = useState<Recipe | null>(null)
+  const [showArchived, setShowArchived] = useState(false)
 
-  async function load() {
+  async function load(archived = showArchived) {
     setLoading(true)
     try {
-      const data = await apiFetch<Recipe[]>('/recipes')
+      const data = await apiFetch<Recipe[]>(`/recipes?archived=${archived}`)
       setRecipes(data)
     } finally {
       setLoading(false)
@@ -26,8 +27,8 @@ export function RecipesPage() {
   }
 
   useEffect(() => {
-    load()
-  }, [])
+    load(showArchived)
+  }, [showArchived])
 
   function handleRowClick(recipe: Recipe) {
     setShowCreate(false)
@@ -38,17 +39,31 @@ export function RecipesPage() {
     <div className="px-4 py-4 sm:px-8 sm:py-6">
       <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <h1 className="text-xl font-semibold text-ink sm:text-2xl">Рецепты</h1>
-        {canManage && (
-          <button
-            onClick={() => {
-              setSelected(null)
-              setShowCreate(true)
-            }}
-            className="whitespace-nowrap rounded-lg bg-terracotta px-3 py-2 text-sm font-medium text-white hover:bg-terracotta-dark sm:px-4"
-          >
-            + Новый рецепт
-          </button>
-        )}
+        <div className="flex items-center gap-6">
+          {canManage && (
+            <button
+              onClick={() => setShowArchived((v) => !v)}
+              className={`whitespace-nowrap rounded-lg px-3 py-2 text-sm font-medium sm:px-4 ${
+                showArchived
+                  ? 'bg-ink text-white'
+                  : 'border border-ink/10 text-ink hover:bg-ink hover:text-white'
+              }`}
+            >
+              {showArchived ? 'Активные' : 'Архив'}
+            </button>
+          )}
+          {canManage && !showArchived && (
+            <button
+              onClick={() => {
+                setSelected(null)
+                setShowCreate(true)
+              }}
+              className="whitespace-nowrap rounded-lg bg-terracotta px-3 py-2 text-sm font-medium text-white hover:bg-terracotta-dark sm:px-4"
+            >
+              + Новый рецепт
+            </button>
+          )}
+        </div>
       </div>
 
       <div className="space-y-2 md:hidden">
@@ -59,7 +74,7 @@ export function RecipesPage() {
         )}
         {!loading && recipes.length === 0 && (
           <div className="rounded-xl border border-ink/10 bg-white px-4 py-6 text-center text-sm text-ink/40">
-            Рецептов пока нет.
+            {showArchived ? 'Архив пуст.' : 'Рецептов пока нет.'}
           </div>
         )}
         {recipes.map((r) => (
@@ -97,7 +112,7 @@ export function RecipesPage() {
             {!loading && recipes.length === 0 && (
               <tr>
                 <td colSpan={3} className="px-4 py-6 text-center text-ink/40">
-                  Рецептов пока нет.
+                  {showArchived ? 'Архив пуст.' : 'Рецептов пока нет.'}
                 </td>
               </tr>
             )}
@@ -121,7 +136,7 @@ export function RecipesPage() {
           recipe={selected}
           canEdit={canManage}
           onClose={() => setSelected(null)}
-          onChanged={load}
+          onChanged={() => load(showArchived)}
         />
       )}
 
@@ -130,7 +145,7 @@ export function RecipesPage() {
           onClose={() => setShowCreate(false)}
           onCreated={() => {
             setShowCreate(false)
-            load()
+            load(showArchived)
           }}
         />
       )}

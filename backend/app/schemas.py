@@ -1,4 +1,21 @@
-from pydantic import BaseModel
+import re
+
+from pydantic import BaseModel, field_validator
+
+PHONE_RE = re.compile(r"^[0-9+\-()\s]*$")
+DIGITS_RE = re.compile(r"^[0-9]*$")
+
+
+def _check_phone(value: str | None) -> str | None:
+    if value and not PHONE_RE.match(value):
+        raise ValueError("Телефон может содержать только цифры и + - ( )")
+    return value
+
+
+def _check_digits(value: str | None, label: str) -> str | None:
+    if value and not DIGITS_RE.match(value):
+        raise ValueError(f"{label} может содержать только цифры")
+    return value
 
 
 class LoginRequest(BaseModel):
@@ -40,16 +57,29 @@ class ProductionRequest(BaseModel):
     comment: str = ""
 
 
-class NewRecipeRequest(BaseModel):
-    name: str
-    produces: str
-    batch_yield: float
-    technology: str = ""
-
-
 class NewRecipeItemRequest(BaseModel):
     material_id: str
     qty_per_batch: float
+
+
+class NewRecipeRequest(BaseModel):
+    name: str
+    category: str
+    produces: str
+    batch_yield: float
+    technology: str = ""
+    items: list[NewRecipeItemRequest] = []
+
+
+class UpdateRecipeArchivedRequest(BaseModel):
+    archived: bool
+
+
+class PackagingRequest(BaseModel):
+    product_id: str
+    qty: float
+    defects: float = 0.0
+    comment: str = ""
 
 
 class NewProductRequest(BaseModel):
@@ -78,9 +108,66 @@ class ProductImportCommitRequest(BaseModel):
 
 class SaleRequest(BaseModel):
     product_id: str
+    counterparty_id: str = ""
     qty: float
     price: float | None = None
     comment: str = ""
+
+
+class NewCounterpartyRequest(BaseModel):
+    name: str
+    inn: str = ""
+    kpp: str = ""
+    ogrn: str = ""
+    legal_address: str = ""
+    phone: str = ""
+    contact_person: str = ""
+    comment: str = ""
+
+    _check_phone = field_validator("phone")(_check_phone)
+
+    @field_validator("inn")
+    @classmethod
+    def _v_inn(cls, v: str) -> str:
+        return _check_digits(v, "ИНН")
+
+    @field_validator("kpp")
+    @classmethod
+    def _v_kpp(cls, v: str) -> str:
+        return _check_digits(v, "КПП")
+
+    @field_validator("ogrn")
+    @classmethod
+    def _v_ogrn(cls, v: str) -> str:
+        return _check_digits(v, "ОГРН")
+
+
+class UpdateCounterpartyRequest(BaseModel):
+    name: str | None = None
+    inn: str | None = None
+    kpp: str | None = None
+    ogrn: str | None = None
+    legal_address: str | None = None
+    phone: str | None = None
+    contact_person: str | None = None
+    comment: str | None = None
+
+    _check_phone = field_validator("phone")(_check_phone)
+
+    @field_validator("inn")
+    @classmethod
+    def _v_inn(cls, v: str | None) -> str | None:
+        return _check_digits(v, "ИНН")
+
+    @field_validator("kpp")
+    @classmethod
+    def _v_kpp(cls, v: str | None) -> str | None:
+        return _check_digits(v, "КПП")
+
+    @field_validator("ogrn")
+    @classmethod
+    def _v_ogrn(cls, v: str | None) -> str | None:
+        return _check_digits(v, "ОГРН")
 
 
 class NewUserRequest(BaseModel):
@@ -93,6 +180,8 @@ class NewUserRequest(BaseModel):
     address: str = ""
     document: str = ""
 
+    _check_phone = field_validator("phone")(_check_phone)
+
 
 class UpdateUserRequest(BaseModel):
     fio: str | None = None
@@ -102,6 +191,8 @@ class UpdateUserRequest(BaseModel):
     messenger: str | None = None
     address: str | None = None
     document: str | None = None
+
+    _check_phone = field_validator("phone")(_check_phone)
 
 
 class ResetPasswordRequest(BaseModel):

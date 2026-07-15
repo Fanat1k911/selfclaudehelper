@@ -2,15 +2,16 @@
 founder/developer (см. таблицу ролей в CLAUDE.md), как и в Streamlit-версии."""
 
 from collections import defaultdict
+from datetime import date as date_
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Query
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.constants import DEVELOPER, FOUNDER, TRANSACTION_ADJUSTMENT, TRANSACTION_EXPENSE, TRANSACTION_INCOME
 
 from app.db import get_db
-from app.models import Material, Transaction
+from app.models import Material, ProductionLog, Transaction
 from app.security import require_roles
 
 router = APIRouter(
@@ -81,3 +82,64 @@ def get_dashboard(db: Session = Depends(get_db)) -> dict:
         "последние_движения": recent,
         "топ_расход": top_expense_out,
     }
+
+
+@router.get("/spend")
+def get_spend(
+    date_from: date_ | None = Query(None),
+    date_to: date_ | None = Query(None),
+    db: Session = Depends(get_db),
+) -> dict:
+    """Траты = приход сырья (qty*price). Расход/корректировка остатков — не траты денег."""
+    stmt = select(Transaction).where(Transaction.type == TRANSACTION_INCOME, Transaction.price.is_not(None))
+    if date_from:
+        stmt = stmt.where(Transaction.date >= date_from)
+    if date_to:
+        stmt = stmt.where(Transaction.date <= date_to)
+    transactions = db.scalars(stmt).all()
+
+    name_by_id = {m.id: m.name for m in db.scalars(select(Material))}
+
+    by_month: dict[str, float] = defaultdict(float)
+    by_material: dict[str, float] = defaultdict(float)
+    for tx in transactions:
+        amount = float(tx.qty) * float(tx.price)
+        by_month[tx.date.strftime("%Y-%m")] += amount
+        by_material[tx.material_id] += amount
+
+    by_month_out = [{"месяц": month, "сумма": round(sum_, 2)} for month, sum_ in sorted(by_month.items())]
+    top_materials = sorted(by_material.items(), key=lambda kv: kv[1], reverse=True)[:5]
+    top_materials_out = [
+        {"material_id": mid, "название": name_by_id.get(mid, mid), "сумма": round(sum_, 2)}
+        for mid, sum_ in top_materials
+    ]
+
+    return {
+        "всего": round(sum(by_month.values()), 2),
+        "по_месяцам": by_month_out,
+        "топ_материалов": top_materials_out,
+    }
+
+
+@router.get("/kpi")
+def get_kpi(db: Session = Depends(get_db)) -> list[dict]:
+    """Выработка по кол-ву произведённого (партии*выход − брак), помесячно на сотрудника."""
+    entries = db.scalars(select(ProductionLog)).all()
+
+    totals: dict[tuple[str, str], dict] = {}
+    for entry in entries:
+        month = entry.date.strftime("%Y-%m")
+        key = (month, entry.worker_id)
+        row = totals.setdefault(
+            key, {"месяц": month, "worker_id": entry.worker_id, "ФИО": entry.worker.fio,
+                  "партий": 0.0, "брак": 0.0, "произведено": 0.0}
+        )
+        batches = float(entry.batches)
+        defects = float(entry.defects)
+        row["партий"] += batches
+        row["брак"] += defects
+        row["произведено"] += batches * float(entry.recipe.batch_yield) - defects
+
+    result = list(totals.values())
+    result.sort(key=lambda r: (r["месяц"], r["ФИО"]))
+    return result

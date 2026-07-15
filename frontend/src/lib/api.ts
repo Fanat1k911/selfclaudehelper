@@ -28,6 +28,17 @@ export function getStoredUser<T>(): T | null {
   return raw ? (JSON.parse(raw) as T) : null
 }
 
+// FastAPI отдаёт detail строкой (HTTPException) либо списком объектов {msg, ...} (pydantic-валидация).
+function extractErrorMessage(detail: unknown, fallback: string): string {
+  if (typeof detail === 'string') return detail
+  if (Array.isArray(detail) && detail.length > 0) {
+    const first = detail[0]
+    if (typeof first === 'string') return first
+    if (first && typeof first.msg === 'string') return first.msg
+  }
+  return fallback
+}
+
 export async function apiFetch<T>(path: string, options: RequestInit = {}): Promise<T> {
   const token = getToken()
   const headers: Record<string, string> = {
@@ -48,7 +59,7 @@ export async function apiFetch<T>(path: string, options: RequestInit = {}): Prom
     let message = 'Ошибка запроса.'
     try {
       const body = await res.json()
-      message = body.detail ?? message
+      message = extractErrorMessage(body.detail, message)
     } catch {
       // тело не JSON — оставляем стандартное сообщение
     }
@@ -83,7 +94,7 @@ export async function apiUpload<T>(path: string, file: File, extra?: Record<stri
     let message = 'Ошибка запроса.'
     try {
       const body = await res.json()
-      message = body.detail ?? message
+      message = extractErrorMessage(body.detail, message)
     } catch {
       // тело не JSON — оставляем стандартное сообщение
     }

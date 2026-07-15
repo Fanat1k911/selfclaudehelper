@@ -1,5 +1,14 @@
-import { useState, type FormEvent } from 'react'
+import { useEffect, useState, type FormEvent } from 'react'
 import { apiFetch, ApiError } from '../lib/api'
+import type { Ingredient, Product } from '../types'
+
+const DEFAULT_ROWS = 3
+
+interface CompositionRow {
+  materialName: string
+  materialId: string
+  qty: string
+}
 
 export function NewRecipeModal({
   onClose,
@@ -9,24 +18,69 @@ export function NewRecipeModal({
   onCreated: () => void
 }) {
   const [name, setName] = useState('')
+  const [category, setCategory] = useState('')
   const [produces, setProduces] = useState('')
   const [batchYield, setBatchYield] = useState('')
   const [technology, setTechnology] = useState('')
+  const [ingredients, setIngredients] = useState<Ingredient[]>([])
+  const [productCategories, setProductCategories] = useState<string[]>([])
+  const [rows, setRows] = useState<CompositionRow[]>(
+    Array.from({ length: DEFAULT_ROWS }, () => ({ materialName: '', materialId: '', qty: '' })),
+  )
   const [error, setError] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
+
+  useEffect(() => {
+    apiFetch<Ingredient[]>('/ingredients').then(setIngredients)
+    apiFetch<Product[]>('/products').then((products) => {
+      const categories = [...new Set(products.map((p) => p['категория']).filter(Boolean))].sort()
+      setProductCategories(categories)
+    })
+  }, [])
+
+  function updateRow(i: number, patch: Partial<CompositionRow>) {
+    setRows((prev) => prev.map((row, idx) => (idx === i ? { ...row, ...patch } : row)))
+  }
+
+  function addRow() {
+    setRows((prev) => [...prev, { materialName: '', materialId: '', qty: '' }])
+  }
+
+  function selectMaterialByName(i: number, value: string) {
+    const match = ingredients.find((ing) => ing['название'].toLowerCase() === value.toLowerCase())
+    updateRow(i, { materialName: value, materialId: match ? match.id : '' })
+  }
+
+  function updateQty(i: number, raw: string) {
+    let value = raw.replace(/[^0-9,]/g, '')
+    const firstComma = value.indexOf(',')
+    if (firstComma !== -1) {
+      value = value.slice(0, firstComma + 1) + value.slice(firstComma + 1).replace(/,/g, '')
+    }
+    updateRow(i, { qty: value })
+  }
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault()
     setError(null)
+    const items = rows
+      .filter((row) => row.materialId && row.qty)
+      .map((row) => ({ material_id: row.materialId, qty_per_batch: Number(row.qty.replace(',', '.')) }))
+    if (items.length === 0) {
+      setError('Добавьте хотя бы один компонент состава.')
+      return
+    }
     setSubmitting(true)
     try {
       await apiFetch('/recipes', {
         method: 'POST',
         body: JSON.stringify({
           name,
+          category,
           produces,
           batch_yield: batchYield ? Number(batchYield) : 0,
           technology,
+          items,
         }),
       })
       onCreated()
@@ -42,7 +96,7 @@ export function NewRecipeModal({
       <form
         onSubmit={handleSubmit}
         onClick={(e) => e.stopPropagation()}
-        className="w-full max-w-sm rounded-2xl bg-white p-6 shadow-2xl space-y-3"
+        className="max-h-[90vh] w-full max-w-md overflow-x-hidden overflow-y-auto rounded-2xl bg-white p-6 shadow-2xl space-y-3"
       >
         <div className="text-lg font-semibold text-ink mb-2">Новый рецепт</div>
 
@@ -54,6 +108,23 @@ export function NewRecipeModal({
             className="w-full rounded-lg border border-ink/10 px-3 py-2 text-sm outline-none focus:border-terracotta"
             required
           />
+        </div>
+
+        <div>
+          <label className="block text-xs text-ink/60 mb-1">Категория</label>
+          <select
+            value={category}
+            onChange={(e) => setCategory(e.target.value)}
+            className="w-full rounded-lg border border-ink/10 px-3 py-2 text-sm outline-none focus:border-terracotta"
+            required
+          >
+            <option value="">— категория —</option>
+            {productCategories.map((c) => (
+              <option key={c} value={c}>
+                {c}
+              </option>
+            ))}
+          </select>
         </div>
 
         <div>
@@ -85,6 +156,43 @@ export function NewRecipeModal({
             rows={3}
             className="w-full rounded-lg border border-ink/10 px-3 py-2 text-sm outline-none focus:border-terracotta"
           />
+        </div>
+
+        <div>
+          <label className="block text-xs text-ink/60 mb-1">Состав</label>
+          <div className="space-y-2">
+            {rows.map((row, i) => (
+              <div key={i} className="flex gap-2">
+                <input
+                  list="composition-materials"
+                  value={row.materialName}
+                  onChange={(e) => selectMaterialByName(i, e.target.value)}
+                  placeholder="Компонент"
+                  className="min-w-0 flex-1 rounded-lg border border-ink/10 px-3 py-2 text-sm outline-none focus:border-terracotta"
+                />
+                <input
+                  type="text"
+                  inputMode="decimal"
+                  value={row.qty}
+                  onChange={(e) => updateQty(i, e.target.value)}
+                  placeholder="Кол-во"
+                  className="w-24 shrink-0 rounded-lg border border-ink/10 px-3 py-2 text-sm outline-none focus:border-terracotta"
+                />
+              </div>
+            ))}
+          </div>
+          <datalist id="composition-materials">
+            {ingredients.map((ing) => (
+              <option key={ing.id} value={ing['название']} />
+            ))}
+          </datalist>
+          <button
+            type="button"
+            onClick={addRow}
+            className="mt-2 text-sm font-medium text-terracotta hover:text-terracotta-dark"
+          >
+            + Добавить компонент
+          </button>
         </div>
 
         {error && <div className="text-sm text-red-600">{error}</div>}

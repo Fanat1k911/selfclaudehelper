@@ -1,0 +1,44 @@
+from app.constants import USER_STATUS_FIRED, WORKER
+from tests.conftest import auth_headers, make_user
+
+
+def test_login_success(client, db_session):
+    make_user(db_session, login="worker1", role=WORKER, password="pass1234")
+    resp = client.post("/api/auth/login", json={"login": "worker1", "password": "pass1234"})
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body["user"]["login"] == "worker1"
+    assert body["access_token"]
+
+
+def test_login_wrong_password(client, db_session):
+    make_user(db_session, login="worker2", role=WORKER, password="pass1234")
+    resp = client.post("/api/auth/login", json={"login": "worker2", "password": "wrong"})
+    assert resp.status_code == 401
+
+
+def test_login_creates_log_entry(client, db_session):
+    make_user(db_session, login="worker3", role=WORKER, password="pass1234")
+    client.post("/api/auth/login", json={"login": "worker3", "password": "pass1234"})
+    founder = make_user(db_session, login="founder1", role="founder", password="pass1234")
+    resp = client.get("/api/auth/log", headers=auth_headers(founder))
+    assert resp.status_code == 200
+    logins = [entry["логин"] for entry in resp.json()]
+    assert "worker3" in logins
+
+
+def test_fired_user_loses_access(client, db_session):
+    user = make_user(db_session, login="worker4", role=WORKER, password="pass1234", status=USER_STATUS_FIRED)
+    resp = client.post("/api/auth/login", json={"login": "worker4", "password": "pass1234"})
+    assert resp.status_code == 401
+
+    # Токен, выданный до увольнения, тоже теряет силу — get_current_user
+    # перепроверяет статус в БД на каждый запрос.
+    resp = client.get("/api/auth/me", headers=auth_headers(user))
+    assert resp.status_code == 401
+
+
+def test_worker_cannot_see_login_log(client, db_session):
+    worker = make_user(db_session, login="worker5", role=WORKER, password="pass1234")
+    resp = client.get("/api/auth/log", headers=auth_headers(worker))
+    assert resp.status_code == 403

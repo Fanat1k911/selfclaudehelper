@@ -67,12 +67,46 @@ export interface DashboardData {
   'топ_расход': DashboardTopExpenseItem[]
 }
 
+export interface DashboardSpendMonth {
+  'месяц': string
+  'сумма': number
+}
+
+export interface DashboardSpendTopMaterial {
+  material_id: string
+  'название': string
+  'сумма': number
+}
+
+export interface DashboardSpend {
+  'всего': number
+  'по_месяцам': DashboardSpendMonth[]
+  'топ_материалов': DashboardSpendTopMaterial[]
+}
+
+export interface DashboardKpiRow {
+  'месяц': string
+  worker_id: string
+  'ФИО': string
+  'партий': number
+  'брак': number
+  'произведено': number
+}
+
 export interface Recipe {
   id: string
   'название': string
+  'категория': string
   'что производим': string
   'выход партии': number | string
   'технология': string
+  'архив': boolean
+}
+
+export interface ProducibleProduct {
+  id: string
+  'название': string
+  recipe_id: string
 }
 
 export interface ProductionLogEntry {
@@ -116,9 +150,43 @@ export interface Sale {
   'дата': string
   product_id: string
   'название': string
+  counterparty_id: string
+  'контрагент': string
   'кол-во': number
   'цена': number | string
   'комментарий': string
+}
+
+export interface Counterparty {
+  id: string
+  'название': string
+  'ИНН': string
+  'КПП': string
+  'ОГРН': string
+  'юр.адрес': string
+  'телефон': string
+  'контактное лицо': string
+  'комментарий': string
+}
+
+export interface PackagingLogEntry {
+  id: string
+  'дата': string
+  worker_id: string
+  'ФИО сотрудника': string
+  product_id: string
+  'название продукта': string
+  'кол-во': number
+  'брак': number
+  'комментарий': string
+}
+
+export interface LoginLogEntry {
+  id: string
+  user_id: string
+  'ФИО': string
+  'логин': string
+  'дата и время': string
 }
 
 export interface TopProduct {

@@ -12,7 +12,6 @@ export function NewIngredientModal({
 }) {
   const [name, setName] = useState('')
   const [category, setCategory] = useState<(typeof CATEGORIES)[number]>('сыпучее')
-  const [unit, setUnit] = useState('')
   const [minStock, setMinStock] = useState('')
   const [initialQty, setInitialQty] = useState('')
   const [error, setError] = useState<string | null>(null)
@@ -28,7 +27,7 @@ export function NewIngredientModal({
         body: JSON.stringify({
           name,
           category,
-          unit,
+          unit: 'г',
           min_stock: minStock ? Number(minStock) : 0,
           initial_qty: initialQty ? Number(initialQty) : 0,
         }),
@@ -73,17 +72,6 @@ export function NewIngredientModal({
               </option>
             ))}
           </select>
-        </div>
-
-        <div>
-          <label className="block text-xs text-ink/60 mb-1">Единица измерения</label>
-          <input
-            value={unit}
-            onChange={(e) => setUnit(e.target.value)}
-            placeholder="кг, л, шт"
-            className="w-full rounded-lg border border-ink/10 px-3 py-2 text-sm outline-none focus:border-terracotta"
-            required
-          />
         </div>
 
         <div className="grid grid-cols-2 gap-3">

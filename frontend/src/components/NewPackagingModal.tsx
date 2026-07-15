@@ -1,26 +1,28 @@
 import { useEffect, useState, type FormEvent } from 'react'
 import { apiFetch, ApiError } from '../lib/api'
-import type { ProducibleProduct } from '../types'
 
-export function NewProductionModal({
+interface ProductOption {
+  id: string
+  'название': string
+}
+
+export function NewPackagingModal({
   onClose,
   onCreated,
 }: {
   onClose: () => void
   onCreated: () => void
 }) {
-  const [products, setProducts] = useState<ProducibleProduct[]>([])
+  const [products, setProducts] = useState<ProductOption[]>([])
   const [productId, setProductId] = useState('')
-  const [batches, setBatches] = useState('1')
-  const [startedAt, setStartedAt] = useState('')
-  const [finishedAt, setFinishedAt] = useState('')
+  const [qty, setQty] = useState('')
   const [defects, setDefects] = useState('0')
   const [comment, setComment] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
 
   useEffect(() => {
-    apiFetch<ProducibleProduct[]>('/production/products').then((data) => {
+    apiFetch<ProductOption[]>('/packaging/products').then((data) => {
       setProducts(data)
       if (data.length > 0) setProductId(data[0].id)
     })
@@ -29,24 +31,20 @@ export function NewProductionModal({
   async function handleSubmit(e: FormEvent) {
     e.preventDefault()
     setError(null)
-    const product = products.find((p) => p.id === productId)
-    if (!product) return
     setSubmitting(true)
     try {
-      await apiFetch('/production', {
+      await apiFetch('/packaging', {
         method: 'POST',
         body: JSON.stringify({
-          recipe_id: product.recipe_id,
-          batches: Number(batches),
-          started_at: startedAt,
-          finished_at: finishedAt,
+          product_id: productId,
+          qty: Number(qty),
           defects: defects ? Number(defects) : 0,
           comment,
         }),
       })
       onCreated()
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'Не удалось внести производство.')
+      setError(err instanceof ApiError ? err.message : 'Не удалось внести упаковку.')
     } finally {
       setSubmitting(false)
     }
@@ -59,7 +57,7 @@ export function NewProductionModal({
         onClick={(e) => e.stopPropagation()}
         className="w-full max-w-sm rounded-2xl bg-white p-6 shadow-2xl space-y-3"
       >
-        <div className="text-lg font-semibold text-ink mb-2">Внести производство</div>
+        <div className="text-lg font-semibold text-ink mb-2">Внести упаковку</div>
 
         <div>
           <label className="block text-xs text-ink/60 mb-1">Продукт</label>
@@ -78,39 +76,16 @@ export function NewProductionModal({
         </div>
 
         <div>
-          <label className="block text-xs text-ink/60 mb-1">Количество партий</label>
+          <label className="block text-xs text-ink/60 mb-1">Количество</label>
           <input
             type="number"
             step="any"
             min="0"
-            value={batches}
-            onChange={(e) => setBatches(e.target.value)}
+            value={qty}
+            onChange={(e) => setQty(e.target.value)}
             className="w-full rounded-lg border border-ink/10 px-3 py-2 text-sm outline-none focus:border-terracotta"
             required
           />
-        </div>
-
-        <div className="grid grid-cols-2 gap-3">
-          <div>
-            <label className="block text-xs text-ink/60 mb-1">Начало</label>
-            <input
-              type="datetime-local"
-              value={startedAt}
-              onChange={(e) => setStartedAt(e.target.value)}
-              className="w-full rounded-lg border border-ink/10 px-3 py-2 text-sm outline-none focus:border-terracotta"
-              required
-            />
-          </div>
-          <div>
-            <label className="block text-xs text-ink/60 mb-1">Окончание</label>
-            <input
-              type="datetime-local"
-              value={finishedAt}
-              onChange={(e) => setFinishedAt(e.target.value)}
-              className="w-full rounded-lg border border-ink/10 px-3 py-2 text-sm outline-none focus:border-terracotta"
-              required
-            />
-          </div>
         </div>
 
         <div>

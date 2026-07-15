@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { apiFetch } from '../lib/api'
-import type { StaffUser } from '../types'
+import type { LoginLogEntry, StaffUser } from '../types'
 import { NewStaffModal } from '../components/NewStaffModal'
 import { StaffDetailPanel } from '../components/StaffDetailPanel'
 
@@ -10,11 +10,22 @@ const ROLE_LABEL: Record<StaffUser['role'], string> = {
   developer: 'Developer',
 }
 
+function formatDateTime(value: string) {
+  const d = new Date(value)
+  if (Number.isNaN(d.getTime())) return '—'
+  const pad = (n: number) => String(n).padStart(2, '0')
+  const date = `${pad(d.getDate())}.${pad(d.getMonth() + 1)}.${d.getFullYear()}`
+  const weekday = d.toLocaleDateString('ru-RU', { weekday: 'long' })
+  const time = `${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`
+  return `${date}, ${weekday}, ${time}`
+}
+
 export function StaffPage() {
   const [staff, setStaff] = useState<StaffUser[]>([])
   const [loading, setLoading] = useState(true)
   const [showCreate, setShowCreate] = useState(false)
   const [selected, setSelected] = useState<StaffUser | null>(null)
+  const [loginLog, setLoginLog] = useState<LoginLogEntry[]>([])
 
   async function load() {
     setLoading(true)
@@ -29,6 +40,7 @@ export function StaffPage() {
 
   useEffect(() => {
     load()
+    apiFetch<LoginLogEntry[]>('/auth/log').then(setLoginLog)
   }, [])
 
   function handleRowClick(u: StaffUser) {
@@ -143,6 +155,37 @@ export function StaffPage() {
             ))}
           </tbody>
         </table>
+      </div>
+
+      <div className="mt-8">
+        <h2 className="mb-3 text-lg font-semibold text-ink">История входов</h2>
+        <div className="overflow-hidden rounded-xl border border-ink/10 bg-white shadow-sm">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b border-ink/10 text-left text-ink/50">
+                <th className="px-4 py-3 font-medium">Сотрудник</th>
+                <th className="px-4 py-3 font-medium">Логин</th>
+                <th className="px-4 py-3 font-medium">Дата и время</th>
+              </tr>
+            </thead>
+            <tbody>
+              {loginLog.length === 0 && (
+                <tr>
+                  <td colSpan={3} className="px-4 py-6 text-center text-ink/40">
+                    Входов ещё не было.
+                  </td>
+                </tr>
+              )}
+              {loginLog.map((entry) => (
+                <tr key={entry.id} className="border-b border-ink/5 last:border-0">
+                  <td className="px-4 py-3">{entry['ФИО']}</td>
+                  <td className="px-4 py-3 text-ink/60">{entry['логин']}</td>
+                  <td className="px-4 py-3 text-ink/50">{formatDateTime(entry['дата и время'])}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </div>
 
       {selected && (

@@ -3,23 +3,28 @@ import { Link, NavLink, useNavigate } from 'react-router-dom'
 import {
   LayoutDashboard,
   Package,
+  PackageCheck,
   Factory,
   Receipt,
   BookOpen,
   ShoppingBag,
+  Building2,
   ChevronDown,
   type LucideIcon,
 } from 'lucide-react'
 import { useAuth, defaultPathForRole } from '../lib/auth'
 import type { User } from '../types'
+import logo from '../assets/logo-light.png'
 
 const NAV_ITEMS: { to: string; label: string; icon: LucideIcon; enabled: boolean; roles?: User['role'][] }[] = [
   { to: '/dashboard', label: 'Дашборд', icon: LayoutDashboard, enabled: true, roles: ['founder', 'developer'] },
   { to: '/ingredients', label: 'Компоненты', icon: Package, enabled: true },
   { to: '/production', label: 'Производство', icon: Factory, enabled: true },
+  { to: '/packaging', label: 'Упаковка', icon: PackageCheck, enabled: true },
   { to: '/sales', label: 'Отгрузка', icon: Receipt, enabled: true, roles: ['founder', 'developer'] },
   { to: '/recipes', label: 'Рецепты', icon: BookOpen, enabled: true },
   { to: '/products', label: 'Продукт', icon: ShoppingBag, enabled: true, roles: ['founder', 'developer'] },
+  { to: '/counterparties', label: 'Контрагенты', icon: Building2, enabled: true, roles: ['founder', 'developer'] },
 ]
 
 const MANAGEMENT_ROLES: User['role'][] = ['founder', 'developer']
@@ -65,10 +70,10 @@ export function Sidebar({ mobileOpen = false, onCloseMobile }: { mobileOpen?: bo
         <Link
           to={defaultPathForRole(user?.role)}
           onClick={onCloseMobile}
-          className="px-6 py-6 text-2xl font-bold italic tracking-wide text-white hover:text-terracotta transition-colors md:px-0 md:text-center lg:px-6 lg:text-left"
+          className="px-6 py-6 flex items-center md:px-0 md:justify-center lg:px-6 lg:justify-start"
         >
-          <span className="md:hidden lg:inline">oinarri</span>
-          <span className="hidden md:inline lg:hidden">o</span>
+          <img src={logo} alt="oinarri" className="h-6 w-auto md:hidden lg:block" />
+          <span className="hidden md:inline lg:hidden text-2xl font-bold italic tracking-wide text-white">o</span>
         </Link>
 
         <nav className="flex-1 px-3 space-y-1">

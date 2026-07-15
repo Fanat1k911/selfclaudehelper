@@ -11,7 +11,8 @@ from sqlalchemy.orm import Session
 from app.constants import DEVELOPER, FOUNDER
 
 from app.db import get_db
-from app.models import Product, Sale
+from app.models import Counterparty, Product, Sale
+from app.routers.products import _ready_to_ship_by_recipe, _sold_by_product
 from app.schemas import SaleRequest
 from app.security import require_roles
 
@@ -24,6 +25,8 @@ def _sale_dict(sale: Sale) -> dict:
         "дата": sale.date.isoformat(),
         "product_id": sale.product_id,
         "название": sale.product.name if sale.product else "",
+        "counterparty_id": sale.counterparty_id or "",
+        "контрагент": sale.counterparty.name if sale.counterparty else "",
         "кол-во": float(sale.qty),
         "цена": float(sale.price) if sale.price is not None else "",
         "комментарий": sale.comment or "",
@@ -52,10 +55,24 @@ def top_products(limit: int = 3, db: Session = Depends(get_db)) -> list[dict]:
 def create_sale(body: SaleRequest, db: Session = Depends(get_db)) -> dict:
     if body.qty <= 0:
         raise HTTPException(400, "Количество должно быть больше нуля.")
-    if db.get(Product, body.product_id) is None:
+    product = db.get(Product, body.product_id)
+    if product is None:
         raise HTTPException(404, "Продукт не найден.")
+    if body.counterparty_id and db.get(Counterparty, body.counterparty_id) is None:
+        raise HTTPException(404, "Контрагент не найден.")
 
-    sale = Sale(product_id=body.product_id, qty=body.qty, price=body.price, comment=body.comment)
+    if product.recipe_id:
+        ready = _ready_to_ship_by_recipe(db).get(product.recipe_id, 0.0) - _sold_by_product(db).get(product.id, 0.0)
+        if body.qty > ready:
+            raise HTTPException(400, f"Недостаточно готового товара: доступно {ready:g}, запрошено {body.qty:g}.")
+
+    sale = Sale(
+        product_id=body.product_id,
+        counterparty_id=body.counterparty_id or None,
+        qty=body.qty,
+        price=body.price,
+        comment=body.comment,
+    )
     db.add(sale)
     db.commit()
     return {"id": sale.id}

@@ -1,5 +1,6 @@
 import { useState, type FormEvent } from 'react'
 import { apiFetch, ApiError } from '../lib/api'
+import { sanitizePhone } from '../lib/validators'
 import type { StaffUser } from '../types'
 
 const ROLES: { value: StaffUser['role']; label: string }[] = [
@@ -153,8 +154,10 @@ export function StaffDetailPanel({
           <div>
             <label className="block text-xs text-ink/60 mb-1">Телефон</label>
             <input
+              type="tel"
+              inputMode="tel"
               value={phone}
-              onChange={(e) => setPhone(e.target.value)}
+              onChange={(e) => setPhone(sanitizePhone(e.target.value))}
               className="w-full rounded-lg border border-ink/10 px-3 py-2 text-sm outline-none focus:border-terracotta"
             />
           </div>

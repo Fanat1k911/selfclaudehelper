@@ -20,6 +20,7 @@ export function RecipeDetailPanel({
   const [error, setError] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
   const [editing, setEditing] = useState(false)
+  const [archiving, setArchiving] = useState(false)
 
   function loadItems() {
     apiFetch<RecipeItem[]>(`/recipes/${recipe.id}/items`).then(setItems)
@@ -33,6 +34,22 @@ export function RecipeDetailPanel({
       if (data.length > 0) setMaterialId(data[0].id)
     })
   }, [recipe.id, canEdit])
+
+  async function toggleArchived() {
+    setArchiving(true)
+    try {
+      await apiFetch(`/recipes/${recipe.id}`, {
+        method: 'PATCH',
+        body: JSON.stringify({ archived: !recipe['архив'] }),
+      })
+      onChanged()
+      onClose()
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : 'Не удалось изменить статус архива.')
+    } finally {
+      setArchiving(false)
+    }
+  }
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault()
@@ -72,12 +89,21 @@ export function RecipeDetailPanel({
         {canEdit && (
           <div className="px-6 py-4 border-b border-ink/10 space-y-3">
             {!editing ? (
-              <button
-                onClick={() => setEditing(true)}
-                className="rounded-lg border border-ink/10 px-4 py-2 text-sm font-medium text-ink hover:bg-cream/60"
-              >
-                Редактировать состав
-              </button>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setEditing(true)}
+                  className="rounded-lg border border-ink/10 px-4 py-2 text-sm font-medium text-ink hover:bg-cream/60"
+                >
+                  Редактировать состав
+                </button>
+                <button
+                  onClick={toggleArchived}
+                  disabled={archiving}
+                  className="rounded-lg border border-ink/10 px-4 py-2 text-sm font-medium text-ink hover:bg-cream/60 disabled:opacity-60"
+                >
+                  {recipe['архив'] ? 'Вернуть из архива' : 'Переместить в архив'}
+                </button>
+              </div>
             ) : (
               <>
                 <div className="text-sm font-medium text-ink/70">Добавить компонент в состав</div>

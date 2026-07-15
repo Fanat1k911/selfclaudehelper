@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Outlet } from 'react-router-dom'
 import { Menu } from 'lucide-react'
 import { Sidebar } from './Sidebar'
+import logo from '../assets/logo-dark.png'
 
 export function Layout() {
   const [mobileOpen, setMobileOpen] = useState(false)
@@ -18,7 +19,7 @@ export function Layout() {
           >
             <Menu className="h-5 w-5" />
           </button>
-          <span className="text-lg font-bold italic tracking-wide text-ink">oinarri</span>
+          <img src={logo} alt="oinarri" className="h-5 w-auto" />
         </header>
         <main className="flex-1 overflow-y-auto">
           <Outlet />

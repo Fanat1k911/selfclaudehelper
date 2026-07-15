@@ -2,6 +2,8 @@ import { useState, type FormEvent } from 'react'
 import { Navigate, useNavigate } from 'react-router-dom'
 import { defaultPathForRole, useAuth } from '../lib/auth'
 import { ApiError } from '../lib/api'
+import { TimezoneClock } from '../components/TimezoneClock'
+import logo from '../assets/logo-dark.png'
 
 export function LoginPage() {
   const { user, login } = useAuth()
@@ -31,11 +33,10 @@ export function LoginPage() {
     <div className="flex min-h-screen items-center justify-center bg-cream px-4">
       <form
         onSubmit={handleSubmit}
-        className="w-full max-w-sm rounded-2xl bg-white p-8 shadow-lg shadow-black/5"
+        className="w-full max-w-lg rounded-2xl bg-white p-8 shadow-lg shadow-black/5"
       >
         <div className="mb-8 text-center">
-          <div className="text-2xl font-semibold text-ink">oinarri</div>
-          <div className="text-sm text-ink/50 mt-1">Учёт сырья и производства</div>
+          <img src={logo} alt="oinarri" className="mx-auto h-8 w-auto" />
         </div>
 
         <label className="block text-sm text-ink/70 mb-1" htmlFor="login">
@@ -73,6 +74,8 @@ export function LoginPage() {
           {loading ? 'Входим…' : 'Войти'}
         </button>
       </form>
+
+      <TimezoneClock />
     </div>
   )
 }

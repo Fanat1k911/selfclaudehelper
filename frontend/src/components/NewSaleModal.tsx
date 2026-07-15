@@ -1,6 +1,6 @@
 import { useEffect, useState, type FormEvent } from 'react'
 import { apiFetch, ApiError } from '../lib/api'
-import type { Product } from '../types'
+import type { Counterparty, Product } from '../types'
 
 export function NewSaleModal({
   onClose,
@@ -11,6 +11,8 @@ export function NewSaleModal({
 }) {
   const [products, setProducts] = useState<Product[]>([])
   const [productId, setProductId] = useState('')
+  const [counterparties, setCounterparties] = useState<Counterparty[]>([])
+  const [counterpartyId, setCounterpartyId] = useState('')
   const [qty, setQty] = useState('')
   const [price, setPrice] = useState('')
   const [comment, setComment] = useState('')
@@ -22,6 +24,7 @@ export function NewSaleModal({
       setProducts(data)
       if (data.length > 0) setProductId(data[0].id)
     })
+    apiFetch<Counterparty[]>('/counterparties').then(setCounterparties)
   }, [])
 
   async function handleSubmit(e: FormEvent) {
@@ -33,6 +36,7 @@ export function NewSaleModal({
         method: 'POST',
         body: JSON.stringify({
           product_id: productId,
+          counterparty_id: counterpartyId,
           qty: Number(qty),
           price: price ? Number(price) : undefined,
           comment,
@@ -66,6 +70,22 @@ export function NewSaleModal({
             {products.map((p) => (
               <option key={p.id} value={p.id}>
                 {p['название']}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        <div>
+          <label className="block text-xs text-ink/60 mb-1">Контрагент (необязательно)</label>
+          <select
+            value={counterpartyId}
+            onChange={(e) => setCounterpartyId(e.target.value)}
+            className="w-full rounded-lg border border-ink/10 px-3 py-2 text-sm outline-none focus:border-terracotta"
+          >
+            <option value="">— не указан —</option>
+            {counterparties.map((c) => (
+              <option key={c.id} value={c.id}>
+                {c['название']}
               </option>
             ))}
           </select>

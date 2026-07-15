@@ -7,7 +7,7 @@ Founder мог читать сырой лист глазами, а таблиц�
 import uuid
 from datetime import date as date_, datetime
 
-from sqlalchemy import Date, DateTime, ForeignKey, Numeric, String, Text, UniqueConstraint
+from sqlalchemy import Boolean, Date, DateTime, ForeignKey, Numeric, String, Text, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db import Base
@@ -33,6 +33,16 @@ class User(Base):
     document: Mapped[str | None] = mapped_column(Text)
 
 
+class LoginLog(Base):
+    __tablename__ = "login_log"
+
+    id: Mapped[str] = mapped_column(String(8), primary_key=True, default=_short_id)
+    user_id: Mapped[str] = mapped_column(ForeignKey("users.id"))
+    logged_in_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+
+    user: Mapped["User"] = relationship()
+
+
 class Material(Base):
     __tablename__ = "materials"
 
@@ -50,9 +60,11 @@ class Recipe(Base):
 
     id: Mapped[str] = mapped_column(String(8), primary_key=True, default=_short_id)
     name: Mapped[str] = mapped_column(String(255))
+    category: Mapped[str] = mapped_column(String(100))
     produces: Mapped[str] = mapped_column(String(255))
     batch_yield: Mapped[float] = mapped_column(Numeric(12, 3))
     technology: Mapped[str | None] = mapped_column(Text)
+    archived: Mapped[bool] = mapped_column(Boolean, default=False, server_default="false")
 
     items: Mapped[list["RecipeItem"]] = relationship(back_populates="recipe", cascade="all, delete-orphan")
 
@@ -101,17 +113,33 @@ class Product(Base):
     recipe: Mapped["Recipe | None"] = relationship()
 
 
+class Counterparty(Base):
+    __tablename__ = "counterparties"
+
+    id: Mapped[str] = mapped_column(String(8), primary_key=True, default=_short_id)
+    name: Mapped[str] = mapped_column(String(255))
+    inn: Mapped[str | None] = mapped_column(String(20))
+    kpp: Mapped[str | None] = mapped_column(String(20))
+    ogrn: Mapped[str | None] = mapped_column(String(20))
+    legal_address: Mapped[str | None] = mapped_column(Text)
+    phone: Mapped[str | None] = mapped_column(String(50))
+    contact_person: Mapped[str | None] = mapped_column(String(255))
+    comment: Mapped[str | None] = mapped_column(Text)
+
+
 class Sale(Base):
     __tablename__ = "sales"
 
     id: Mapped[str] = mapped_column(String(8), primary_key=True, default=_short_id)
     date: Mapped[date_] = mapped_column(Date, default=date_.today)
     product_id: Mapped[str] = mapped_column(ForeignKey("products.id"))
+    counterparty_id: Mapped[str | None] = mapped_column(ForeignKey("counterparties.id"))
     qty: Mapped[float] = mapped_column(Numeric(12, 3))
     price: Mapped[float | None] = mapped_column(Numeric(12, 2))
     comment: Mapped[str | None] = mapped_column(Text)
 
     product: Mapped["Product"] = relationship()
+    counterparty: Mapped["Counterparty | None"] = relationship()
 
 
 class ProductionLog(Base):
@@ -129,6 +157,21 @@ class ProductionLog(Base):
 
     worker: Mapped["User"] = relationship()
     recipe: Mapped["Recipe"] = relationship()
+
+
+class PackagingLog(Base):
+    __tablename__ = "packaging_log"
+
+    id: Mapped[str] = mapped_column(String(8), primary_key=True, default=_short_id)
+    date: Mapped[date_] = mapped_column(Date, default=date_.today)
+    worker_id: Mapped[str] = mapped_column(ForeignKey("users.id"))
+    product_id: Mapped[str] = mapped_column(ForeignKey("products.id"))
+    qty: Mapped[float] = mapped_column(Numeric(12, 3))
+    defects: Mapped[float] = mapped_column(Numeric(12, 3), default=0)
+    comment: Mapped[str | None] = mapped_column(Text)
+
+    worker: Mapped["User"] = relationship()
+    product: Mapped["Product"] = relationship()
 
 
 class Feedback(Base):

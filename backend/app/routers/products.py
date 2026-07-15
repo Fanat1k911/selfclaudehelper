@@ -84,8 +84,12 @@ def create_product(body: NewProductRequest, db: Session = Depends(get_db)) -> di
     if missing:
         raise HTTPException(400, f"Не заполнены обязательные поля: {', '.join(missing)}.")
 
-    if body.recipe_id and db.get(Recipe, body.recipe_id) is None:
-        raise HTTPException(404, "Рецепт не найден.")
+    if body.recipe_id:
+        recipe = db.get(Recipe, body.recipe_id)
+        if recipe is None:
+            raise HTTPException(404, "Рецепт не найден.")
+        if recipe.archived:
+            raise HTTPException(400, "Рецепт в архиве, привязать к продукту нельзя.")
 
     product = Product(
         name=body.name,
