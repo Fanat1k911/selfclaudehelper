@@ -13,7 +13,7 @@ SECRETS_PATH = PROJECT_ROOT / ".streamlit" / "secrets.toml"
 
 JWT_SECRET = os.environ.get("JWT_SECRET", "dev-insecure-secret-change-me")
 JWT_ALGORITHM = "HS256"
-JWT_EXPIRE_MINUTES = int(os.environ.get("JWT_EXPIRE_MINUTES", "60"))
+JWT_EXPIRE_MINUTES = int(os.environ.get("JWT_EXPIRE_MINUTES", str(24 * 60)))
 
 CORS_ORIGINS = os.environ.get("CORS_ORIGINS", "http://localhost:5173,http://localhost:3000").split(",")
 
