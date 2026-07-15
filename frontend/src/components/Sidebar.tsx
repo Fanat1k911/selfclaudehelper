@@ -1,4 +1,5 @@
-import { Link, NavLink } from 'react-router-dom'
+import { useEffect, useRef, useState } from 'react'
+import { Link, NavLink, useNavigate } from 'react-router-dom'
 import { useAuth, defaultPathForRole } from '../lib/auth'
 import type { User } from '../types'
 
@@ -9,12 +10,27 @@ const NAV_ITEMS: { to: string; label: string; enabled: boolean; roles?: User['ro
   { to: '/sales', label: 'Продажи', enabled: true, roles: ['founder', 'developer'] },
   { to: '/recipes', label: 'Рецепты', enabled: true },
   { to: '/products', label: 'Товары', enabled: true, roles: ['founder', 'developer'] },
-  { to: '/staff', label: 'Сотрудники', enabled: true, roles: ['founder', 'developer'] },
 ]
+
+const MANAGEMENT_ROLES: User['role'][] = ['founder', 'developer']
 
 export function Sidebar() {
   const { user, logout } = useAuth()
+  const navigate = useNavigate()
   const items = NAV_ITEMS.filter((item) => !item.roles || (user && item.roles.includes(user.role)))
+  const canManageStaff = !!user && MANAGEMENT_ROLES.includes(user.role)
+
+  const [menuOpen, setMenuOpen] = useState(false)
+  const menuRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    if (!menuOpen) return
+    function onClickOutside(e: MouseEvent) {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) setMenuOpen(false)
+    }
+    document.addEventListener('mousedown', onClickOutside)
+    return () => document.removeEventListener('mousedown', onClickOutside)
+  }, [menuOpen])
 
   return (
     <aside className="flex h-screen w-64 flex-col bg-sidebar text-cream/90 shrink-0">
@@ -53,14 +69,46 @@ export function Sidebar() {
         )}
       </nav>
 
-      <div className="border-t border-white/10 px-6 py-4">
-        <div className="text-sm text-white">{user?.fio}</div>
-        <div className="text-xs text-white/50 mb-3">{user?.role}</div>
+      <div ref={menuRef} className="relative border-t border-white/10 px-3 py-4">
+        {menuOpen && (
+          <div className="absolute bottom-full left-3 right-3 mb-2 overflow-hidden rounded-lg border border-white/10 bg-sidebar shadow-2xl">
+            {canManageStaff && (
+              <NavLink
+                to="/staff"
+                onClick={() => setMenuOpen(false)}
+                className={({ isActive }) =>
+                  `block px-4 py-2.5 text-sm transition-colors ${
+                    isActive ? 'bg-terracotta text-white font-medium' : 'text-white/80 hover:bg-sidebar-hover hover:text-white'
+                  }`
+                }
+              >
+                Сотрудники
+              </NavLink>
+            )}
+            <button
+              onClick={() => {
+                setMenuOpen(false)
+                logout()
+                navigate('/login', { replace: true })
+              }}
+              className="block w-full px-4 py-2.5 text-left text-sm text-white/80 hover:bg-sidebar-hover hover:text-white"
+            >
+              Выйти
+            </button>
+          </div>
+        )}
+
         <button
-          onClick={logout}
-          className="w-full rounded-lg border border-white/15 py-2 text-sm font-medium text-white hover:bg-terracotta hover:border-terracotta transition-colors"
+          onClick={() => setMenuOpen((v) => !v)}
+          className="w-full rounded-lg px-3 py-2 text-left transition-colors hover:bg-sidebar-hover"
         >
-          Выйти
+          <div className="flex items-center justify-between">
+            <div>
+              <div className="text-sm text-white">{user?.fio}</div>
+              <div className="text-xs text-white/50">{user?.role}</div>
+            </div>
+            <span className={`text-white/40 transition-transform ${menuOpen ? 'rotate-180' : ''}`}>▲</span>
+          </div>
         </button>
       </div>
     </aside>
