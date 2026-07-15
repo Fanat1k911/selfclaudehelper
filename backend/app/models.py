@@ -1,0 +1,142 @@
+"""SQLAlchemy-модели — замена dict-строк Sheets (см. CLAUDE.md → "Структура данных").
+
+Денормализованные "название рецепта"/"название материала"/"ФИО сотрудника" из
+RecipeItems/Products/ProductionLog в Sheets убраны: они существовали только чтобы
+Founder мог читать сырой лист глазами, а таблицу больше не будут трогать руками."""
+
+import uuid
+from datetime import date as date_, datetime
+
+from sqlalchemy import Date, DateTime, ForeignKey, Numeric, String, Text, UniqueConstraint
+from sqlalchemy.orm import Mapped, mapped_column, relationship
+
+from app.db import Base
+
+
+def _short_id() -> str:
+    return uuid.uuid4().hex[:8]
+
+
+class User(Base):
+    __tablename__ = "users"
+
+    id: Mapped[str] = mapped_column(String(8), primary_key=True, default=_short_id)
+    fio: Mapped[str] = mapped_column(String(255))
+    login: Mapped[str] = mapped_column(String(100), unique=True, index=True)
+    password_hash: Mapped[str] = mapped_column(String(255))
+    role: Mapped[str] = mapped_column(String(20))
+    status: Mapped[str] = mapped_column(String(20))
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    phone: Mapped[str | None] = mapped_column(String(50))
+    messenger: Mapped[str | None] = mapped_column(String(100))
+    address: Mapped[str | None] = mapped_column(Text)
+    document: Mapped[str | None] = mapped_column(Text)
+
+
+class Material(Base):
+    __tablename__ = "materials"
+
+    id: Mapped[str] = mapped_column(String(8), primary_key=True, default=_short_id)
+    name: Mapped[str] = mapped_column(String(255))
+    category: Mapped[str] = mapped_column(String(20))
+    unit: Mapped[str] = mapped_column(String(20))
+    min_stock: Mapped[float] = mapped_column(Numeric(12, 3), default=0)
+
+    transactions: Mapped[list["Transaction"]] = relationship(back_populates="material")
+
+
+class Recipe(Base):
+    __tablename__ = "recipes"
+
+    id: Mapped[str] = mapped_column(String(8), primary_key=True, default=_short_id)
+    name: Mapped[str] = mapped_column(String(255))
+    produces: Mapped[str] = mapped_column(String(255))
+    batch_yield: Mapped[float] = mapped_column(Numeric(12, 3))
+    technology: Mapped[str | None] = mapped_column(Text)
+
+    items: Mapped[list["RecipeItem"]] = relationship(back_populates="recipe", cascade="all, delete-orphan")
+
+
+class RecipeItem(Base):
+    __tablename__ = "recipe_items"
+    __table_args__ = (UniqueConstraint("recipe_id", "material_id", name="uq_recipe_item"),)
+
+    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    recipe_id: Mapped[str] = mapped_column(ForeignKey("recipes.id"))
+    material_id: Mapped[str] = mapped_column(ForeignKey("materials.id"))
+    qty_per_batch: Mapped[float] = mapped_column(Numeric(12, 3))
+
+    recipe: Mapped["Recipe"] = relationship(back_populates="items")
+    material: Mapped["Material"] = relationship()
+
+
+class Transaction(Base):
+    __tablename__ = "transactions"
+
+    id: Mapped[str] = mapped_column(String(8), primary_key=True, default=_short_id)
+    date: Mapped[date_] = mapped_column(Date, default=date_.today)
+    material_id: Mapped[str] = mapped_column(ForeignKey("materials.id"))
+    type: Mapped[str] = mapped_column(String(20))
+    qty: Mapped[float] = mapped_column(Numeric(12, 3))
+    price: Mapped[float | None] = mapped_column(Numeric(12, 2))
+    recipe_id: Mapped[str | None] = mapped_column(ForeignKey("recipes.id"))
+    comment: Mapped[str | None] = mapped_column(Text)
+
+    material: Mapped["Material"] = relationship(back_populates="transactions")
+
+
+class Product(Base):
+    __tablename__ = "products"
+
+    id: Mapped[str] = mapped_column(String(8), primary_key=True, default=_short_id)
+    name: Mapped[str] = mapped_column(String(255))
+    category: Mapped[str] = mapped_column(String(100))
+    gtin: Mapped[str] = mapped_column(String(50))
+    composition: Mapped[str | None] = mapped_column(Text)
+    recipe_id: Mapped[str | None] = mapped_column(ForeignKey("recipes.id"))
+    tn_ved: Mapped[str | None] = mapped_column(String(50))
+    declaration: Mapped[str | None] = mapped_column(String(255))
+    declaration_expires: Mapped[date_ | None] = mapped_column(Date)
+
+    recipe: Mapped["Recipe | None"] = relationship()
+
+
+class Sale(Base):
+    __tablename__ = "sales"
+
+    id: Mapped[str] = mapped_column(String(8), primary_key=True, default=_short_id)
+    date: Mapped[date_] = mapped_column(Date, default=date_.today)
+    product_id: Mapped[str] = mapped_column(ForeignKey("products.id"))
+    qty: Mapped[float] = mapped_column(Numeric(12, 3))
+    price: Mapped[float | None] = mapped_column(Numeric(12, 2))
+    comment: Mapped[str | None] = mapped_column(Text)
+
+    product: Mapped["Product"] = relationship()
+
+
+class ProductionLog(Base):
+    __tablename__ = "production_log"
+
+    id: Mapped[str] = mapped_column(String(8), primary_key=True, default=_short_id)
+    date: Mapped[date_] = mapped_column(Date, default=date_.today)
+    worker_id: Mapped[str] = mapped_column(ForeignKey("users.id"))
+    recipe_id: Mapped[str] = mapped_column(ForeignKey("recipes.id"))
+    batches: Mapped[float] = mapped_column(Numeric(12, 3))
+    started_at: Mapped[datetime] = mapped_column(DateTime)
+    finished_at: Mapped[datetime] = mapped_column(DateTime)
+    defects: Mapped[float] = mapped_column(Numeric(12, 3), default=0)
+    comment: Mapped[str | None] = mapped_column(Text)
+
+    worker: Mapped["User"] = relationship()
+    recipe: Mapped["Recipe"] = relationship()
+
+
+class Feedback(Base):
+    __tablename__ = "feedback"
+
+    id: Mapped[str] = mapped_column(String(8), primary_key=True, default=_short_id)
+    date: Mapped[date_] = mapped_column(Date, default=date_.today)
+    author_id: Mapped[str] = mapped_column(ForeignKey("users.id"))
+    author_role: Mapped[str] = mapped_column(String(20))
+    message: Mapped[str] = mapped_column(Text)
+    status: Mapped[str] = mapped_column(String(20), default="новое")
