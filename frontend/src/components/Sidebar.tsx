@@ -70,44 +70,56 @@ export function Sidebar() {
       </nav>
 
       <div ref={menuRef} className="relative border-t border-white/10 px-3 py-4">
-        {menuOpen && (
-          <div className="absolute bottom-full left-3 right-3 mb-2 overflow-hidden rounded-lg border border-white/10 bg-sidebar shadow-2xl">
-            {canManageStaff && (
-              <NavLink
-                to="/staff"
-                onClick={() => setMenuOpen(false)}
-                className={({ isActive }) =>
-                  `block px-4 py-2.5 text-sm transition-colors ${
-                    isActive ? 'bg-terracotta text-white font-medium' : 'text-white/80 hover:bg-sidebar-hover hover:text-white'
-                  }`
-                }
-              >
-                Сотрудники
-              </NavLink>
-            )}
-            <button
-              onClick={() => {
-                setMenuOpen(false)
-                logout()
-                navigate('/login', { replace: true })
-              }}
-              className="block w-full px-4 py-2.5 text-left text-sm text-white/80 hover:bg-sidebar-hover hover:text-white"
+        <div
+          className={`absolute bottom-full left-3 right-3 mb-2 origin-bottom overflow-hidden rounded-xl border border-white/10 bg-sidebar shadow-2xl transition-all duration-200 ease-out ${
+            menuOpen
+              ? 'translate-y-0 scale-100 opacity-100'
+              : 'pointer-events-none translate-y-2 scale-95 opacity-0'
+          }`}
+        >
+          {canManageStaff && (
+            <NavLink
+              to="/staff"
+              onClick={() => setMenuOpen(false)}
+              className={({ isActive }) =>
+                `block px-4 py-2.5 text-sm font-medium transition-colors ${
+                  isActive ? 'bg-terracotta text-white' : 'text-white/80 hover:bg-sidebar-hover hover:text-white'
+                }`
+              }
             >
-              Выйти
-            </button>
-          </div>
-        )}
+              Сотрудники
+            </NavLink>
+          )}
+          <button
+            onClick={() => {
+              setMenuOpen(false)
+              logout()
+              navigate('/login', { replace: true })
+            }}
+            className="block w-full px-4 py-2.5 text-left text-sm font-medium text-white/80 transition-colors hover:bg-sidebar-hover hover:text-white"
+          >
+            Выйти
+          </button>
+        </div>
 
         <button
           onClick={() => setMenuOpen((v) => !v)}
           className="w-full rounded-lg px-3 py-2 text-left transition-colors hover:bg-sidebar-hover"
         >
-          <div className="flex items-center justify-between">
-            <div>
-              <div className="text-sm text-white">{user?.fio}</div>
+          <div className="flex items-center justify-between gap-2">
+            <div className="min-w-0">
+              <div className="truncate text-sm font-bold tracking-wide text-white">{user?.fio}</div>
               <div className="text-xs text-white/50">{user?.role}</div>
             </div>
-            <span className={`text-white/40 transition-transform ${menuOpen ? 'rotate-180' : ''}`}>▲</span>
+            <svg
+              viewBox="0 0 20 20"
+              fill="none"
+              className={`h-4 w-4 shrink-0 text-white/50 transition-transform duration-200 ease-out ${
+                menuOpen ? 'rotate-180' : ''
+              }`}
+            >
+              <path d="M5 12l5-5 5 5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
           </div>
         </button>
       </div>
