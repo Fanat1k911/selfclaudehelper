@@ -14,6 +14,14 @@ const NAV_ITEMS: { to: string; label: string; enabled: boolean; roles?: User['ro
 
 const MANAGEMENT_ROLES: User['role'][] = ['founder', 'developer']
 
+// ФИО хранится как "Фамилия Имя Отчество". Воркеру в сайдбаре хватает имени,
+// founder/developer — Имя Отчество (обращение более официальное).
+function shortDisplayName(fio: string, role: User['role']): string {
+  const parts = fio.trim().split(/\s+/).filter(Boolean)
+  if (parts.length <= 1) return fio
+  return role === 'worker' ? parts[1] : parts.slice(1).join(' ')
+}
+
 export function Sidebar() {
   const { user, logout } = useAuth()
   const navigate = useNavigate()
@@ -108,7 +116,9 @@ export function Sidebar() {
         >
           <div className="flex items-center justify-between gap-2">
             <div className="min-w-0">
-              <div className="truncate text-sm font-bold tracking-wide text-white">{user?.fio}</div>
+              <div className="truncate text-sm font-bold tracking-wide text-white">
+                {user ? shortDisplayName(user.fio, user.role) : ''}
+              </div>
               <div className="text-xs text-white/50">{user?.role}</div>
             </div>
             <svg
