@@ -33,6 +33,33 @@ def test_recipe_with_items_created(client, db_session):
     assert resp.status_code == 200
 
 
+def test_recipe_with_duplicate_material_rows_dedupes_to_last(client, db_session):
+    material = Material(name="Глицерин", category="жидкое", unit="кг")
+    db_session.add(material)
+    db_session.commit()
+
+    founder = make_user(db_session, login="rf6", role=FOUNDER)
+    resp = client.post(
+        "/api/recipes",
+        json={
+            "name": "Мыло глицериновое",
+            "category": "мыло",
+            "produces": "мыло",
+            "batch_yield": 10,
+            "items": [
+                {"material_id": material.id, "qty_per_batch": 2},
+                {"material_id": material.id, "qty_per_batch": 5},
+            ],
+        },
+        headers=auth_headers(founder),
+    )
+    assert resp.status_code == 200
+    recipe_id = resp.json()["id"]
+    items = db_session.query(RecipeItem).filter_by(recipe_id=recipe_id).all()
+    assert len(items) == 1
+    assert float(items[0].qty_per_batch) == 5
+
+
 def test_worker_cannot_create_recipe(client, db_session):
     worker = make_user(db_session, login="rw1", role=WORKER)
     resp = client.post(

@@ -60,6 +60,10 @@ def create_recipe(body: NewRecipeRequest, db: Session = Depends(get_db)) -> dict
     valid_items = [item for item in body.items if item.material_id and item.qty_per_batch > 0]
     if not valid_items:
         raise HTTPException(422, "Состав рецепта обязателен.")
+    # Один и тот же компонент могли выбрать в двух строках формы (см. NewRecipeModal —
+    # свободный ввод названия без блокировки повторов) — последняя строка побеждает,
+    # иначе упрёмся в uq_recipe_item и отдадим 500 вместо внятной ошибки.
+    valid_items = list({item.material_id: item for item in valid_items}.values())
 
     recipe = Recipe(
         name=body.name,
