@@ -1,5 +1,5 @@
 """Карточки готовых изделий — доступно только founder/developer (см. таблицу ролей в CLAUDE.md).
-Обязательные поля при создании — название/категория/GTIN, см. core.config.PRODUCT_REQUIRED_FIELDS.
+Обязательные поля при создании — название/категория/GTIN, см. app.constants.PRODUCT_REQUIRED_FIELDS.
 Название рецепта в Product больше не хранится в БД — join при чтении."""
 
 from datetime import date
@@ -8,7 +8,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from core.config import DEVELOPER, FOUNDER, PRODUCT_REQUIRED_FIELDS
+from app.constants import DEVELOPER, FOUNDER, PRODUCT_REQUIRED_FIELDS
 
 from app.db import get_db
 from app.models import Product, Recipe

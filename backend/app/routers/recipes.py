@@ -7,7 +7,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from core.config import DEVELOPER, FOUNDER
+from app.constants import DEVELOPER, FOUNDER
 
 from app.db import get_db
 from app.models import Material, Recipe, RecipeItem
