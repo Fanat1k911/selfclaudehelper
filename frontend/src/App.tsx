@@ -9,6 +9,7 @@ import { RecipesPage } from './pages/RecipesPage'
 import { ProductsPage } from './pages/ProductsPage'
 import { StaffPage } from './pages/StaffPage'
 import { CounterpartiesPage } from './pages/CounterpartiesPage'
+import { TechPanelPage } from './pages/TechPanelPage'
 import { Layout } from './components/Layout'
 import { RequireAuth, RequireRole, defaultPathForRole, useAuth } from './lib/auth'
 
@@ -69,6 +70,14 @@ function App() {
           element={
             <RequireRole roles={['founder', 'developer']}>
               <CounterpartiesPage />
+            </RequireRole>
+          }
+        />
+        <Route
+          path="/techpanel"
+          element={
+            <RequireRole roles={['developer']}>
+              <TechPanelPage />
             </RequireRole>
           }
         />

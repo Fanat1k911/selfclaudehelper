@@ -42,6 +42,7 @@ export function Sidebar({ mobileOpen = false, onCloseMobile }: { mobileOpen?: bo
   const navigate = useNavigate()
   const items = NAV_ITEMS.filter((item) => !item.roles || (user && item.roles.includes(user.role)))
   const canManageStaff = !!user && MANAGEMENT_ROLES.includes(user.role)
+  const isDeveloper = user?.role === 'developer'
 
   const [menuOpen, setMenuOpen] = useState(false)
   const menuRef = useRef<HTMLDivElement>(null)
@@ -131,6 +132,22 @@ export function Sidebar({ mobileOpen = false, onCloseMobile }: { mobileOpen?: bo
                 }
               >
                 Сотрудники
+              </NavLink>
+            )}
+            {isDeveloper && (
+              <NavLink
+                to="/techpanel"
+                onClick={() => {
+                  setMenuOpen(false)
+                  onCloseMobile?.()
+                }}
+                className={({ isActive }) =>
+                  `block px-4 py-2.5 text-sm font-medium transition-colors ${
+                    isActive ? 'bg-terracotta text-white' : 'text-white/80 hover:bg-sidebar-hover hover:text-white'
+                  }`
+                }
+              >
+                Техпанель
               </NavLink>
             )}
             <button

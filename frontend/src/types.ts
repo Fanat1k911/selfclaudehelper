@@ -194,3 +194,17 @@ export interface TopProduct {
   'название': string
   'кол-во': number
 }
+
+export interface TechStatus {
+  api: 'ok'
+  db: 'ok' | 'error'
+  uptime_seconds: number
+  fastapi_version: string
+}
+
+export interface TechLogEntry {
+  time: string
+  level: string
+  logger: string
+  message: string
+}

@@ -2,9 +2,11 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import CORS_ORIGINS
-from app.routers import auth, counterparties, dashboard, ingredients, packaging, production, products, recipes, sales, users
+from app.routers import auth, counterparties, dashboard, ingredients, packaging, production, products, recipes, sales, techpanel, users
+from app.techlog import install as install_techlog
 
 app = FastAPI(title="oinarri API")
+install_techlog()
 
 app.add_middleware(
     CORSMiddleware,
@@ -24,6 +26,7 @@ app.include_router(sales.router)
 app.include_router(users.router)
 app.include_router(counterparties.router)
 app.include_router(packaging.router)
+app.include_router(techpanel.router)
 
 
 @app.get("/api/health")
