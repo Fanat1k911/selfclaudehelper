@@ -38,7 +38,7 @@ export function StaffPage() {
 
   return (
     <div className="px-4 py-4 sm:px-8 sm:py-6">
-      <div className="relative z-[60] mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+      <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <h1 className="text-xl font-semibold text-ink sm:text-2xl">Сотрудники</h1>
         <button
           onClick={() => {

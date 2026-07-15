@@ -1,4 +1,4 @@
-"""Раздел «Ингредиенты» — Materials/Transactions в Postgres (было: Sheets/pandas,
+"""Раздел «Компоненты» — Materials/Transactions в Postgres (было: Sheets/pandas,
 см. core/inventory.py). Остаток по-прежнему нигде не хранится статично — считается
 на лету из Transaction по каждому material_id (см. CLAUDE.md)."""
 
@@ -124,7 +124,7 @@ def add_expense(material_id: str, body: TransactionRequest, db: Session = Depend
 def add_adjustment(material_id: str, body: AdjustmentRequest, db: Session = Depends(get_db)) -> dict:
     material = db.get(Material, material_id)
     if material is None:
-        raise HTTPException(404, "Ингредиент не найден.")
+        raise HTTPException(404, "Компонент не найден.")
     balances, _ = _balances_and_last_movement(db)
     current = balances.get(material_id, 0.0)
     delta = body.actual_qty - current
@@ -149,7 +149,7 @@ def export_template(db: Session = Depends(get_db)) -> StreamingResponse:
 
     wb = Workbook()
     ws = wb.active
-    ws.title = "Ингредиенты"
+    ws.title = "Компоненты"
     ws.append(["Название", "Категория", "Ед.измерения", "Текущий остаток", "Новый остаток"])
     for m in materials:
         ws.append([m.name, m.category, m.unit, balances.get(m.id, 0.0), None])
@@ -158,7 +158,7 @@ def export_template(db: Session = Depends(get_db)) -> StreamingResponse:
     wb.save(buf)
     buf.seek(0)
     # Content-Disposition — только latin-1, кириллицу передаём через filename* (RFC 5987).
-    filename_utf8 = quote("ингредиенты.xlsx")
+    filename_utf8 = quote("компоненты.xlsx")
     return StreamingResponse(
         buf,
         media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
@@ -175,7 +175,7 @@ def export_ingredients(db: Session = Depends(get_db)) -> StreamingResponse:
 
     wb = Workbook()
     ws = wb.active
-    ws.title = "Ингредиенты"
+    ws.title = "Компоненты"
     ws.append(["Название", "Категория", "Ед.измерения", "Остаток", "Мин.остаток", "Обновлено"])
     for m in materials:
         lm = last_movement.get(m.id)
@@ -184,7 +184,7 @@ def export_ingredients(db: Session = Depends(get_db)) -> StreamingResponse:
     buf = io.BytesIO()
     wb.save(buf)
     buf.seek(0)
-    filename_utf8 = quote("ингредиенты.xlsx")
+    filename_utf8 = quote("компоненты.xlsx")
     return StreamingResponse(
         buf,
         media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",

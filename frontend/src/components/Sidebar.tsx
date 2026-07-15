@@ -15,11 +15,11 @@ import type { User } from '../types'
 
 const NAV_ITEMS: { to: string; label: string; icon: LucideIcon; enabled: boolean; roles?: User['role'][] }[] = [
   { to: '/dashboard', label: 'Дашборд', icon: LayoutDashboard, enabled: true, roles: ['founder', 'developer'] },
-  { to: '/ingredients', label: 'Ингредиенты', icon: Package, enabled: true },
+  { to: '/ingredients', label: 'Компоненты', icon: Package, enabled: true },
   { to: '/production', label: 'Производство', icon: Factory, enabled: true },
-  { to: '/sales', label: 'Продажи', icon: Receipt, enabled: true, roles: ['founder', 'developer'] },
+  { to: '/sales', label: 'Отгрузка', icon: Receipt, enabled: true, roles: ['founder', 'developer'] },
   { to: '/recipes', label: 'Рецепты', icon: BookOpen, enabled: true },
-  { to: '/products', label: 'Товары', icon: ShoppingBag, enabled: true, roles: ['founder', 'developer'] },
+  { to: '/products', label: 'Продукт', icon: ShoppingBag, enabled: true, roles: ['founder', 'developer'] },
 ]
 
 const MANAGEMENT_ROLES: User['role'][] = ['founder', 'developer']

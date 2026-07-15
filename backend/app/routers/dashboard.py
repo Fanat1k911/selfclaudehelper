@@ -76,7 +76,7 @@ def get_dashboard(db: Session = Depends(get_db)) -> dict:
     ]
 
     return {
-        "всего_ингредиентов": len(materials),
+        "всего_компонентов": len(materials),
         "ниже_минимума": below_min,
         "последние_движения": recent,
         "топ_расход": top_expense_out,

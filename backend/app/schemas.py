@@ -63,6 +63,19 @@ class NewProductRequest(BaseModel):
     declaration_expires: str = ""
 
 
+class ProductImportRow(BaseModel):
+    name: str
+    category: str
+    gtin: str
+    tn_ved: str = ""
+    declaration: str = ""
+    declaration_expires: str = ""
+
+
+class ProductImportCommitRequest(BaseModel):
+    rows: list[ProductImportRow]
+
+
 class SaleRequest(BaseModel):
     product_id: str
     qty: float

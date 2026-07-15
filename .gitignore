@@ -4,3 +4,7 @@ __pycache__/
 .streamlit/secrets.toml
 .idea/
 .gstack/
+.claude/settings.local.json
+CLAUDE.local.md
+screen_fails/
+.playwright-mcp/

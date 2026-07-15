@@ -1,6 +1,6 @@
-"""Состав рецептов читают все роли (см. CLAUDE.md — «эти товары видят все»), а вот
+"""Состав рецептов читают все роли (см. CLAUDE.md — «эти продукты видят все»), а вот
 редактировать состав/создавать рецепты может только founder/developer, чтобы рядовой
-сотрудник случайно не добавил в рецепт левый ингредиент. Название рецепта/материала
+сотрудник случайно не добавил в рецепт левый компонент. Название рецепта/материала
 в RecipeItem больше не хранится в БД (денормализация убрана) — join при чтении."""
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -62,7 +62,7 @@ def add_recipe_item(recipe_id: str, body: NewRecipeItemRequest, db: Session = De
     if db.get(Recipe, recipe_id) is None:
         raise HTTPException(404, "Рецепт не найден.")
     if db.get(Material, body.material_id) is None:
-        raise HTTPException(404, "Ингредиент не найден.")
+        raise HTTPException(404, "Компонент не найден.")
 
     existing = db.scalar(
         select(RecipeItem).where(RecipeItem.recipe_id == recipe_id, RecipeItem.material_id == body.material_id)

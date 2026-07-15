@@ -61,7 +61,7 @@ export interface DashboardTopExpenseItem {
 }
 
 export interface DashboardData {
-  'всего_ингредиентов': number
+  'всего_компонентов': number
   'ниже_минимума': DashboardLowStockItem[]
   'последние_движения': DashboardTransaction[]
   'топ_расход': DashboardTopExpenseItem[]
@@ -108,6 +108,7 @@ export interface Product {
   'ТН ВЭД': string
   'декларация соответствия': string
   'срок действия РД': string
+  'готово к отгрузке': number | null
 }
 
 export interface Sale {
@@ -118,4 +119,10 @@ export interface Sale {
   'кол-во': number
   'цена': number | string
   'комментарий': string
+}
+
+export interface TopProduct {
+  product_id: string
+  'название': string
+  'кол-во': number
 }

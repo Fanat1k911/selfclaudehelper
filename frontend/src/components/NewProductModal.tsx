@@ -45,7 +45,7 @@ export function NewProductModal({
       })
       onCreated()
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'Не удалось создать товар.')
+      setError(err instanceof ApiError ? err.message : 'Не удалось создать продукт.')
     } finally {
       setSubmitting(false)
     }
@@ -58,7 +58,7 @@ export function NewProductModal({
         onClick={(e) => e.stopPropagation()}
         className="w-full max-w-sm max-h-[85vh] overflow-y-auto rounded-2xl bg-white p-6 shadow-2xl space-y-3"
       >
-        <div className="text-lg font-semibold text-ink mb-2">Новый товар</div>
+        <div className="text-lg font-semibold text-ink mb-2">Новый продукт</div>
 
         <div>
           <label className="block text-xs text-ink/60 mb-1">Название</label>

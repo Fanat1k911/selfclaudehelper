@@ -35,7 +35,7 @@ export function NewIngredientModal({
       })
       onCreated()
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'Не удалось создать ингредиент.')
+      setError(err instanceof ApiError ? err.message : 'Не удалось создать компонент.')
     } finally {
       setSubmitting(false)
     }
@@ -48,7 +48,7 @@ export function NewIngredientModal({
         onClick={(e) => e.stopPropagation()}
         className="w-full max-w-sm rounded-2xl bg-white p-6 shadow-2xl space-y-3"
       >
-        <div className="text-lg font-semibold text-ink mb-2">Новый ингредиент</div>
+        <div className="text-lg font-semibold text-ink mb-2">Новый компонент</div>
 
         <div>
           <label className="block text-xs text-ink/60 mb-1">Название</label>

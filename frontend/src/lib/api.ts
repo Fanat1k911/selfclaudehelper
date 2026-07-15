@@ -59,10 +59,13 @@ export async function apiFetch<T>(path: string, options: RequestInit = {}): Prom
   return res.json() as Promise<T>
 }
 
-export async function apiUpload<T>(path: string, file: File): Promise<T> {
+export async function apiUpload<T>(path: string, file: File, extra?: Record<string, string>): Promise<T> {
   const token = getToken()
   const form = new FormData()
   form.append('file', file)
+  if (extra) {
+    for (const [key, value] of Object.entries(extra)) form.append(key, value)
+  }
 
   const res = await fetch(`/api${path}`, {
     method: 'POST',

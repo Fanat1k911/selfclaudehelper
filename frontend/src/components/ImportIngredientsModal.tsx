@@ -70,7 +70,7 @@ export function ImportIngredientsModal({
 
         <div className="flex items-center gap-3">
           <button
-            onClick={() => apiDownload('/ingredients/export-template', 'ингредиенты.xlsx')}
+            onClick={() => apiDownload('/ingredients/export-template', 'компоненты.xlsx')}
             className="rounded-lg bg-cream px-3 py-2 text-sm font-medium text-ink hover:bg-ink/5"
           >
             Скачать шаблон (.xlsx)

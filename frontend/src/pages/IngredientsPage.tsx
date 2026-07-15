@@ -58,10 +58,10 @@ export function IngredientsPage() {
   return (
     <div className="px-4 py-4 sm:px-8 sm:py-6">
       <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <h1 className="text-xl font-semibold text-ink sm:text-2xl">Ингредиенты</h1>
+        <h1 className="text-xl font-semibold text-ink sm:text-2xl">Компоненты</h1>
         <div className="flex flex-wrap gap-2">
           <button
-            onClick={() => apiDownload('/ingredients/export', 'ингредиенты.xlsx')}
+            onClick={() => apiDownload('/ingredients/export', 'компоненты.xlsx')}
             className="whitespace-nowrap rounded-lg bg-cream px-3 py-2 text-sm font-medium text-ink hover:bg-ink/5 sm:px-4"
           >
             Экспорт (.xlsx)
@@ -76,7 +76,7 @@ export function IngredientsPage() {
             onClick={() => setShowCreate(true)}
             className="whitespace-nowrap rounded-lg bg-terracotta px-3 py-2 text-sm font-medium text-white hover:bg-terracotta-dark sm:px-4"
           >
-            + Добавить ингредиент
+            + Добавить компонент
           </button>
         </div>
       </div>

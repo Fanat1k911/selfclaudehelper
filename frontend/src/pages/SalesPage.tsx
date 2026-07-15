@@ -32,12 +32,12 @@ export function SalesPage() {
   return (
     <div className="px-4 py-4 sm:px-8 sm:py-6">
       <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <h1 className="text-xl font-semibold text-ink sm:text-2xl">Продажи</h1>
+        <h1 className="text-xl font-semibold text-ink sm:text-2xl">Отгрузка</h1>
         <button
           onClick={() => setShowCreate(true)}
           className="whitespace-nowrap rounded-lg bg-terracotta px-3 py-2 text-sm font-medium text-white hover:bg-terracotta-dark sm:px-4"
         >
-          + Внести продажу
+          + Внести отгрузку
         </button>
       </div>
 
@@ -49,7 +49,7 @@ export function SalesPage() {
         )}
         {!loading && sales.length === 0 && (
           <div className="rounded-xl border border-ink/10 bg-white px-4 py-6 text-center text-sm text-ink/40">
-            Продаж пока нет.
+            Отгрузок пока нет.
           </div>
         )}
         {sales.map((s) => (
@@ -72,7 +72,7 @@ export function SalesPage() {
           <thead>
             <tr className="border-b border-ink/10 text-left text-ink/50">
               <th className="px-4 py-3 font-medium">Дата</th>
-              <th className="px-4 py-3 font-medium">Товар</th>
+              <th className="px-4 py-3 font-medium">Продукт</th>
               <th className="px-4 py-3 font-medium text-right">Кол-во</th>
               <th className="px-4 py-3 font-medium text-right">Цена</th>
               <th className="px-4 py-3 font-medium">Комментарий</th>
@@ -89,7 +89,7 @@ export function SalesPage() {
             {!loading && sales.length === 0 && (
               <tr>
                 <td colSpan={5} className="px-4 py-6 text-center text-ink/40">
-                  Продаж пока нет.
+                  Отгрузок пока нет.
                 </td>
               </tr>
             )}

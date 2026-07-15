@@ -47,7 +47,7 @@ export function RecipeDetailPanel({
       loadItems()
       onChanged()
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'Не удалось добавить ингредиент.')
+      setError(err instanceof ApiError ? err.message : 'Не удалось добавить компонент.')
     } finally {
       setSubmitting(false)
     }
@@ -80,7 +80,7 @@ export function RecipeDetailPanel({
               </button>
             ) : (
               <>
-                <div className="text-sm font-medium text-ink/70">Добавить ингредиент в состав</div>
+                <div className="text-sm font-medium text-ink/70">Добавить компонент в состав</div>
                 <form onSubmit={handleSubmit} className="space-y-3">
                   <select
                     value={materialId}

@@ -1,5 +1,8 @@
-"""Продажи готовых изделий — доступно только founder/developer (см. таблицу ролей в CLAUDE.md).
-Название товара в Sale не хранится в БД — join при чтении."""
+"""Отгрузка готовых изделий — доступно только founder/developer (см. таблицу ролей в CLAUDE.md).
+Каждая запись списывает кол-во из «готово к отгрузке» у Product (см. products.py).
+Название продукта в Sale не хранится в БД — join при чтении."""
+
+from collections import defaultdict
 
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import select
@@ -33,12 +36,24 @@ def list_sales(db: Session = Depends(get_db)) -> list[dict]:
     return [_sale_dict(s) for s in rows]
 
 
+@router.get("/top")
+def top_products(limit: int = 3, db: Session = Depends(get_db)) -> list[dict]:
+    totals: dict[str, float] = defaultdict(float)
+    names: dict[str, str] = {}
+    for s in db.scalars(select(Sale)):
+        totals[s.product_id] += float(s.qty)
+        if s.product:
+            names[s.product_id] = s.product.name
+    top = sorted(totals.items(), key=lambda kv: kv[1], reverse=True)[:limit]
+    return [{"product_id": pid, "название": names.get(pid, pid), "кол-во": qty} for pid, qty in top]
+
+
 @router.post("")
 def create_sale(body: SaleRequest, db: Session = Depends(get_db)) -> dict:
     if body.qty <= 0:
         raise HTTPException(400, "Количество должно быть больше нуля.")
     if db.get(Product, body.product_id) is None:
-        raise HTTPException(404, "Товар не найден.")
+        raise HTTPException(404, "Продукт не найден.")
 
     sale = Sale(product_id=body.product_id, qty=body.qty, price=body.price, comment=body.comment)
     db.add(sale)

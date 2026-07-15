@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { apiFetch } from '../lib/api'
-import type { DashboardData } from '../types'
+import type { DashboardData, TopProduct } from '../types'
 
 function formatDate(value: string | null) {
   if (!value) return '—'
@@ -17,11 +17,15 @@ const TX_LABEL: Record<string, string> = {
 
 export function DashboardPage() {
   const [data, setData] = useState<DashboardData | null>(null)
+  const [topProducts, setTopProducts] = useState<TopProduct[]>([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    apiFetch<DashboardData>('/dashboard')
-      .then(setData)
+    Promise.all([apiFetch<DashboardData>('/dashboard'), apiFetch<TopProduct[]>('/sales/top')])
+      .then(([dashboard, top]) => {
+        setData(dashboard)
+        setTopProducts(top)
+      })
       .finally(() => setLoading(false))
   }, [])
 
@@ -39,8 +43,8 @@ export function DashboardPage() {
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
         <div className="rounded-xl border border-ink/10 bg-white p-4 shadow-sm">
-          <div className="text-xs text-ink/50 mb-1">Всего ингредиентов</div>
-          <div className="text-2xl font-semibold text-ink">{data['всего_ингредиентов']}</div>
+          <div className="text-xs text-ink/50 mb-1">Всего компонентов</div>
+          <div className="text-2xl font-semibold text-ink">{data['всего_компонентов']}</div>
         </div>
         <div className="rounded-xl border border-ink/10 bg-white p-4 shadow-sm">
           <div className="text-xs text-ink/50 mb-1">Ниже минимума</div>
@@ -52,7 +56,7 @@ export function DashboardPage() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
         <div className="rounded-xl border border-ink/10 bg-white shadow-sm">
           <div className="border-b border-ink/10 px-4 py-3 font-medium text-ink">Ниже минимума</div>
           <div className="divide-y divide-ink/5">
@@ -86,6 +90,24 @@ export function DashboardPage() {
             ))}
           </div>
         </div>
+
+        <div className="rounded-xl border border-ink/10 bg-white shadow-sm">
+          <div className="border-b border-ink/10 px-4 py-3 font-medium text-ink">Топ продукта</div>
+          <div className="divide-y divide-ink/5">
+            {topProducts.length === 0 && (
+              <div className="px-4 py-6 text-center text-sm text-ink/40">Нет данных по отгрузке.</div>
+            )}
+            {topProducts.map((item, i) => (
+              <div key={item.product_id} className="flex items-center justify-between gap-2 px-4 py-3 text-sm">
+                <span className="truncate text-ink">
+                  <span className="mr-2 text-ink/40">{i + 1}.</span>
+                  {item['название']}
+                </span>
+                <span className="shrink-0 text-ink/60">{item['кол-во']} шт</span>
+              </div>
+            ))}
+          </div>
+        </div>
       </div>
 
       <div className="rounded-xl border border-ink/10 bg-white shadow-sm">
@@ -114,7 +136,7 @@ export function DashboardPage() {
           <thead>
             <tr className="border-b border-ink/10 text-left text-ink/50">
               <th className="px-4 py-2 font-medium">Дата</th>
-              <th className="px-4 py-2 font-medium">Ингредиент</th>
+              <th className="px-4 py-2 font-medium">Компонент</th>
               <th className="px-4 py-2 font-medium">Тип</th>
               <th className="px-4 py-2 font-medium text-right">Кол-во</th>
               <th className="px-4 py-2 font-medium">Комментарий</th>
