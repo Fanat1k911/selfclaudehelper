@@ -9,6 +9,7 @@ const NAV_ITEMS: { to: string; label: string; enabled: boolean; roles?: User['ro
   { to: '/sales', label: 'Продажи', enabled: true, roles: ['founder', 'developer'] },
   { to: '/recipes', label: 'Рецепты', enabled: true },
   { to: '/products', label: 'Товары', enabled: true, roles: ['founder', 'developer'] },
+  { to: '/staff', label: 'Сотрудники', enabled: true, roles: ['founder', 'developer'] },
 ]
 
 export function Sidebar() {

@@ -12,10 +12,9 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.config import JWT_ALGORITHM, JWT_EXPIRE_MINUTES, JWT_SECRET
+from app.constants import USER_STATUS_ACTIVE
 from app.db import get_db
 from app.models import User
-
-USER_STATUS_ACTIVE = "активен"
 
 _bearer = HTTPBearer(auto_error=False)
 

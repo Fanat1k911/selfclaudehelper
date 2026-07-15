@@ -6,6 +6,7 @@ import { ProductionPage } from './pages/ProductionPage'
 import { SalesPage } from './pages/SalesPage'
 import { RecipesPage } from './pages/RecipesPage'
 import { ProductsPage } from './pages/ProductsPage'
+import { StaffPage } from './pages/StaffPage'
 import { Layout } from './components/Layout'
 import { RequireAuth, RequireRole, defaultPathForRole, useAuth } from './lib/auth'
 
@@ -49,6 +50,14 @@ function App() {
           element={
             <RequireRole roles={['founder', 'developer']}>
               <ProductsPage />
+            </RequireRole>
+          }
+        />
+        <Route
+          path="/staff"
+          element={
+            <RequireRole roles={['founder', 'developer']}>
+              <StaffPage />
             </RequireRole>
           }
         />

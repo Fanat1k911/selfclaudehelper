@@ -68,3 +68,28 @@ class SaleRequest(BaseModel):
     qty: float
     price: float | None = None
     comment: str = ""
+
+
+class NewUserRequest(BaseModel):
+    fio: str
+    login: str
+    password: str
+    role: str
+    phone: str = ""
+    messenger: str = ""
+    address: str = ""
+    document: str = ""
+
+
+class UpdateUserRequest(BaseModel):
+    fio: str | None = None
+    role: str | None = None
+    status: str | None = None
+    phone: str | None = None
+    messenger: str | None = None
+    address: str | None = None
+    document: str | None = None
+
+
+class ResetPasswordRequest(BaseModel):
+    new_password: str

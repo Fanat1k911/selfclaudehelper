@@ -5,6 +5,19 @@ export interface User {
   role: 'founder' | 'worker' | 'developer'
 }
 
+export interface StaffUser {
+  id: string
+  fio: string
+  login: string
+  role: 'founder' | 'worker' | 'developer'
+  status: 'активен' | 'уволен'
+  created_at: string
+  phone: string
+  messenger: string
+  address: string
+  document: string
+}
+
 export interface Ingredient {
   id: string
   'название': string
