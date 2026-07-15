@@ -1,15 +1,25 @@
 import { useEffect, useRef, useState } from 'react'
 import { Link, NavLink, useNavigate } from 'react-router-dom'
+import {
+  LayoutDashboard,
+  Package,
+  Factory,
+  Receipt,
+  BookOpen,
+  ShoppingBag,
+  ChevronDown,
+  type LucideIcon,
+} from 'lucide-react'
 import { useAuth, defaultPathForRole } from '../lib/auth'
 import type { User } from '../types'
 
-const NAV_ITEMS: { to: string; label: string; enabled: boolean; roles?: User['role'][] }[] = [
-  { to: '/dashboard', label: 'Дашборд', enabled: true, roles: ['founder', 'developer'] },
-  { to: '/ingredients', label: 'Ингредиенты', enabled: true },
-  { to: '/production', label: 'Производство', enabled: true },
-  { to: '/sales', label: 'Продажи', enabled: true, roles: ['founder', 'developer'] },
-  { to: '/recipes', label: 'Рецепты', enabled: true },
-  { to: '/products', label: 'Товары', enabled: true, roles: ['founder', 'developer'] },
+const NAV_ITEMS: { to: string; label: string; icon: LucideIcon; enabled: boolean; roles?: User['role'][] }[] = [
+  { to: '/dashboard', label: 'Дашборд', icon: LayoutDashboard, enabled: true, roles: ['founder', 'developer'] },
+  { to: '/ingredients', label: 'Ингредиенты', icon: Package, enabled: true },
+  { to: '/production', label: 'Производство', icon: Factory, enabled: true },
+  { to: '/sales', label: 'Продажи', icon: Receipt, enabled: true, roles: ['founder', 'developer'] },
+  { to: '/recipes', label: 'Рецепты', icon: BookOpen, enabled: true },
+  { to: '/products', label: 'Товары', icon: ShoppingBag, enabled: true, roles: ['founder', 'developer'] },
 ]
 
 const MANAGEMENT_ROLES: User['role'][] = ['founder', 'developer']
@@ -22,7 +32,7 @@ function shortDisplayName(fio: string, role: User['role']): string {
   return role === 'worker' ? parts[1] : parts.slice(1).join(' ')
 }
 
-export function Sidebar() {
+export function Sidebar({ mobileOpen = false, onCloseMobile }: { mobileOpen?: boolean; onCloseMobile?: () => void }) {
   const { user, logout } = useAuth()
   const navigate = useNavigate()
   const items = NAV_ITEMS.filter((item) => !item.roles || (user && item.roles.includes(user.role)))
@@ -40,99 +50,119 @@ export function Sidebar() {
     return () => document.removeEventListener('mousedown', onClickOutside)
   }, [menuOpen])
 
+  const initial = user ? shortDisplayName(user.fio, user.role).trim()[0]?.toUpperCase() : ''
+
   return (
-    <aside className="flex h-screen w-64 flex-col bg-sidebar text-cream/90 shrink-0">
-      <Link
-        to={defaultPathForRole(user?.role)}
-        className="px-6 py-6 text-2xl font-bold italic tracking-wide text-white hover:text-terracotta transition-colors"
+    <>
+      {mobileOpen && (
+        <div className="fixed inset-0 z-40 bg-black/30 md:hidden" onClick={onCloseMobile} />
+      )}
+      <aside
+        className={`fixed inset-y-0 left-0 z-50 flex h-screen w-64 flex-col bg-sidebar text-cream/90 shrink-0 transition-transform duration-200 ease-out md:static md:z-auto md:w-16 md:translate-x-0 lg:w-64 ${
+          mobileOpen ? 'translate-x-0' : '-translate-x-full'
+        }`}
       >
-        oinarri
-      </Link>
-
-      <nav className="flex-1 px-3 space-y-1">
-        {items.map((item) =>
-          item.enabled ? (
-            <NavLink
-              key={item.to}
-              to={item.to}
-              className={({ isActive }) =>
-                `block rounded-lg px-3 py-2 text-sm transition-colors ${
-                  isActive
-                    ? 'bg-terracotta text-white font-medium'
-                    : 'text-white/70 hover:bg-sidebar-hover hover:text-white'
-                }`
-              }
-            >
-              {item.label}
-            </NavLink>
-          ) : (
-            <div
-              key={item.to}
-              className="block cursor-not-allowed rounded-lg px-3 py-2 text-sm text-white/30"
-              title="Скоро"
-            >
-              {item.label}
-            </div>
-          ),
-        )}
-      </nav>
-
-      <div ref={menuRef} className="relative border-t border-white/10 px-3 py-4">
-        <div
-          className={`absolute bottom-full left-3 right-3 mb-2 origin-bottom overflow-hidden rounded-xl border border-white/10 bg-sidebar shadow-2xl transition-all duration-200 ease-out ${
-            menuOpen
-              ? 'translate-y-0 scale-100 opacity-100'
-              : 'pointer-events-none translate-y-2 scale-95 opacity-0'
-          }`}
+        <Link
+          to={defaultPathForRole(user?.role)}
+          onClick={onCloseMobile}
+          className="px-6 py-6 text-2xl font-bold italic tracking-wide text-white hover:text-terracotta transition-colors md:px-0 md:text-center lg:px-6 lg:text-left"
         >
-          {canManageStaff && (
-            <NavLink
-              to="/staff"
-              onClick={() => setMenuOpen(false)}
-              className={({ isActive }) =>
-                `block px-4 py-2.5 text-sm font-medium transition-colors ${
-                  isActive ? 'bg-terracotta text-white' : 'text-white/80 hover:bg-sidebar-hover hover:text-white'
-                }`
-              }
-            >
-              Сотрудники
-            </NavLink>
-          )}
-          <button
-            onClick={() => {
-              setMenuOpen(false)
-              logout()
-              navigate('/login', { replace: true })
-            }}
-            className="block w-full px-4 py-2.5 text-left text-sm font-medium text-white/80 transition-colors hover:bg-sidebar-hover hover:text-white"
-          >
-            Выйти
-          </button>
-        </div>
+          <span className="md:hidden lg:inline">oinarri</span>
+          <span className="hidden md:inline lg:hidden">o</span>
+        </Link>
 
-        <button
-          onClick={() => setMenuOpen((v) => !v)}
-          className="w-full rounded-lg px-3 py-2 text-left transition-colors hover:bg-sidebar-hover"
-        >
-          <div className="flex items-center justify-between gap-2">
-            <div className="min-w-0">
-              <div className="truncate text-sm font-bold tracking-wide text-white">
-                {user ? shortDisplayName(user.fio, user.role) : ''}
+        <nav className="flex-1 px-3 space-y-1">
+          {items.map((item) => {
+            const Icon = item.icon
+            return item.enabled ? (
+              <NavLink
+                key={item.to}
+                to={item.to}
+                onClick={onCloseMobile}
+                title={item.label}
+                className={({ isActive }) =>
+                  `flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors md:justify-center lg:justify-start ${
+                    isActive
+                      ? 'bg-terracotta text-white font-medium'
+                      : 'text-white/70 hover:bg-sidebar-hover hover:text-white'
+                  }`
+                }
+              >
+                <Icon className="h-4.5 w-4.5 shrink-0" size={18} />
+                <span className="md:hidden lg:inline">{item.label}</span>
+              </NavLink>
+            ) : (
+              <div
+                key={item.to}
+                className="flex cursor-not-allowed items-center gap-3 rounded-lg px-3 py-2 text-sm text-white/30 md:justify-center lg:justify-start"
+                title="Скоро"
+              >
+                <Icon className="h-4.5 w-4.5 shrink-0" size={18} />
+                <span className="md:hidden lg:inline">{item.label}</span>
               </div>
-              <div className="text-xs text-white/50">{user?.role}</div>
+            )
+          })}
+        </nav>
+
+        <div ref={menuRef} className="relative border-t border-white/10 px-3 py-4">
+          <div
+            className={`absolute bottom-full left-3 right-3 mb-2 origin-bottom overflow-hidden rounded-xl border border-white/10 bg-sidebar shadow-2xl transition-all duration-200 ease-out md:left-full md:right-auto md:bottom-2 md:mb-0 md:ml-2 md:w-56 lg:left-3 lg:right-3 lg:bottom-full lg:w-auto lg:ml-0 lg:mb-2 ${
+              menuOpen
+                ? 'translate-y-0 scale-100 opacity-100'
+                : 'pointer-events-none translate-y-2 scale-95 opacity-0'
+            }`}
+          >
+            {canManageStaff && (
+              <NavLink
+                to="/staff"
+                onClick={() => {
+                  setMenuOpen(false)
+                  onCloseMobile?.()
+                }}
+                className={({ isActive }) =>
+                  `block px-4 py-2.5 text-sm font-medium transition-colors ${
+                    isActive ? 'bg-terracotta text-white' : 'text-white/80 hover:bg-sidebar-hover hover:text-white'
+                  }`
+                }
+              >
+                Сотрудники
+              </NavLink>
+            )}
+            <button
+              onClick={() => {
+                setMenuOpen(false)
+                logout()
+                navigate('/login', { replace: true })
+              }}
+              className="block w-full px-4 py-2.5 text-left text-sm font-medium text-white/80 transition-colors hover:bg-sidebar-hover hover:text-white"
+            >
+              Выйти
+            </button>
+          </div>
+
+          <button
+            onClick={() => setMenuOpen((v) => !v)}
+            className="flex w-full items-center justify-between gap-2 rounded-lg px-3 py-2 text-left transition-colors hover:bg-sidebar-hover md:justify-center lg:justify-between"
+          >
+            <div className="flex min-w-0 items-center gap-2">
+              <div className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-terracotta text-xs font-bold text-white">
+                {initial}
+              </div>
+              <div className="min-w-0 md:hidden lg:block">
+                <div className="truncate text-sm font-bold tracking-wide text-white">
+                  {user ? shortDisplayName(user.fio, user.role) : ''}
+                </div>
+                <div className="text-xs text-white/50">{user?.role}</div>
+              </div>
             </div>
-            <svg
-              viewBox="0 0 20 20"
-              fill="none"
-              className={`h-4 w-4 shrink-0 text-white/50 transition-transform duration-200 ease-out ${
+            <ChevronDown
+              className={`h-4 w-4 shrink-0 text-white/50 transition-transform duration-200 ease-out md:hidden lg:block ${
                 menuOpen ? 'rotate-180' : ''
               }`}
-            >
-              <path d="M5 12l5-5 5 5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
-            </svg>
-          </div>
-        </button>
-      </div>
-    </aside>
+            />
+          </button>
+        </div>
+      </aside>
+    </>
   )
 }

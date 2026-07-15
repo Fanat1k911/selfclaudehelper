@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useState } from 'react'
-import { apiFetch } from '../lib/api'
+import { apiFetch, apiDownload } from '../lib/api'
 import type { Ingredient } from '../types'
 import { IngredientDetailPanel } from '../components/IngredientDetailPanel'
 import { NewIngredientModal } from '../components/NewIngredientModal'
+import { ImportIngredientsModal } from '../components/ImportIngredientsModal'
 
 const COLOR_DOT: Record<Ingredient['цвет'], string> = {
   'зелёный': 'bg-emerald-500',
@@ -23,6 +24,7 @@ export function IngredientsPage() {
   const [search, setSearch] = useState('')
   const [selected, setSelected] = useState<Ingredient | null>(null)
   const [showCreate, setShowCreate] = useState(false)
+  const [showImport, setShowImport] = useState(false)
 
   async function load() {
     setLoading(true)
@@ -54,15 +56,29 @@ export function IngredientsPage() {
   }
 
   return (
-    <div className="px-8 py-6">
-      <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-semibold text-ink">Ингредиенты</h1>
-        <button
-          onClick={() => setShowCreate(true)}
-          className="rounded-lg bg-terracotta px-4 py-2 text-sm font-medium text-white hover:bg-terracotta-dark"
-        >
-          + Добавить ингредиент
-        </button>
+    <div className="px-4 py-4 sm:px-8 sm:py-6">
+      <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <h1 className="text-xl font-semibold text-ink sm:text-2xl">Ингредиенты</h1>
+        <div className="flex flex-wrap gap-2">
+          <button
+            onClick={() => apiDownload('/ingredients/export', 'ингредиенты.xlsx')}
+            className="whitespace-nowrap rounded-lg bg-cream px-3 py-2 text-sm font-medium text-ink hover:bg-ink/5 sm:px-4"
+          >
+            Экспорт (.xlsx)
+          </button>
+          <button
+            onClick={() => setShowImport(true)}
+            className="whitespace-nowrap rounded-lg bg-cream px-3 py-2 text-sm font-medium text-ink hover:bg-ink/5 sm:px-4"
+          >
+            Импорт из файла
+          </button>
+          <button
+            onClick={() => setShowCreate(true)}
+            className="whitespace-nowrap rounded-lg bg-terracotta px-3 py-2 text-sm font-medium text-white hover:bg-terracotta-dark sm:px-4"
+          >
+            + Добавить ингредиент
+          </button>
+        </div>
       </div>
 
       <input
@@ -72,7 +88,43 @@ export function IngredientsPage() {
         className="mb-4 w-full max-w-sm rounded-lg border border-ink/10 bg-white px-3 py-2 text-sm outline-none focus:border-terracotta"
       />
 
-      <div className="overflow-hidden rounded-xl border border-ink/10 bg-white shadow-sm">
+      <div className="space-y-2 md:hidden">
+        {loading && (
+          <div className="rounded-xl border border-ink/10 bg-white px-4 py-6 text-center text-sm text-ink/40">
+            Загрузка…
+          </div>
+        )}
+        {!loading && filtered.length === 0 && (
+          <div className="rounded-xl border border-ink/10 bg-white px-4 py-6 text-center text-sm text-ink/40">
+            Ничего не найдено.
+          </div>
+        )}
+        {filtered.map((ing) => (
+          <button
+            key={ing.id}
+            onClick={() => handleRowClick(ing)}
+            className="w-full rounded-xl border border-ink/10 bg-white p-4 text-left shadow-sm active:bg-cream/60"
+          >
+            <div className="flex items-start justify-between gap-2">
+              <div className="flex min-w-0 items-center gap-2">
+                <span className={`h-2 w-2 shrink-0 rounded-full ${COLOR_DOT[ing['цвет']]}`} />
+                <span className="truncate text-sm font-medium text-ink">{ing['название']}</span>
+              </div>
+              <span className="shrink-0 text-sm font-semibold text-ink">
+                {ing['остаток']} {ing['ед.измерения']}
+              </span>
+            </div>
+            <div className="mt-1.5 flex items-center justify-between text-xs text-ink/50">
+              <span className="truncate">{ing['категория'] || '—'}</span>
+              <span className="shrink-0">
+                мин. {ing['мин.остаток']} {ing['ед.измерения']} · {formatDate(ing['последнее движение'])}
+              </span>
+            </div>
+          </button>
+        ))}
+      </div>
+
+      <div className="hidden overflow-hidden rounded-xl border border-ink/10 bg-white shadow-sm md:block">
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-ink/10 text-left text-ink/50">
@@ -135,6 +187,16 @@ export function IngredientsPage() {
           onClose={() => setShowCreate(false)}
           onCreated={() => {
             setShowCreate(false)
+            load()
+          }}
+        />
+      )}
+
+      {showImport && (
+        <ImportIngredientsModal
+          onClose={() => setShowImport(false)}
+          onImported={() => {
+            setShowImport(false)
             load()
           }}
         />

@@ -26,18 +26,18 @@ export function DashboardPage() {
   }, [])
 
   if (loading) {
-    return <div className="px-8 py-6 text-ink/40">Загрузка…</div>
+    return <div className="px-4 py-4 text-ink/40 sm:px-8 sm:py-6">Загрузка…</div>
   }
 
   if (!data) {
-    return <div className="px-8 py-6 text-ink/40">Не удалось загрузить дашборд.</div>
+    return <div className="px-4 py-4 text-ink/40 sm:px-8 sm:py-6">Не удалось загрузить дашборд.</div>
   }
 
   return (
-    <div className="px-8 py-6 space-y-6">
-      <h1 className="text-2xl font-semibold text-ink">Дашборд</h1>
+    <div className="space-y-6 px-4 py-4 sm:px-8 sm:py-6">
+      <h1 className="text-xl font-semibold text-ink sm:text-2xl">Дашборд</h1>
 
-      <div className="grid grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
         <div className="rounded-xl border border-ink/10 bg-white p-4 shadow-sm">
           <div className="text-xs text-ink/50 mb-1">Всего ингредиентов</div>
           <div className="text-2xl font-semibold text-ink">{data['всего_ингредиентов']}</div>
@@ -52,7 +52,7 @@ export function DashboardPage() {
         </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
         <div className="rounded-xl border border-ink/10 bg-white shadow-sm">
           <div className="border-b border-ink/10 px-4 py-3 font-medium text-ink">Ниже минимума</div>
           <div className="divide-y divide-ink/5">
@@ -60,9 +60,9 @@ export function DashboardPage() {
               <div className="px-4 py-6 text-center text-sm text-ink/40">Всё в порядке.</div>
             )}
             {data['ниже_минимума'].map((item) => (
-              <div key={item.id} className="flex items-center justify-between px-4 py-3 text-sm">
-                <span className="text-ink">{item['название']}</span>
-                <span className="text-red-600 font-medium">
+              <div key={item.id} className="flex items-center justify-between gap-2 px-4 py-3 text-sm">
+                <span className="truncate text-ink">{item['название']}</span>
+                <span className="shrink-0 font-medium text-red-600">
                   {item['остаток']} / {item['мин.остаток']} {item['ед.измерения']}
                 </span>
               </div>
@@ -77,9 +77,9 @@ export function DashboardPage() {
               <div className="px-4 py-6 text-center text-sm text-ink/40">Нет данных по расходу.</div>
             )}
             {data['топ_расход'].map((item) => (
-              <div key={item.material_id} className="flex items-center justify-between px-4 py-3 text-sm">
-                <span className="text-ink">{item['название']}</span>
-                <span className="text-ink/60">
+              <div key={item.material_id} className="flex items-center justify-between gap-2 px-4 py-3 text-sm">
+                <span className="truncate text-ink">{item['название']}</span>
+                <span className="shrink-0 text-ink/60">
                   {item['кол-во']} {item['ед.измерения']}
                 </span>
               </div>
@@ -90,7 +90,27 @@ export function DashboardPage() {
 
       <div className="rounded-xl border border-ink/10 bg-white shadow-sm">
         <div className="border-b border-ink/10 px-4 py-3 font-medium text-ink">Последние движения</div>
-        <table className="w-full text-sm">
+
+        <div className="space-y-2 p-3 md:hidden">
+          {data['последние_движения'].length === 0 && (
+            <div className="px-1 py-4 text-center text-sm text-ink/40">Движений пока нет.</div>
+          )}
+          {data['последние_движения'].map((tx) => (
+            <div key={tx.id} className="rounded-lg border border-ink/10 p-3">
+              <div className="flex items-start justify-between gap-2">
+                <span className="truncate text-sm font-medium text-ink">{tx['название']}</span>
+                <span className="shrink-0 text-sm font-semibold text-ink">{tx['кол-во']}</span>
+              </div>
+              <div className="mt-1 flex items-center justify-between text-xs text-ink/50">
+                <span>{TX_LABEL[tx['тип']] ?? tx['тип']}</span>
+                <span>{formatDate(tx['дата'])}</span>
+              </div>
+              {tx['комментарий'] && <div className="mt-1 truncate text-xs text-ink/50">{tx['комментарий']}</div>}
+            </div>
+          ))}
+        </div>
+
+        <table className="hidden w-full text-sm md:table">
           <thead>
             <tr className="border-b border-ink/10 text-left text-ink/50">
               <th className="px-4 py-2 font-medium">Дата</th>
