@@ -27,7 +27,7 @@ export function ThemeToggle({ value, onChange }: { value: ThemePref; onChange: (
             style={{
               background: active ? 'var(--login-toggle-active-bg)' : 'transparent',
               color: active ? 'var(--login-text)' : 'var(--login-text-faint)',
-              boxShadow: active ? '0 1px 4px rgba(0,0,0,0.15)' : 'none',
+              boxShadow: active ? '0 1px 4px var(--login-toggle-shadow)' : 'none',
             }}
           >
             <Icon className="h-3.5 w-3.5" strokeWidth={2} />

@@ -64,12 +64,12 @@ a[href] {
   --login-input-bg: rgba(255, 255, 255, 0.03);
   --login-input-bg-focus: rgba(255, 255, 255, 0.06);
   --login-input-border: rgba(255, 255, 255, 0.1);
-  --login-placeholder: rgba(255, 255, 255, 0.2);
   --login-blob-a: rgba(201, 123, 99, 0.2);
   --login-blob-b: rgba(173, 99, 80, 0.15);
   --login-toggle-bg: rgba(255, 255, 255, 0.04);
   --login-toggle-border: rgba(255, 255, 255, 0.1);
   --login-toggle-active-bg: rgba(255, 255, 255, 0.12);
+  --login-toggle-shadow: rgba(0, 0, 0, 0.4);
 }
 [data-login-theme='light'] {
   --login-bg: var(--color-cream);
@@ -81,10 +81,10 @@ a[href] {
   --login-input-bg: rgba(255, 255, 255, 0.5);
   --login-input-bg-focus: rgba(255, 255, 255, 0.9);
   --login-input-border: rgba(43, 33, 28, 0.12);
-  --login-placeholder: rgba(43, 33, 28, 0.3);
   --login-blob-a: rgba(201, 123, 99, 0.18);
   --login-blob-b: rgba(173, 99, 80, 0.14);
   --login-toggle-bg: rgba(255, 255, 255, 0.5);
   --login-toggle-border: rgba(43, 33, 28, 0.1);
   --login-toggle-active-bg: rgba(255, 255, 255, 0.95);
+  --login-toggle-shadow: rgba(43, 33, 28, 0.15);
 }

@@ -68,6 +68,8 @@ export function TimezoneClock() {
           <option value="" disabled>
             Часовой пояс…
           </option>
+          {/* Раскрытый список опций рисует ОС/браузер, не наша тема (обычно белый фон
+              независимо от data-login-theme) — чёрный текст читаем в обоих случаях. */}
           {TIMEZONES.map((t) => (
             <option key={t.value} value={t.value} style={{ color: '#000' }}>
               {t.label}

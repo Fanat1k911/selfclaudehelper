@@ -7,6 +7,14 @@ import { useLoginTheme } from '../lib/useLoginTheme'
 import { TimezoneClock } from '../components/TimezoneClock'
 import { ThemeToggle } from '../components/ThemeToggle'
 
+const inputClassName =
+  'w-full rounded-lg border px-4 py-3 text-sm outline-none transition-colors focus:border-terracotta/70 focus:bg-[var(--login-input-bg-focus)]'
+const inputStyle = {
+  background: 'var(--login-input-bg)',
+  borderColor: 'var(--login-input-border)',
+  color: 'var(--login-text)',
+}
+
 export function LoginPage() {
   const { user, login } = useAuth()
   const navigate = useNavigate()
@@ -82,8 +90,8 @@ export function LoginPage() {
               id="login"
               value={loginValue}
               onChange={(e) => setLoginValue(e.target.value)}
-              className="w-full rounded-lg border px-4 py-3 text-sm outline-none transition-colors focus:border-terracotta/70 focus:bg-[var(--login-input-bg-focus)]"
-              style={{ background: 'var(--login-input-bg)', borderColor: 'var(--login-input-border)', color: 'var(--login-text)' }}
+              className={inputClassName}
+              style={inputStyle}
               autoComplete="username"
               required
             />
@@ -102,8 +110,8 @@ export function LoginPage() {
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full rounded-lg border px-4 py-3 text-sm outline-none transition-colors focus:border-terracotta/70 focus:bg-[var(--login-input-bg-focus)]"
-              style={{ background: 'var(--login-input-bg)', borderColor: 'var(--login-input-border)', color: 'var(--login-text)' }}
+              className={inputClassName}
+              style={inputStyle}
               autoComplete="current-password"
               required
             />
