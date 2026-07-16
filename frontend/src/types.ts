@@ -123,6 +123,13 @@ export interface ProductionLogEntry {
   'комментарий': string
 }
 
+export interface LeaderboardRow {
+  worker_id: string
+  'ФИО': string
+  'сегодня': number
+  'месяц': number
+}
+
 export interface RecipeItem {
   recipe_id: string
   'название рецепта': string

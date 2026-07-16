@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { apiFetch } from '../lib/api'
-import type { ProductionLogEntry } from '../types'
+import type { LeaderboardRow, ProductionLogEntry } from '../types'
 import { NewProductionModal } from '../components/NewProductionModal'
 
 function formatDate(value: string | null) {
@@ -12,6 +12,7 @@ function formatDate(value: string | null) {
 
 export function ProductionPage() {
   const [log, setLog] = useState<ProductionLogEntry[]>([])
+  const [leaderboard, setLeaderboard] = useState<LeaderboardRow[]>([])
   const [loading, setLoading] = useState(true)
   const [showCreate, setShowCreate] = useState(false)
 
@@ -27,6 +28,7 @@ export function ProductionPage() {
 
   useEffect(() => {
     load()
+    apiFetch<LeaderboardRow[]>('/production/leaderboard').then(setLeaderboard)
   }, [])
 
   return (
@@ -40,6 +42,32 @@ export function ProductionPage() {
           + Внести производство
         </button>
       </div>
+
+      {leaderboard.length > 0 && (
+        <div className="mb-6 overflow-hidden rounded-xl border border-ink/10 bg-white shadow-sm">
+          <div className="border-b border-ink/10 px-4 py-2.5 text-sm font-medium text-ink/70">
+            Кто сколько сделал
+          </div>
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="text-left text-ink/40">
+                <th className="px-4 py-2 font-medium">Сотрудник</th>
+                <th className="px-4 py-2 text-right font-medium">Сегодня</th>
+                <th className="px-4 py-2 text-right font-medium">За месяц</th>
+              </tr>
+            </thead>
+            <tbody>
+              {leaderboard.map((row) => (
+                <tr key={row.worker_id} className="border-t border-ink/5">
+                  <td className="px-4 py-2 text-ink">{row['ФИО']}</td>
+                  <td className="px-4 py-2 text-right font-medium">{row['сегодня']}</td>
+                  <td className="px-4 py-2 text-right font-medium">{row['месяц']}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
 
       <div className="space-y-2 md:hidden">
         {loading && (

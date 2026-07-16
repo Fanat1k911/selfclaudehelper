@@ -1,5 +1,7 @@
+from datetime import date, datetime, timedelta
+
 from app.constants import FOUNDER, TRANSACTION_INCOME, WORKER
-from app.models import Material, Product, Recipe, RecipeItem, Transaction
+from app.models import Material, Product, ProductionLog, Recipe, RecipeItem, Transaction
 from tests.conftest import auth_headers, make_user
 
 
@@ -147,3 +149,44 @@ def test_production_products_list_only_producible(client, db_session):
     resp = client.get("/api/production/products", headers=auth_headers(worker))
     names = [p["название"] for p in resp.json()]
     assert names == ["Мыло готовое"]
+
+
+def test_leaderboard_aggregates_today_and_month_only_quantity(client, db_session):
+    _, recipe = _make_recipe_with_material(db_session, batch_yield=10.0)
+    worker = make_user(db_session, login="w8", role=WORKER, fio="Анна Смирнова")
+    today = date.today()
+    earlier_this_month = today.replace(day=1)
+    last_month = earlier_this_month - timedelta(days=1)
+
+    db_session.add_all(
+        [
+            ProductionLog(
+                date=today, worker_id=worker.id, recipe_id=recipe.id, batches=2, defects=1,
+                started_at=datetime(today.year, today.month, today.day, 9),
+                finished_at=datetime(today.year, today.month, today.day, 10),
+            ),
+            ProductionLog(
+                date=earlier_this_month, worker_id=worker.id, recipe_id=recipe.id, batches=1, defects=0,
+                started_at=datetime(2020, 1, 1, 9), finished_at=datetime(2020, 1, 1, 10),
+            ),
+            ProductionLog(
+                date=last_month, worker_id=worker.id, recipe_id=recipe.id, batches=5, defects=0,
+                started_at=datetime(2020, 1, 1, 9), finished_at=datetime(2020, 1, 1, 10),
+            ),
+        ]
+    )
+    db_session.commit()
+
+    resp = client.get("/api/production/leaderboard", headers=auth_headers(worker))
+    assert resp.status_code == 200
+    row = resp.json()[0]
+    assert row["ФИО"] == "Анна Смирнова"
+    assert row["сегодня"] == 19.0  # 2*10 - 1
+    assert row["месяц"] == 29.0  # (2*10-1) + (1*10-0), прошлый месяц не считается
+    assert "цена" not in row and "выручка" not in row
+
+
+def test_leaderboard_visible_to_worker(client, db_session):
+    worker = make_user(db_session, login="w9", role=WORKER)
+    resp = client.get("/api/production/leaderboard", headers=auth_headers(worker))
+    assert resp.status_code == 200

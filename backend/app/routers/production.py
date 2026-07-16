@@ -2,6 +2,7 @@
 Worker видит только свои записи журнала, founder/developer — все (см. таблицу ролей в CLAUDE.md).
 ФИО сотрудника/название рецепта в ProductionLog больше не хранятся в БД — join при чтении."""
 
+from datetime import date as date_
 from datetime import datetime
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -78,6 +79,31 @@ def list_production(user: dict = Depends(get_current_user), db: Session = Depend
     if user["role"] not in (FOUNDER, DEVELOPER):
         stmt = stmt.where(ProductionLog.worker_id == user["id"])
     return [_log_dict(entry) for entry in db.scalars(stmt)]
+
+
+@router.get("/leaderboard")
+def get_leaderboard(db: Session = Depends(get_db)) -> list[dict]:
+    """Кол-во произведённого сегодня и с начала месяца по сотруднику — видно всем ролям
+    (мотивация), в отличие от dashboard/kpi (только founder/developer, вся история).
+    Только количество — цен/выручки в ProductionLog нет вообще, не только скрыто на фронте."""
+    today = date_.today()
+    month_start = today.replace(day=1)
+    entries = db.scalars(select(ProductionLog).where(ProductionLog.date >= month_start))
+
+    totals: dict[str, dict] = {}
+    for entry in entries:
+        row = totals.setdefault(
+            entry.worker_id,
+            {"worker_id": entry.worker_id, "ФИО": entry.worker.fio, "сегодня": 0.0, "месяц": 0.0},
+        )
+        qty = float(entry.batches) * float(entry.recipe.batch_yield) - float(entry.defects)
+        row["месяц"] += qty
+        if entry.date == today:
+            row["сегодня"] += qty
+
+    result = list(totals.values())
+    result.sort(key=lambda r: r["месяц"], reverse=True)
+    return result
 
 
 @router.post("")
