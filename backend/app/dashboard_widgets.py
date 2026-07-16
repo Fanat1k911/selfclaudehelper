@@ -1,8 +1,9 @@
 """Реестр виджетов дашборда-конструктора (роадмап-идея из CLAUDE.md, реализована по
 запросу Founder). Каждый виджет — ключ, метаданные для сетки (размер по умолчанию,
-минимальный размер, тип отрисовки) и функция compute(db) -> JSON-сериализуемые данные.
-Раскладка (какие виджеты показаны и где) хранится отдельно в DashboardWidgetLayout —
-общая на всю мастерскую (founder/developer видят одно и то же), не per-user."""
+минимальный размер, тип отрисовки) и функция compute(db, company_id) -> JSON-
+сериализуемые данные. Раскладка (какие виджеты показаны и где) хранится отдельно в
+DashboardWidgetLayout — общая на всю компанию (founder/developer одной мастерской видят
+одно и то же), не per-user, но своя у каждой компании (мультитенантность)."""
 
 from collections import defaultdict
 from datetime import date as date_
@@ -16,16 +17,16 @@ from app.models import Material, ProductionLog, Sale, Transaction
 _SIGN_BY_TYPE = {TRANSACTION_INCOME: 1, TRANSACTION_EXPENSE: -1, TRANSACTION_ADJUSTMENT: 1}
 
 
-def _balances(db: Session) -> dict[str, float]:
+def _balances(db: Session, company_id: str) -> dict[str, float]:
     balances: dict[str, float] = defaultdict(float)
-    for tx in db.scalars(select(Transaction)):
+    for tx in db.scalars(select(Transaction).where(Transaction.company_id == company_id)):
         balances[tx.material_id] += float(tx.qty) * _SIGN_BY_TYPE.get(tx.type, 0)
     return balances
 
 
-def _low_stock(db: Session) -> list[dict]:
-    materials = db.scalars(select(Material)).all()
-    balances = _balances(db)
+def _low_stock(db: Session, company_id: str) -> list[dict]:
+    materials = db.scalars(select(Material).where(Material.company_id == company_id)).all()
+    balances = _balances(db, company_id)
     rows = [
         {
             "id": m.id,
@@ -41,9 +42,10 @@ def _low_stock(db: Session) -> list[dict]:
     return rows
 
 
-def _recent_transactions(db: Session) -> list[dict]:
-    name_by_id = {m.id: m.name for m in db.scalars(select(Material))}
-    transactions = db.scalars(select(Transaction).order_by(Transaction.date.desc())).all()[:10]
+def _recent_transactions(db: Session, company_id: str) -> list[dict]:
+    name_by_id = {m.id: m.name for m in db.scalars(select(Material).where(Material.company_id == company_id))}
+    stmt = select(Transaction).where(Transaction.company_id == company_id).order_by(Transaction.date.desc())
+    transactions = db.scalars(stmt).all()[:10]
     return [
         {
             "id": tx.id,
@@ -58,9 +60,11 @@ def _recent_transactions(db: Session) -> list[dict]:
     ]
 
 
-def _spend_totals(db: Session) -> tuple[dict[str, float], dict[str, float], dict[str, str]]:
-    stmt = select(Transaction).where(Transaction.type == TRANSACTION_INCOME, Transaction.price.is_not(None))
-    name_by_id = {m.id: m.name for m in db.scalars(select(Material))}
+def _spend_totals(db: Session, company_id: str) -> tuple[dict[str, float], dict[str, float], dict[str, str]]:
+    stmt = select(Transaction).where(
+        Transaction.company_id == company_id, Transaction.type == TRANSACTION_INCOME, Transaction.price.is_not(None)
+    )
+    name_by_id = {m.id: m.name for m in db.scalars(select(Material).where(Material.company_id == company_id))}
 
     by_month: dict[str, float] = defaultdict(float)
     by_material: dict[str, float] = defaultdict(float)
@@ -71,20 +75,21 @@ def _spend_totals(db: Session) -> tuple[dict[str, float], dict[str, float], dict
     return by_month, by_material, name_by_id
 
 
-def _monthly_spend(db: Session) -> list[dict]:
-    by_month, _, _ = _spend_totals(db)
+def _monthly_spend(db: Session, company_id: str) -> list[dict]:
+    by_month, _, _ = _spend_totals(db, company_id)
     return [{"месяц": month, "сумма": round(v, 2)} for month, v in sorted(by_month.items())]
 
 
-def _top_expense_materials(db: Session) -> list[dict]:
-    _, by_material, name_by_id = _spend_totals(db)
+def _top_expense_materials(db: Session, company_id: str) -> list[dict]:
+    _, by_material, name_by_id = _spend_totals(db, company_id)
     top = sorted(by_material.items(), key=lambda kv: kv[1], reverse=True)[:5]
     return [{"material_id": mid, "название": name_by_id.get(mid, mid), "сумма": round(v, 2)} for mid, v in top]
 
 
-def _kpi_by_worker(db: Session) -> list[dict]:
+def _kpi_by_worker(db: Session, company_id: str) -> list[dict]:
     totals: dict[tuple[str, str], dict] = {}
-    for entry in db.scalars(select(ProductionLog)):
+    stmt = select(ProductionLog).where(ProductionLog.company_id == company_id)
+    for entry in db.scalars(stmt):
         month = entry.date.strftime("%Y-%m")
         key = (month, entry.worker_id)
         row = totals.setdefault(key, {"месяц": month, "ФИО": entry.worker.fio, "произведено": 0.0})
@@ -94,10 +99,10 @@ def _kpi_by_worker(db: Session) -> list[dict]:
     return result
 
 
-def _top_products(db: Session, limit: int = 3) -> list[dict]:
+def _top_products(db: Session, company_id: str, limit: int = 3) -> list[dict]:
     totals: dict[str, float] = defaultdict(float)
     names: dict[str, str] = {}
-    for s in db.scalars(select(Sale)):
+    for s in db.scalars(select(Sale).where(Sale.company_id == company_id)):
         totals[s.product_id] += float(s.qty)
         if s.product:
             names[s.product_id] = s.product.name
@@ -105,10 +110,11 @@ def _top_products(db: Session, limit: int = 3) -> list[dict]:
     return [{"product_id": pid, "название": names.get(pid, pid), "кол-во": qty} for pid, qty in top]
 
 
-def _production_leaderboard(db: Session) -> list[dict]:
+def _production_leaderboard(db: Session, company_id: str) -> list[dict]:
     today = date_.today()
     month_start = today.replace(day=1)
-    entries = db.scalars(select(ProductionLog).where(ProductionLog.date >= month_start))
+    stmt = select(ProductionLog).where(ProductionLog.company_id == company_id, ProductionLog.date >= month_start)
+    entries = db.scalars(stmt)
     totals: dict[str, dict] = {}
     for entry in entries:
         row = totals.setdefault(
@@ -123,20 +129,23 @@ def _production_leaderboard(db: Session) -> list[dict]:
     return result
 
 
-def _monthly_revenue(db: Session) -> list[dict]:
+def _monthly_revenue(db: Session, company_id: str) -> list[dict]:
     """Выручка = кол-во×цена по Sales с заполненной ценой, помесячно."""
     by_month: dict[str, float] = defaultdict(float)
-    for s in db.scalars(select(Sale).where(Sale.price.is_not(None))):
+    stmt = select(Sale).where(Sale.company_id == company_id, Sale.price.is_not(None))
+    for s in db.scalars(stmt):
         by_month[s.date.strftime("%Y-%m")] += float(s.qty) * float(s.price)
     return [{"месяц": m, "выручка": round(v, 2)} for m, v in sorted(by_month.items())]
 
 
-def _top_counterparties(db: Session, limit: int = 5) -> list[dict]:
+def _top_counterparties(db: Session, company_id: str, limit: int = 5) -> list[dict]:
     """Топ контрагентов по выручке. Продажи без привязки к контрагенту не учитываются —
     ранжировать анонимную отгрузку не по чему (общая выручка есть в monthly_revenue)."""
     totals: dict[str, float] = defaultdict(float)
     names: dict[str, str] = {}
-    stmt = select(Sale).where(Sale.price.is_not(None), Sale.counterparty_id.is_not(None))
+    stmt = select(Sale).where(
+        Sale.company_id == company_id, Sale.price.is_not(None), Sale.counterparty_id.is_not(None)
+    )
     for s in db.scalars(stmt):
         totals[s.counterparty_id] += float(s.qty) * float(s.price)
         if s.counterparty:
@@ -145,11 +154,12 @@ def _top_counterparties(db: Session, limit: int = 5) -> list[dict]:
     return [{"counterparty_id": cid, "название": names.get(cid, cid), "выручка": round(v, 2)} for cid, v in top]
 
 
-def _defect_rate(db: Session) -> list[dict]:
+def _defect_rate(db: Session, company_id: str) -> list[dict]:
     """% брака от выпуска (брак / (партии×выход_партии)), помесячно."""
     produced: dict[str, float] = defaultdict(float)
     defects: dict[str, float] = defaultdict(float)
-    for entry in db.scalars(select(ProductionLog)):
+    stmt = select(ProductionLog).where(ProductionLog.company_id == company_id)
+    for entry in db.scalars(stmt):
         month = entry.date.strftime("%Y-%m")
         produced[month] += float(entry.batches) * float(entry.recipe.batch_yield)
         defects[month] += float(entry.defects)
@@ -161,9 +171,9 @@ def _defect_rate(db: Session) -> list[dict]:
     return result
 
 
-def _stock_by_category(db: Session) -> list[dict]:
-    materials = db.scalars(select(Material)).all()
-    balances = _balances(db)
+def _stock_by_category(db: Session, company_id: str) -> list[dict]:
+    materials = db.scalars(select(Material).where(Material.company_id == company_id)).all()
+    balances = _balances(db, company_id)
     by_category: dict[str, float] = defaultdict(float)
     for m in materials:
         by_category[m.category] += max(balances.get(m.id, 0.0), 0.0)

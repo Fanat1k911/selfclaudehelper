@@ -14,7 +14,7 @@ router = APIRouter(prefix="/api/auth", tags=["auth"])
 @router.post("/login", response_model=TokenResponse)
 def login(body: LoginRequest, db: Session = Depends(get_db)) -> TokenResponse:
     user = authenticate(body.login, body.password, db)
-    db.add(LoginLog(user_id=user["id"]))
+    db.add(LoginLog(company_id=user["company_id"], user_id=user["id"]))
     db.commit()
     token = create_access_token(user)
     return TokenResponse(access_token=token, user=user)
@@ -26,8 +26,13 @@ def me(user: dict = Depends(get_current_user)) -> dict:
 
 
 @router.get("/log", dependencies=[Depends(require_roles(FOUNDER, DEVELOPER))])
-def login_log(db: Session = Depends(get_db)) -> list[dict]:
-    stmt = select(LoginLog).order_by(LoginLog.logged_in_at.desc()).limit(200)
+def login_log(user: dict = Depends(get_current_user), db: Session = Depends(get_db)) -> list[dict]:
+    stmt = (
+        select(LoginLog)
+        .where(LoginLog.company_id == user["company_id"])
+        .order_by(LoginLog.logged_in_at.desc())
+        .limit(200)
+    )
     return [
         {
             "id": entry.id,

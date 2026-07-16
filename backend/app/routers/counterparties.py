@@ -1,5 +1,7 @@
 """Контрагенты (юрлица-покупатели) — доступно только founder/developer (см. таблицу
-ролей в CLAUDE.md), т.к. это реквизиты для документов/отгрузки, не рядовая операция."""
+ролей в CLAUDE.md), т.к. это реквизиты для документов/отгрузки, не рядовая операция.
+
+Мультитенантность: каждый запрос фильтруется по user["company_id"]."""
 
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import select
@@ -10,7 +12,7 @@ from app.constants import DEVELOPER, FOUNDER
 from app.db import get_db
 from app.models import Counterparty
 from app.schemas import NewCounterpartyRequest, UpdateCounterpartyRequest
-from app.security import require_roles
+from app.security import get_current_user, require_roles
 
 router = APIRouter(
     prefix="/api/counterparties", tags=["counterparties"], dependencies=[Depends(require_roles(FOUNDER, DEVELOPER))]
@@ -32,16 +34,20 @@ def _counterparty_dict(cp: Counterparty) -> dict:
 
 
 @router.get("")
-def list_counterparties(db: Session = Depends(get_db)) -> list[dict]:
-    return [_counterparty_dict(c) for c in db.scalars(select(Counterparty).order_by(Counterparty.name))]
+def list_counterparties(user: dict = Depends(get_current_user), db: Session = Depends(get_db)) -> list[dict]:
+    stmt = select(Counterparty).where(Counterparty.company_id == user["company_id"]).order_by(Counterparty.name)
+    return [_counterparty_dict(c) for c in db.scalars(stmt)]
 
 
 @router.post("")
-def create_counterparty(body: NewCounterpartyRequest, db: Session = Depends(get_db)) -> dict:
+def create_counterparty(
+    body: NewCounterpartyRequest, user: dict = Depends(get_current_user), db: Session = Depends(get_db)
+) -> dict:
     if not body.name.strip():
         raise HTTPException(400, "Наименование обязательно.")
 
     cp = Counterparty(
+        company_id=user["company_id"],
         name=body.name.strip(),
         inn=body.inn or None,
         kpp=body.kpp or None,
@@ -57,9 +63,12 @@ def create_counterparty(body: NewCounterpartyRequest, db: Session = Depends(get_
 
 
 @router.patch("/{counterparty_id}")
-def update_counterparty(counterparty_id: str, body: UpdateCounterpartyRequest, db: Session = Depends(get_db)) -> dict:
+def update_counterparty(
+    counterparty_id: str, body: UpdateCounterpartyRequest,
+    user: dict = Depends(get_current_user), db: Session = Depends(get_db),
+) -> dict:
     cp = db.get(Counterparty, counterparty_id)
-    if cp is None:
+    if cp is None or cp.company_id != user["company_id"]:
         raise HTTPException(404, "Контрагент не найден.")
 
     if body.name is not None:

@@ -2,21 +2,27 @@ from datetime import datetime
 
 from app.constants import FOUNDER
 from app.models import Product, ProductionLog, Recipe, Sale
-from tests.conftest import auth_headers, make_user
+from tests.conftest import auth_headers, default_company_id, make_user
 
 
 def _make_product_with_stock(db_session, *, batches=2.0, batch_yield=10.0, defects=0.0):
-    recipe = Recipe(name="Свеча ароматическая", category="свечи", produces="свеча", batch_yield=batch_yield)
+    company_id = default_company_id(db_session)
+    recipe = Recipe(
+        company_id=company_id, name="Свеча ароматическая", category="свечи", produces="свеча", batch_yield=batch_yield
+    )
     db_session.add(recipe)
     db_session.flush()
 
-    product = Product(name="Свеча лаванда", category="свечи", gtin="4600000000001", recipe_id=recipe.id)
+    product = Product(
+        company_id=company_id, name="Свеча лаванда", category="свечи", gtin="4600000000001", recipe_id=recipe.id
+    )
     db_session.add(product)
     db_session.flush()
 
     worker = make_user(db_session, login="prodworker", role="worker")
     db_session.add(
         ProductionLog(
+            company_id=company_id,
             worker_id=worker.id,
             recipe_id=recipe.id,
             batches=batches,
@@ -57,10 +63,10 @@ def test_sale_succeeds_when_enough_ready(client, db_session):
 
 
 def test_sale_without_recipe_link_is_unrestricted(client, db_session):
-    product = Product(name="Мыло на заказ", category="мыло", gtin="4600000000002")
+    founder = make_user(db_session, login="f4", role=FOUNDER)
+    product = Product(company_id=founder.company_id, name="Мыло на заказ", category="мыло", gtin="4600000000002")
     db_session.add(product)
     db_session.commit()
-    founder = make_user(db_session, login="f4", role=FOUNDER)
 
     resp = client.post(
         "/api/sales",

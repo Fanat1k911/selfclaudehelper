@@ -2,22 +2,23 @@ from datetime import date, datetime
 
 from app.constants import FOUNDER, TRANSACTION_EXPENSE, TRANSACTION_INCOME, WORKER
 from app.models import Material, ProductionLog, Recipe, Transaction
-from tests.conftest import auth_headers, make_user
+from tests.conftest import auth_headers, default_company_id, make_user
 
 
 def test_spend_counts_only_priced_income(client, db_session):
-    m1 = Material(name="Масло", category="жидкое", unit="кг")
-    m2 = Material(name="Сода", category="сыпучее", unit="кг")
+    company_id = default_company_id(db_session)
+    m1 = Material(company_id=company_id, name="Масло", category="жидкое", unit="кг")
+    m2 = Material(company_id=company_id, name="Сода", category="сыпучее", unit="кг")
     db_session.add_all([m1, m2])
     db_session.flush()
     db_session.add_all(
         [
-            Transaction(material_id=m1.id, type=TRANSACTION_INCOME, qty=10, price=100, date=date(2026, 6, 1)),
-            Transaction(material_id=m1.id, type=TRANSACTION_INCOME, qty=5, price=120, date=date(2026, 7, 1)),
-            Transaction(material_id=m2.id, type=TRANSACTION_INCOME, qty=2, price=50, date=date(2026, 7, 1)),
+            Transaction(company_id=company_id, material_id=m1.id, type=TRANSACTION_INCOME, qty=10, price=100, date=date(2026, 6, 1)),
+            Transaction(company_id=company_id, material_id=m1.id, type=TRANSACTION_INCOME, qty=5, price=120, date=date(2026, 7, 1)),
+            Transaction(company_id=company_id, material_id=m2.id, type=TRANSACTION_INCOME, qty=2, price=50, date=date(2026, 7, 1)),
             # не должны попасть в траты:
-            Transaction(material_id=m1.id, type=TRANSACTION_EXPENSE, qty=1, price=100, date=date(2026, 7, 2)),
-            Transaction(material_id=m1.id, type=TRANSACTION_INCOME, qty=1, price=None, date=date(2026, 7, 3)),
+            Transaction(company_id=company_id, material_id=m1.id, type=TRANSACTION_EXPENSE, qty=1, price=100, date=date(2026, 7, 2)),
+            Transaction(company_id=company_id, material_id=m1.id, type=TRANSACTION_INCOME, qty=1, price=None, date=date(2026, 7, 3)),
         ]
     )
     db_session.commit()
@@ -35,13 +36,14 @@ def test_spend_counts_only_priced_income(client, db_session):
 
 
 def test_spend_respects_date_range(client, db_session):
-    m1 = Material(name="Масло", category="жидкое", unit="кг")
+    company_id = default_company_id(db_session)
+    m1 = Material(company_id=company_id, name="Масло", category="жидкое", unit="кг")
     db_session.add(m1)
     db_session.flush()
     db_session.add_all(
         [
-            Transaction(material_id=m1.id, type=TRANSACTION_INCOME, qty=10, price=100, date=date(2026, 6, 1)),
-            Transaction(material_id=m1.id, type=TRANSACTION_INCOME, qty=5, price=120, date=date(2026, 7, 1)),
+            Transaction(company_id=company_id, material_id=m1.id, type=TRANSACTION_INCOME, qty=10, price=100, date=date(2026, 6, 1)),
+            Transaction(company_id=company_id, material_id=m1.id, type=TRANSACTION_INCOME, qty=5, price=120, date=date(2026, 7, 1)),
         ]
     )
     db_session.commit()
@@ -57,18 +59,18 @@ def test_spend_respects_date_range(client, db_session):
 
 def test_kpi_grouped_by_month_and_worker(client, db_session):
     worker = make_user(db_session, login="dk1", role=WORKER)
-    recipe = Recipe(name="Мыло", category="мыло", produces="мыло", batch_yield=10.0)
+    recipe = Recipe(company_id=worker.company_id, name="Мыло", category="мыло", produces="мыло", batch_yield=10.0)
     db_session.add(recipe)
     db_session.flush()
     db_session.add_all(
         [
             ProductionLog(
-                worker_id=worker.id, recipe_id=recipe.id, batches=2, defects=1,
+                company_id=worker.company_id, worker_id=worker.id, recipe_id=recipe.id, batches=2, defects=1,
                 date=date(2026, 6, 10),
                 started_at=datetime(2026, 6, 10, 9), finished_at=datetime(2026, 6, 10, 11),
             ),
             ProductionLog(
-                worker_id=worker.id, recipe_id=recipe.id, batches=1, defects=0,
+                company_id=worker.company_id, worker_id=worker.id, recipe_id=recipe.id, batches=1, defects=0,
                 date=date(2026, 7, 5),
                 started_at=datetime(2026, 7, 5, 9), finished_at=datetime(2026, 7, 5, 10),
             ),

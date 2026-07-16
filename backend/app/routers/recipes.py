@@ -6,7 +6,11 @@
 Архив рецептов — без урезания данных (см. CLAUDE.md): архивный рецепт просто не
 попадает в список по умолчанию и не всплывает в выборках Производства/Продуктов,
 но сама запись, её состав и вся историческая привязка (ProductionLog, Product)
-остаются нетронутыми — фильтруется только видимость в активном обращении."""
+остаются нетронутыми — фильтруется только видимость в активном обращении.
+
+Мультитенантность: каждый запрос фильтруется по user["company_id"]. RecipeItem не
+хранит company_id напрямую — recipe_id/material_id уже company-scoped, но при
+создании/добавлении состава оба явно проверяются на принадлежность компании."""
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy import select
@@ -34,14 +38,33 @@ def _recipe_dict(recipe: Recipe) -> dict:
     }
 
 
+def _get_own_recipe(db: Session, recipe_id: str, company_id: str) -> Recipe:
+    recipe = db.get(Recipe, recipe_id)
+    if recipe is None or recipe.company_id != company_id:
+        raise HTTPException(404, "Рецепт не найден.")
+    return recipe
+
+
+def _get_own_material(db: Session, material_id: str, company_id: str) -> Material:
+    material = db.get(Material, material_id)
+    if material is None or material.company_id != company_id:
+        raise HTTPException(404, "Компонент не найден.")
+    return material
+
+
 @router.get("")
-def list_recipes(archived: bool = Query(False), db: Session = Depends(get_db)) -> list[dict]:
-    stmt = select(Recipe).where(Recipe.archived == archived)
+def list_recipes(
+    archived: bool = Query(False), user: dict = Depends(get_current_user), db: Session = Depends(get_db)
+) -> list[dict]:
+    stmt = select(Recipe).where(Recipe.company_id == user["company_id"], Recipe.archived == archived)
     return [_recipe_dict(r) for r in db.scalars(stmt)]
 
 
 @router.get("/{recipe_id}/items")
-def list_recipe_items(recipe_id: str, db: Session = Depends(get_db)) -> list[dict]:
+def list_recipe_items(
+    recipe_id: str, user: dict = Depends(get_current_user), db: Session = Depends(get_db)
+) -> list[dict]:
+    _get_own_recipe(db, recipe_id, user["company_id"])
     rows = db.scalars(select(RecipeItem).where(RecipeItem.recipe_id == recipe_id))
     return [
         {
@@ -56,7 +79,7 @@ def list_recipe_items(recipe_id: str, db: Session = Depends(get_db)) -> list[dic
 
 
 @router.post("", dependencies=[Depends(require_roles(FOUNDER, DEVELOPER))])
-def create_recipe(body: NewRecipeRequest, db: Session = Depends(get_db)) -> dict:
+def create_recipe(body: NewRecipeRequest, user: dict = Depends(get_current_user), db: Session = Depends(get_db)) -> dict:
     valid_items = [item for item in body.items if item.material_id and item.qty_per_batch > 0]
     if not valid_items:
         raise HTTPException(422, "Состав рецепта обязателен.")
@@ -66,6 +89,7 @@ def create_recipe(body: NewRecipeRequest, db: Session = Depends(get_db)) -> dict
     valid_items = list({item.material_id: item for item in valid_items}.values())
 
     recipe = Recipe(
+        company_id=user["company_id"],
         name=body.name,
         category=body.category,
         produces=body.produces,
@@ -76,8 +100,7 @@ def create_recipe(body: NewRecipeRequest, db: Session = Depends(get_db)) -> dict
     db.flush()
 
     for item in valid_items:
-        if db.get(Material, item.material_id) is None:
-            raise HTTPException(404, "Компонент не найден.")
+        _get_own_material(db, item.material_id, user["company_id"])
         db.add(RecipeItem(recipe_id=recipe.id, material_id=item.material_id, qty_per_batch=item.qty_per_batch))
 
     db.commit()
@@ -85,11 +108,11 @@ def create_recipe(body: NewRecipeRequest, db: Session = Depends(get_db)) -> dict
 
 
 @router.post("/{recipe_id}/items", dependencies=[Depends(require_roles(FOUNDER, DEVELOPER))])
-def add_recipe_item(recipe_id: str, body: NewRecipeItemRequest, db: Session = Depends(get_db)) -> dict:
-    if db.get(Recipe, recipe_id) is None:
-        raise HTTPException(404, "Рецепт не найден.")
-    if db.get(Material, body.material_id) is None:
-        raise HTTPException(404, "Компонент не найден.")
+def add_recipe_item(
+    recipe_id: str, body: NewRecipeItemRequest, user: dict = Depends(get_current_user), db: Session = Depends(get_db)
+) -> dict:
+    _get_own_recipe(db, recipe_id, user["company_id"])
+    _get_own_material(db, body.material_id, user["company_id"])
 
     existing = db.scalar(
         select(RecipeItem).where(RecipeItem.recipe_id == recipe_id, RecipeItem.material_id == body.material_id)
@@ -103,10 +126,10 @@ def add_recipe_item(recipe_id: str, body: NewRecipeItemRequest, db: Session = De
 
 
 @router.patch("/{recipe_id}", dependencies=[Depends(require_roles(FOUNDER, DEVELOPER))])
-def set_recipe_archived(recipe_id: str, body: UpdateRecipeArchivedRequest, db: Session = Depends(get_db)) -> dict:
-    recipe = db.get(Recipe, recipe_id)
-    if recipe is None:
-        raise HTTPException(404, "Рецепт не найден.")
+def set_recipe_archived(
+    recipe_id: str, body: UpdateRecipeArchivedRequest, user: dict = Depends(get_current_user), db: Session = Depends(get_db)
+) -> dict:
+    recipe = _get_own_recipe(db, recipe_id, user["company_id"])
     recipe.archived = body.archived
     db.commit()
     return {"ok": True}

@@ -1,6 +1,9 @@
 """Карточки готовых изделий — доступно только founder/developer (см. таблицу ролей в CLAUDE.md).
 Обязательные поля при создании — название/категория/GTIN, см. app.constants.PRODUCT_REQUIRED_FIELDS.
-Название рецепта в Product больше не хранится в БД — join при чтении."""
+Название рецепта в Product больше не хранится в БД — join при чтении.
+
+Мультитенантность: каждый запрос фильтруется по user["company_id"]. _ready_to_ship_by_recipe
+и _sold_by_product принимают company_id явно — их переиспользует sales.py."""
 
 import io
 import re
@@ -17,7 +20,7 @@ from app.constants import DEVELOPER, FOUNDER, PRODUCT_REQUIRED_FIELDS
 from app.db import get_db
 from app.models import Product, ProductionLog, Recipe, Sale
 from app.schemas import NewProductRequest, ProductImportCommitRequest
-from app.security import require_roles
+from app.security import get_current_user, require_roles
 
 router = APIRouter(prefix="/api/products", tags=["products"], dependencies=[Depends(require_roles(FOUNDER, DEVELOPER))])
 
@@ -26,18 +29,18 @@ def _missing_required_fields(fields: dict[str, str]) -> list[str]:
     return [field for field in PRODUCT_REQUIRED_FIELDS if not fields.get(field, "").strip()]
 
 
-def _ready_to_ship_by_recipe(db: Session) -> dict[str, float]:
+def _ready_to_ship_by_recipe(db: Session, company_id: str) -> dict[str, float]:
     """Готово к отгрузке = произведено по журналу смен (партии × выход) минус брак,
     минус то, что уже продано (см. CLAUDE.md — пока связь рецепт-продукт всегда 1:1)."""
     produced: dict[str, float] = defaultdict(float)
-    for log in db.scalars(select(ProductionLog)):
+    for log in db.scalars(select(ProductionLog).where(ProductionLog.company_id == company_id)):
         produced[log.recipe_id] += float(log.batches) * float(log.recipe.batch_yield) - float(log.defects)
     return produced
 
 
-def _sold_by_product(db: Session) -> dict[str, float]:
+def _sold_by_product(db: Session, company_id: str) -> dict[str, float]:
     sold: dict[str, float] = defaultdict(float)
-    for sale in db.scalars(select(Sale)):
+    for sale in db.scalars(select(Sale).where(Sale.company_id == company_id)):
         sold[sale.product_id] += float(sale.qty)
     return sold
 
@@ -62,14 +65,15 @@ def _product_dict(product: Product, produced_by_recipe: dict[str, float], sold_b
 
 
 @router.get("")
-def list_products(db: Session = Depends(get_db)) -> list[dict]:
-    produced_by_recipe = _ready_to_ship_by_recipe(db)
-    sold_by_product = _sold_by_product(db)
-    return [_product_dict(p, produced_by_recipe, sold_by_product) for p in db.scalars(select(Product))]
+def list_products(user: dict = Depends(get_current_user), db: Session = Depends(get_db)) -> list[dict]:
+    produced_by_recipe = _ready_to_ship_by_recipe(db, user["company_id"])
+    sold_by_product = _sold_by_product(db, user["company_id"])
+    stmt = select(Product).where(Product.company_id == user["company_id"])
+    return [_product_dict(p, produced_by_recipe, sold_by_product) for p in db.scalars(stmt)]
 
 
 @router.post("")
-def create_product(body: NewProductRequest, db: Session = Depends(get_db)) -> dict:
+def create_product(body: NewProductRequest, user: dict = Depends(get_current_user), db: Session = Depends(get_db)) -> dict:
     fields = {
         "название": body.name,
         "категория": body.category,
@@ -86,12 +90,13 @@ def create_product(body: NewProductRequest, db: Session = Depends(get_db)) -> di
 
     if body.recipe_id:
         recipe = db.get(Recipe, body.recipe_id)
-        if recipe is None:
+        if recipe is None or recipe.company_id != user["company_id"]:
             raise HTTPException(404, "Рецепт не найден.")
         if recipe.archived:
             raise HTTPException(400, "Рецепт в архиве, привязать к продукту нельзя.")
 
     product = Product(
+        company_id=user["company_id"],
         name=body.name,
         category=body.category,
         gtin=body.gtin,
@@ -188,12 +193,13 @@ async def import_sheets(file: UploadFile = File(...)) -> dict:
 
 @router.post("/import/preview")
 async def import_preview(
-    file: UploadFile = File(...), sheet_name: str | None = Form(None), db: Session = Depends(get_db)
+    file: UploadFile = File(...), sheet_name: str | None = Form(None),
+    user: dict = Depends(get_current_user), db: Session = Depends(get_db),
 ) -> list[dict]:
     content = await file.read()
     parsed = _parse_import_file(content, sheet_name)
 
-    existing_gtins = {p.gtin for p in db.scalars(select(Product))}
+    existing_gtins = {p.gtin for p in db.scalars(select(Product).where(Product.company_id == user["company_id"]))}
     seen_gtins: set[str] = set()
 
     result = []
@@ -215,16 +221,19 @@ async def import_preview(
 
 
 @router.post("/import/commit")
-def import_commit(body: ProductImportCommitRequest, db: Session = Depends(get_db)) -> dict:
+def import_commit(
+    body: ProductImportCommitRequest, user: dict = Depends(get_current_user), db: Session = Depends(get_db)
+) -> dict:
     """Строки прилетают уже подтверждённые фронтом после превью — здесь без
     повторного парсинга файла, только создание карточек продукта (импорт только
     создаёт новые продукты, обновление существующих по GTIN не поддерживается)."""
-    existing_gtins = {p.gtin for p in db.scalars(select(Product))}
+    existing_gtins = {p.gtin for p in db.scalars(select(Product).where(Product.company_id == user["company_id"]))}
     applied = 0
     for row in body.rows:
         if row.gtin in existing_gtins:
             continue
         product = Product(
+            company_id=user["company_id"],
             name=row.name,
             category=row.category,
             gtin=row.gtin,

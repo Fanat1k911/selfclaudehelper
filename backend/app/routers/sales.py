@@ -1,6 +1,8 @@
 """Отгрузка готовых изделий — доступно только founder/developer (см. таблицу ролей в CLAUDE.md).
 Каждая запись списывает кол-во из «готово к отгрузке» у Product (см. products.py).
-Название продукта в Sale не хранится в БД — join при чтении."""
+Название продукта в Sale не хранится в БД — join при чтении.
+
+Мультитенантность: каждый запрос фильтруется по user["company_id"]."""
 
 from collections import defaultdict
 
@@ -14,7 +16,7 @@ from app.db import get_db
 from app.models import Counterparty, Product, Sale
 from app.routers.products import _ready_to_ship_by_recipe, _sold_by_product
 from app.schemas import SaleRequest
-from app.security import require_roles
+from app.security import get_current_user, require_roles
 
 router = APIRouter(prefix="/api/sales", tags=["sales"], dependencies=[Depends(require_roles(FOUNDER, DEVELOPER))])
 
@@ -34,16 +36,16 @@ def _sale_dict(sale: Sale) -> dict:
 
 
 @router.get("")
-def list_sales(db: Session = Depends(get_db)) -> list[dict]:
-    rows = db.scalars(select(Sale).order_by(Sale.date.desc()))
-    return [_sale_dict(s) for s in rows]
+def list_sales(user: dict = Depends(get_current_user), db: Session = Depends(get_db)) -> list[dict]:
+    stmt = select(Sale).where(Sale.company_id == user["company_id"]).order_by(Sale.date.desc())
+    return [_sale_dict(s) for s in db.scalars(stmt)]
 
 
 @router.get("/top")
-def top_products(limit: int = 3, db: Session = Depends(get_db)) -> list[dict]:
+def top_products(limit: int = 3, user: dict = Depends(get_current_user), db: Session = Depends(get_db)) -> list[dict]:
     totals: dict[str, float] = defaultdict(float)
     names: dict[str, str] = {}
-    for s in db.scalars(select(Sale)):
+    for s in db.scalars(select(Sale).where(Sale.company_id == user["company_id"])):
         totals[s.product_id] += float(s.qty)
         if s.product:
             names[s.product_id] = s.product.name
@@ -52,21 +54,26 @@ def top_products(limit: int = 3, db: Session = Depends(get_db)) -> list[dict]:
 
 
 @router.post("")
-def create_sale(body: SaleRequest, db: Session = Depends(get_db)) -> dict:
+def create_sale(body: SaleRequest, user: dict = Depends(get_current_user), db: Session = Depends(get_db)) -> dict:
     if body.qty <= 0:
         raise HTTPException(400, "Количество должно быть больше нуля.")
     product = db.get(Product, body.product_id)
-    if product is None:
+    if product is None or product.company_id != user["company_id"]:
         raise HTTPException(404, "Продукт не найден.")
-    if body.counterparty_id and db.get(Counterparty, body.counterparty_id) is None:
-        raise HTTPException(404, "Контрагент не найден.")
+    if body.counterparty_id:
+        cp = db.get(Counterparty, body.counterparty_id)
+        if cp is None or cp.company_id != user["company_id"]:
+            raise HTTPException(404, "Контрагент не найден.")
 
     if product.recipe_id:
-        ready = _ready_to_ship_by_recipe(db).get(product.recipe_id, 0.0) - _sold_by_product(db).get(product.id, 0.0)
+        ready = _ready_to_ship_by_recipe(db, user["company_id"]).get(product.recipe_id, 0.0) - _sold_by_product(
+            db, user["company_id"]
+        ).get(product.id, 0.0)
         if body.qty > ready:
             raise HTTPException(400, f"Недостаточно готового товара: доступно {ready:g}, запрошено {body.qty:g}.")
 
     sale = Sale(
+        company_id=user["company_id"],
         product_id=body.product_id,
         counterparty_id=body.counterparty_id or None,
         qty=body.qty,

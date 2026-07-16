@@ -2,7 +2,13 @@
 
 Денормализованные "название рецепта"/"название материала"/"ФИО сотрудника" из
 RecipeItems/Products/ProductionLog в Sheets убраны: они существовали только чтобы
-Founder мог читать сырой лист глазами, а таблицу больше не будут трогать руками."""
+Founder мог читать сырой лист глазами, а таблицу больше не будут трогать руками.
+
+Мультитенантность (2026-07-16, см. CLAUDE.md): company_id почти на каждой таблице —
+изоляция данных между независимыми клиентами (мастерскими). RecipeItem — исключение,
+не хранит company_id напрямую (скоуп идёт транзитивно через recipe_id/material_id,
+оба уже company-scoped, и оба проверяются на принадлежность компании в роутере при
+создании/изменении состава)."""
 
 import uuid
 from datetime import date as date_, datetime
@@ -17,11 +23,25 @@ def _short_id() -> str:
     return uuid.uuid4().hex[:8]
 
 
+class Company(Base):
+    """Тенант — одна изолированная мастерская/клиент. Первая компания (существующая
+    мастерская Founder) создаётся бэкфилл-миграцией при переходе на мультитенантность."""
+
+    __tablename__ = "companies"
+
+    id: Mapped[str] = mapped_column(String(8), primary_key=True, default=_short_id)
+    name: Mapped[str] = mapped_column(String(255))
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+
+
 class User(Base):
     __tablename__ = "users"
 
     id: Mapped[str] = mapped_column(String(8), primary_key=True, default=_short_id)
+    company_id: Mapped[str] = mapped_column(ForeignKey("companies.id"))
     fio: Mapped[str] = mapped_column(String(255))
+    # Логин глобально уникален (не per-company) — при входе компания определяется
+    # по самому аккаунту, экран логина не спрашивает "какая компания".
     login: Mapped[str] = mapped_column(String(100), unique=True, index=True)
     password_hash: Mapped[str] = mapped_column(String(255))
     role: Mapped[str] = mapped_column(String(20))
@@ -32,11 +52,14 @@ class User(Base):
     address: Mapped[str | None] = mapped_column(Text)
     document: Mapped[str | None] = mapped_column(Text)
 
+    company: Mapped["Company"] = relationship()
+
 
 class LoginLog(Base):
     __tablename__ = "login_log"
 
     id: Mapped[str] = mapped_column(String(8), primary_key=True, default=_short_id)
+    company_id: Mapped[str] = mapped_column(ForeignKey("companies.id"))
     user_id: Mapped[str] = mapped_column(ForeignKey("users.id"))
     logged_in_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
 
@@ -47,6 +70,7 @@ class Material(Base):
     __tablename__ = "materials"
 
     id: Mapped[str] = mapped_column(String(8), primary_key=True, default=_short_id)
+    company_id: Mapped[str] = mapped_column(ForeignKey("companies.id"))
     name: Mapped[str] = mapped_column(String(255))
     category: Mapped[str] = mapped_column(String(20))
     unit: Mapped[str] = mapped_column(String(20))
@@ -59,6 +83,7 @@ class Recipe(Base):
     __tablename__ = "recipes"
 
     id: Mapped[str] = mapped_column(String(8), primary_key=True, default=_short_id)
+    company_id: Mapped[str] = mapped_column(ForeignKey("companies.id"))
     name: Mapped[str] = mapped_column(String(255))
     category: Mapped[str] = mapped_column(String(100))
     produces: Mapped[str] = mapped_column(String(255))
@@ -86,6 +111,7 @@ class Transaction(Base):
     __tablename__ = "transactions"
 
     id: Mapped[str] = mapped_column(String(8), primary_key=True, default=_short_id)
+    company_id: Mapped[str] = mapped_column(ForeignKey("companies.id"))
     date: Mapped[date_] = mapped_column(Date, default=date_.today)
     material_id: Mapped[str] = mapped_column(ForeignKey("materials.id"))
     type: Mapped[str] = mapped_column(String(20))
@@ -101,6 +127,7 @@ class Product(Base):
     __tablename__ = "products"
 
     id: Mapped[str] = mapped_column(String(8), primary_key=True, default=_short_id)
+    company_id: Mapped[str] = mapped_column(ForeignKey("companies.id"))
     name: Mapped[str] = mapped_column(String(255))
     category: Mapped[str] = mapped_column(String(100))
     gtin: Mapped[str] = mapped_column(String(50))
@@ -117,6 +144,7 @@ class Counterparty(Base):
     __tablename__ = "counterparties"
 
     id: Mapped[str] = mapped_column(String(8), primary_key=True, default=_short_id)
+    company_id: Mapped[str] = mapped_column(ForeignKey("companies.id"))
     name: Mapped[str] = mapped_column(String(255))
     inn: Mapped[str | None] = mapped_column(String(20))
     kpp: Mapped[str | None] = mapped_column(String(20))
@@ -131,6 +159,7 @@ class Sale(Base):
     __tablename__ = "sales"
 
     id: Mapped[str] = mapped_column(String(8), primary_key=True, default=_short_id)
+    company_id: Mapped[str] = mapped_column(ForeignKey("companies.id"))
     date: Mapped[date_] = mapped_column(Date, default=date_.today)
     product_id: Mapped[str] = mapped_column(ForeignKey("products.id"))
     counterparty_id: Mapped[str | None] = mapped_column(ForeignKey("counterparties.id"))
@@ -146,6 +175,7 @@ class ProductionLog(Base):
     __tablename__ = "production_log"
 
     id: Mapped[str] = mapped_column(String(8), primary_key=True, default=_short_id)
+    company_id: Mapped[str] = mapped_column(ForeignKey("companies.id"))
     date: Mapped[date_] = mapped_column(Date, default=date_.today)
     worker_id: Mapped[str] = mapped_column(ForeignKey("users.id"))
     recipe_id: Mapped[str] = mapped_column(ForeignKey("recipes.id"))
@@ -163,6 +193,7 @@ class PackagingLog(Base):
     __tablename__ = "packaging_log"
 
     id: Mapped[str] = mapped_column(String(8), primary_key=True, default=_short_id)
+    company_id: Mapped[str] = mapped_column(ForeignKey("companies.id"))
     date: Mapped[date_] = mapped_column(Date, default=date_.today)
     worker_id: Mapped[str] = mapped_column(ForeignKey("users.id"))
     product_id: Mapped[str] = mapped_column(ForeignKey("products.id"))
@@ -175,14 +206,17 @@ class PackagingLog(Base):
 
 
 class DashboardWidgetLayout(Base):
-    """Раскладка виджетов дашборда — общая на всю мастерскую (founder и developer видят
-    одно и то же), не per-user. Одна строка на активный виджет; удаление виджета с
-    дашборда — просто DELETE строки, добавление — INSERT с позицией по умолчанию."""
+    """Раскладка виджетов дашборда — общая на всю компанию (founder и developer одной
+    мастерской видят одно и то же), не per-user, но своя у каждой компании. Одна строка
+    на активный виджет; удаление виджета с дашборда — просто DELETE строки, добавление —
+    INSERT с позицией по умолчанию."""
 
     __tablename__ = "dashboard_widget_layout"
+    __table_args__ = (UniqueConstraint("company_id", "widget_key", name="uq_company_widget"),)
 
     id: Mapped[str] = mapped_column(String(8), primary_key=True, default=_short_id)
-    widget_key: Mapped[str] = mapped_column(String(50), unique=True)
+    company_id: Mapped[str] = mapped_column(ForeignKey("companies.id"))
+    widget_key: Mapped[str] = mapped_column(String(50))
     x: Mapped[int] = mapped_column(Integer)
     y: Mapped[int] = mapped_column(Integer)
     w: Mapped[int] = mapped_column(Integer)
@@ -193,6 +227,7 @@ class Feedback(Base):
     __tablename__ = "feedback"
 
     id: Mapped[str] = mapped_column(String(8), primary_key=True, default=_short_id)
+    company_id: Mapped[str] = mapped_column(ForeignKey("companies.id"))
     date: Mapped[date_] = mapped_column(Date, default=date_.today)
     author_id: Mapped[str] = mapped_column(ForeignKey("users.id"))
     author_role: Mapped[str] = mapped_column(String(20))

@@ -1,6 +1,9 @@
 """Раздел «Компоненты» — Materials/Transactions в Postgres (было: Sheets/pandas,
 см. core/inventory.py). Остаток по-прежнему нигде не хранится статично — считается
-на лету из Transaction по каждому material_id (см. CLAUDE.md)."""
+на лету из Transaction по каждому material_id (см. CLAUDE.md).
+
+Мультитенантность: каждый запрос фильтруется по user["company_id"] — см. CLAUDE.md
+"Архитектурные принципы"."""
 
 import io
 from datetime import date
@@ -62,10 +65,10 @@ def _transaction_dict(tx: Transaction) -> dict:
     }
 
 
-def _balances_and_last_movement(db: Session) -> tuple[dict[str, float], dict[str, date]]:
+def _balances_and_last_movement(db: Session, company_id: str) -> tuple[dict[str, float], dict[str, date]]:
     balances: dict[str, float] = {}
     last_movement: dict[str, date] = {}
-    for tx in db.scalars(select(Transaction)):
+    for tx in db.scalars(select(Transaction).where(Transaction.company_id == company_id)):
         sign = _SIGN_BY_TYPE.get(tx.type, 0)
         balances[tx.material_id] = balances.get(tx.material_id, 0.0) + float(tx.qty) * sign
         if tx.material_id not in last_movement or tx.date > last_movement[tx.material_id]:
@@ -73,15 +76,25 @@ def _balances_and_last_movement(db: Session) -> tuple[dict[str, float], dict[str
     return balances, last_movement
 
 
+def _get_own_material(db: Session, material_id: str, company_id: str) -> Material:
+    material = db.get(Material, material_id)
+    if material is None or material.company_id != company_id:
+        raise HTTPException(404, "Компонент не найден.")
+    return material
+
+
 @router.get("")
-def list_ingredients(db: Session = Depends(get_db)) -> list[dict]:
-    materials = db.scalars(select(Material)).all()
-    balances, last_movement = _balances_and_last_movement(db)
+def list_ingredients(user: dict = Depends(get_current_user), db: Session = Depends(get_db)) -> list[dict]:
+    materials = db.scalars(select(Material).where(Material.company_id == user["company_id"])).all()
+    balances, last_movement = _balances_and_last_movement(db, user["company_id"])
     return [_material_dict(m, balances.get(m.id, 0.0), last_movement.get(m.id)) for m in materials]
 
 
 @router.get("/{material_id}/transactions")
-def list_transactions(material_id: str, db: Session = Depends(get_db)) -> list[dict]:
+def list_transactions(
+    material_id: str, user: dict = Depends(get_current_user), db: Session = Depends(get_db)
+) -> list[dict]:
+    _get_own_material(db, material_id, user["company_id"])
     rows = db.scalars(
         select(Transaction).where(Transaction.material_id == material_id).order_by(Transaction.date.desc())
     )
@@ -89,12 +102,21 @@ def list_transactions(material_id: str, db: Session = Depends(get_db)) -> list[d
 
 
 @router.post("")
-def create_ingredient(body: NewMaterialRequest, db: Session = Depends(get_db)) -> dict:
-    material = Material(name=body.name, category=body.category, unit=body.unit, min_stock=body.min_stock)
+def create_ingredient(
+    body: NewMaterialRequest, user: dict = Depends(get_current_user), db: Session = Depends(get_db)
+) -> dict:
+    material = Material(
+        company_id=user["company_id"], name=body.name, category=body.category, unit=body.unit, min_stock=body.min_stock
+    )
     db.add(material)
     db.flush()
     if body.initial_qty > 0:
-        db.add(Transaction(material_id=material.id, type=TRANSACTION_INCOME, qty=body.initial_qty, comment="начальный остаток"))
+        db.add(
+            Transaction(
+                company_id=user["company_id"], material_id=material.id, type=TRANSACTION_INCOME,
+                qty=body.initial_qty, comment="начальный остаток",
+            )
+        )
     db.commit()
     return {"id": material.id}
 
@@ -105,34 +127,51 @@ def _require_positive(qty: float) -> None:
 
 
 @router.post("/{material_id}/income")
-def add_income(material_id: str, body: TransactionRequest, db: Session = Depends(get_db)) -> dict:
+def add_income(
+    material_id: str, body: TransactionRequest, user: dict = Depends(get_current_user), db: Session = Depends(get_db)
+) -> dict:
     _require_positive(body.qty)
-    db.add(Transaction(material_id=material_id, type=TRANSACTION_INCOME, qty=body.qty, price=body.price, comment=body.comment))
+    _get_own_material(db, material_id, user["company_id"])
+    db.add(
+        Transaction(
+            company_id=user["company_id"], material_id=material_id, type=TRANSACTION_INCOME,
+            qty=body.qty, price=body.price, comment=body.comment,
+        )
+    )
     db.commit()
     return {"ok": True}
 
 
 @router.post("/{material_id}/expense")
-def add_expense(material_id: str, body: TransactionRequest, db: Session = Depends(get_db)) -> dict:
+def add_expense(
+    material_id: str, body: TransactionRequest, user: dict = Depends(get_current_user), db: Session = Depends(get_db)
+) -> dict:
     _require_positive(body.qty)
-    db.add(Transaction(material_id=material_id, type=TRANSACTION_EXPENSE, qty=body.qty, comment=body.comment))
+    _get_own_material(db, material_id, user["company_id"])
+    db.add(
+        Transaction(
+            company_id=user["company_id"], material_id=material_id, type=TRANSACTION_EXPENSE,
+            qty=body.qty, comment=body.comment,
+        )
+    )
     db.commit()
     return {"ok": True}
 
 
 @router.post("/{material_id}/adjustment")
-def add_adjustment(material_id: str, body: AdjustmentRequest, db: Session = Depends(get_db)) -> dict:
-    material = db.get(Material, material_id)
-    if material is None:
-        raise HTTPException(404, "Компонент не найден.")
-    balances, _ = _balances_and_last_movement(db)
+def add_adjustment(
+    material_id: str, body: AdjustmentRequest, user: dict = Depends(get_current_user), db: Session = Depends(get_db)
+) -> dict:
+    _get_own_material(db, material_id, user["company_id"])
+    balances, _ = _balances_and_last_movement(db, user["company_id"])
     current = balances.get(material_id, 0.0)
     delta = body.actual_qty - current
     if delta == 0:
         return {"ok": True, "delta": 0}
     db.add(
         Transaction(
-            material_id=material_id, type=TRANSACTION_ADJUSTMENT, qty=delta, comment=body.comment or "инвентаризация"
+            company_id=user["company_id"], material_id=material_id, type=TRANSACTION_ADJUSTMENT,
+            qty=delta, comment=body.comment or "инвентаризация",
         )
     )
     db.commit()
@@ -140,12 +179,12 @@ def add_adjustment(material_id: str, body: AdjustmentRequest, db: Session = Depe
 
 
 @router.get("/export-template")
-def export_template(db: Session = Depends(get_db)) -> StreamingResponse:
+def export_template(user: dict = Depends(get_current_user), db: Session = Depends(get_db)) -> StreamingResponse:
     """Шаблон для массовой инвентаризации: те же названия, что видит Founder на
     экране, плюс пустая колонка «Новый остаток» — заполняется руками и грузится
     обратно через /import/preview."""
-    materials = db.scalars(select(Material)).all()
-    balances, _ = _balances_and_last_movement(db)
+    materials = db.scalars(select(Material).where(Material.company_id == user["company_id"])).all()
+    balances, _ = _balances_and_last_movement(db, user["company_id"])
 
     wb = Workbook()
     ws = wb.active
@@ -167,11 +206,11 @@ def export_template(db: Session = Depends(get_db)) -> StreamingResponse:
 
 
 @router.get("/export")
-def export_ingredients(db: Session = Depends(get_db)) -> StreamingResponse:
+def export_ingredients(user: dict = Depends(get_current_user), db: Session = Depends(get_db)) -> StreamingResponse:
     """Экспорт для просмотра/пересылки (например, в Google Таблицы) — без
     служебной колонки «Новый остаток» из /export-template."""
-    materials = db.scalars(select(Material)).all()
-    balances, last_movement = _balances_and_last_movement(db)
+    materials = db.scalars(select(Material).where(Material.company_id == user["company_id"])).all()
+    balances, last_movement = _balances_and_last_movement(db, user["company_id"])
 
     wb = Workbook()
     ws = wb.active
@@ -222,15 +261,17 @@ def _parse_import_file(content: bytes) -> list[dict]:
 
 
 @router.post("/import/preview")
-async def import_preview(file: UploadFile = File(...), db: Session = Depends(get_db)) -> list[dict]:
+async def import_preview(
+    file: UploadFile = File(...), user: dict = Depends(get_current_user), db: Session = Depends(get_db)
+) -> list[dict]:
     content = await file.read()
     parsed = _parse_import_file(content)
 
-    materials = db.scalars(select(Material)).all()
+    materials = db.scalars(select(Material).where(Material.company_id == user["company_id"])).all()
     by_name: dict[str, list[Material]] = {}
     for m in materials:
         by_name.setdefault(m.name.strip().casefold(), []).append(m)
-    balances, _ = _balances_and_last_movement(db)
+    balances, _ = _balances_and_last_movement(db, user["company_id"])
 
     result = []
     for item in parsed:
@@ -265,18 +306,22 @@ async def import_preview(file: UploadFile = File(...), db: Session = Depends(get
 
 
 @router.post("/import/commit")
-def import_commit(body: ImportCommitRequest, db: Session = Depends(get_db)) -> dict:
+def import_commit(
+    body: ImportCommitRequest, user: dict = Depends(get_current_user), db: Session = Depends(get_db)
+) -> dict:
     """Строки прилетают уже подтверждённые фронтом после превью — здесь без
     повторного парсинга файла, только запись движений."""
-    balances, _ = _balances_and_last_movement(db)
+    balances, _ = _balances_and_last_movement(db, user["company_id"])
     applied = 0
     for row in body.rows:
+        _get_own_material(db, row.material_id, user["company_id"])
         current = balances.get(row.material_id, 0.0)
         delta = row.new_qty - current
         if delta == 0:
             continue
         db.add(
             Transaction(
+                company_id=user["company_id"],
                 material_id=row.material_id,
                 type=TRANSACTION_ADJUSTMENT,
                 qty=delta,

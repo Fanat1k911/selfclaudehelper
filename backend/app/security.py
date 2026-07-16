@@ -31,7 +31,7 @@ def _find_user(db: Session, login: str) -> User | None:
 
 
 def _public_fields(user: User) -> dict:
-    return {"id": user.id, "fio": user.fio, "login": user.login, "role": user.role}
+    return {"id": user.id, "fio": user.fio, "login": user.login, "role": user.role, "company_id": user.company_id}
 
 
 def authenticate(login: str, password: str, db: Session) -> dict:
@@ -84,7 +84,12 @@ def get_current_user(
     fresh = _find_user(db, payload["login"])
     if fresh is None or fresh.status != USER_STATUS_ACTIVE:
         raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Доступ отозван.")
-    return {"id": payload["id"], "fio": payload["fio"], "login": payload["login"], "role": payload["role"]}
+    # company_id — как и role, берётся из payload токена, не перечитывается из БД
+    # (пользователь не переезжает между компаниями, в отличие от статуса/увольнения).
+    return {
+        "id": payload["id"], "fio": payload["fio"], "login": payload["login"],
+        "role": payload["role"], "company_id": payload["company_id"],
+    }
 
 
 def require_roles(*allowed_roles: str):

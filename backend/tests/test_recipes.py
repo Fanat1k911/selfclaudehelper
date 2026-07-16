@@ -14,11 +14,10 @@ def test_recipe_without_items_rejected(client, db_session):
 
 
 def test_recipe_with_items_created(client, db_session):
-    material = Material(name="Глицерин", category="жидкое", unit="кг")
+    founder = make_user(db_session, login="rf2", role=FOUNDER)
+    material = Material(company_id=founder.company_id, name="Глицерин", category="жидкое", unit="кг")
     db_session.add(material)
     db_session.commit()
-
-    founder = make_user(db_session, login="rf2", role=FOUNDER)
     resp = client.post(
         "/api/recipes",
         json={
@@ -34,11 +33,10 @@ def test_recipe_with_items_created(client, db_session):
 
 
 def test_recipe_with_duplicate_material_rows_dedupes_to_last(client, db_session):
-    material = Material(name="Глицерин", category="жидкое", unit="кг")
+    founder = make_user(db_session, login="rf6", role=FOUNDER)
+    material = Material(company_id=founder.company_id, name="Глицерин", category="жидкое", unit="кг")
     db_session.add(material)
     db_session.commit()
-
-    founder = make_user(db_session, login="rf6", role=FOUNDER)
     resp = client.post(
         "/api/recipes",
         json={
@@ -78,8 +76,11 @@ def test_worker_cannot_create_recipe(client, db_session):
 
 def test_recipe_list_excludes_archived_by_default(client, db_session):
     founder = make_user(db_session, login="rf3", role=FOUNDER)
-    active = Recipe(name="Активный", category="мыло", produces="мыло", batch_yield=10.0)
-    archived = Recipe(name="Архивный", category="мыло", produces="мыло", batch_yield=10.0, archived=True)
+    active = Recipe(company_id=founder.company_id, name="Активный", category="мыло", produces="мыло", batch_yield=10.0)
+    archived = Recipe(
+        company_id=founder.company_id, name="Архивный", category="мыло", produces="мыло",
+        batch_yield=10.0, archived=True,
+    )
     db_session.add_all([active, archived])
     db_session.commit()
 
@@ -96,7 +97,7 @@ def test_recipe_list_excludes_archived_by_default(client, db_session):
 def test_archive_recipe_toggles_and_is_role_gated(client, db_session):
     founder = make_user(db_session, login="rf4", role=FOUNDER)
     worker = make_user(db_session, login="rw2", role=WORKER)
-    recipe = Recipe(name="Мыло", category="мыло", produces="мыло", batch_yield=10.0)
+    recipe = Recipe(company_id=founder.company_id, name="Мыло", category="мыло", produces="мыло", batch_yield=10.0)
     db_session.add(recipe)
     db_session.commit()
 
@@ -122,10 +123,13 @@ def test_archive_recipe_toggles_and_is_role_gated(client, db_session):
 
 def test_archived_recipe_items_still_resolvable(client, db_session):
     founder = make_user(db_session, login="rf5", role=FOUNDER)
-    material = Material(name="Глицерин", category="жидкое", unit="кг")
+    material = Material(company_id=founder.company_id, name="Глицерин", category="жидкое", unit="кг")
     db_session.add(material)
     db_session.flush()
-    recipe = Recipe(name="Архивное мыло", category="мыло", produces="мыло", batch_yield=10.0, archived=True)
+    recipe = Recipe(
+        company_id=founder.company_id, name="Архивное мыло", category="мыло", produces="мыло",
+        batch_yield=10.0, archived=True,
+    )
     db_session.add(recipe)
     db_session.flush()
     db_session.add(RecipeItem(recipe_id=recipe.id, material_id=material.id, qty_per_batch=2.0))

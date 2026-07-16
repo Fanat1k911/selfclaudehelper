@@ -1,6 +1,8 @@
 """Раздел «Производство»: список рецептов, журнал смен (КПД), списание сырья по рецепту.
 Worker видит только свои записи журнала, founder/developer — все (см. таблицу ролей в CLAUDE.md).
-ФИО сотрудника/название рецепта в ProductionLog больше не хранятся в БД — join при чтении."""
+ФИО сотрудника/название рецепта в ProductionLog больше не хранятся в БД — join при чтении.
+
+Мультитенантность: каждый запрос фильтруется по user["company_id"]."""
 
 from datetime import date as date_
 from datetime import datetime
@@ -21,9 +23,10 @@ router = APIRouter(prefix="/api/production", tags=["production"], dependencies=[
 _SIGN_BY_TYPE = {TRANSACTION_INCOME: 1, TRANSACTION_EXPENSE: -1, TRANSACTION_ADJUSTMENT: 1}
 
 
-def _balance(db: Session, material_id: str) -> float:
+def _balance(db: Session, material_id: str, company_id: str) -> float:
     balance = 0.0
-    for tx in db.scalars(select(Transaction).where(Transaction.material_id == material_id)):
+    stmt = select(Transaction).where(Transaction.material_id == material_id, Transaction.company_id == company_id)
+    for tx in db.scalars(stmt):
         balance += float(tx.qty) * _SIGN_BY_TYPE.get(tx.type, 0)
     return balance
 
@@ -39,17 +42,18 @@ def _recipe_dict(recipe: Recipe) -> dict:
 
 
 @router.get("/recipes")
-def list_recipes(db: Session = Depends(get_db)) -> list[dict]:
-    return [_recipe_dict(r) for r in db.scalars(select(Recipe).where(Recipe.archived.is_(False)))]
+def list_recipes(user: dict = Depends(get_current_user), db: Session = Depends(get_db)) -> list[dict]:
+    stmt = select(Recipe).where(Recipe.company_id == user["company_id"], Recipe.archived.is_(False))
+    return [_recipe_dict(r) for r in db.scalars(stmt)]
 
 
 @router.get("/products")
-def list_producible_products(db: Session = Depends(get_db)) -> list[dict]:
+def list_producible_products(user: dict = Depends(get_current_user), db: Session = Depends(get_db)) -> list[dict]:
     """Продукты, для которых можно внести производство — привязан рецепт, и он не в архиве."""
     stmt = (
         select(Product)
         .join(Recipe, Product.recipe_id == Recipe.id)
-        .where(Recipe.archived.is_(False))
+        .where(Product.company_id == user["company_id"], Recipe.archived.is_(False))
     )
     return [
         {"id": p.id, "название": p.name, "recipe_id": p.recipe_id}
@@ -75,20 +79,23 @@ def _log_dict(entry: ProductionLog) -> dict:
 
 @router.get("")
 def list_production(user: dict = Depends(get_current_user), db: Session = Depends(get_db)) -> list[dict]:
-    stmt = select(ProductionLog).order_by(ProductionLog.date.desc())
+    stmt = select(ProductionLog).where(ProductionLog.company_id == user["company_id"]).order_by(ProductionLog.date.desc())
     if user["role"] not in (FOUNDER, DEVELOPER):
         stmt = stmt.where(ProductionLog.worker_id == user["id"])
     return [_log_dict(entry) for entry in db.scalars(stmt)]
 
 
 @router.get("/leaderboard")
-def get_leaderboard(db: Session = Depends(get_db)) -> list[dict]:
+def get_leaderboard(user: dict = Depends(get_current_user), db: Session = Depends(get_db)) -> list[dict]:
     """Кол-во произведённого сегодня и с начала месяца по сотруднику — видно всем ролям
     (мотивация), в отличие от dashboard/kpi (только founder/developer, вся история).
     Только количество — цен/выручки в ProductionLog нет вообще, не только скрыто на фронте."""
     today = date_.today()
     month_start = today.replace(day=1)
-    entries = db.scalars(select(ProductionLog).where(ProductionLog.date >= month_start))
+    stmt = select(ProductionLog).where(
+        ProductionLog.company_id == user["company_id"], ProductionLog.date >= month_start
+    )
+    entries = db.scalars(stmt)
 
     totals: dict[str, dict] = {}
     for entry in entries:
@@ -114,7 +121,7 @@ def create_production(
         raise HTTPException(400, "Количество партий должно быть больше нуля.")
 
     recipe = db.get(Recipe, body.recipe_id)
-    if recipe is None:
+    if recipe is None or recipe.company_id != user["company_id"]:
         raise HTTPException(404, "Рецепт не найден.")
     if recipe.archived:
         raise HTTPException(400, "Рецепт в архиве, производство по нему недоступно.")
@@ -124,7 +131,7 @@ def create_production(
     shortages = []
     for item in recipe_items:
         need = float(item.qty_per_batch) * body.batches
-        available = _balance(db, item.material_id)
+        available = _balance(db, item.material_id, user["company_id"])
         if available < need:
             shortages.append(f"{item.material.name}: нужно {need:g}, в наличии {available:g}")
     if shortages:
@@ -133,6 +140,7 @@ def create_production(
     for item in recipe_items:
         db.add(
             Transaction(
+                company_id=user["company_id"],
                 material_id=item.material_id,
                 type=TRANSACTION_EXPENSE,
                 qty=float(item.qty_per_batch) * body.batches,
@@ -142,6 +150,7 @@ def create_production(
         )
 
     log = ProductionLog(
+        company_id=user["company_id"],
         worker_id=user["id"],
         recipe_id=body.recipe_id,
         batches=body.batches,

@@ -1,10 +1,10 @@
 from app.constants import FOUNDER, WORKER
 from app.models import Product
-from tests.conftest import auth_headers, make_user
+from tests.conftest import auth_headers, default_company_id, make_user
 
 
 def test_packaging_create_and_worker_scoping(client, db_session):
-    product = Product(name="Мыло розовое", category="мыло", gtin="4600000000003")
+    product = Product(company_id=default_company_id(db_session), name="Мыло розовое", category="мыло", gtin="4600000000003")
     db_session.add(product)
     db_session.commit()
 
@@ -24,7 +24,7 @@ def test_packaging_create_and_worker_scoping(client, db_session):
 
 
 def test_packaging_rejects_zero_qty(client, db_session):
-    product = Product(name="Мыло синее", category="мыло", gtin="4600000000004")
+    product = Product(company_id=default_company_id(db_session), name="Мыло синее", category="мыло", gtin="4600000000004")
     db_session.add(product)
     db_session.commit()
     worker = make_user(db_session, login="pw3", role=WORKER)

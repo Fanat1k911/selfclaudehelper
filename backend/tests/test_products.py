@@ -5,7 +5,10 @@ from tests.conftest import auth_headers, make_user
 
 def test_create_product_rejects_archived_recipe(client, db_session):
     founder = make_user(db_session, login="pf1", role=FOUNDER)
-    recipe = Recipe(name="Архивный", category="мыло", produces="мыло", batch_yield=10.0, archived=True)
+    recipe = Recipe(
+        company_id=founder.company_id, name="Архивный", category="мыло", produces="мыло",
+        batch_yield=10.0, archived=True,
+    )
     db_session.add(recipe)
     db_session.commit()
 
@@ -20,7 +23,7 @@ def test_create_product_rejects_archived_recipe(client, db_session):
 
 def test_create_product_with_active_recipe_ok(client, db_session):
     founder = make_user(db_session, login="pf2", role=FOUNDER)
-    recipe = Recipe(name="Активный", category="мыло", produces="мыло", batch_yield=10.0)
+    recipe = Recipe(company_id=founder.company_id, name="Активный", category="мыло", produces="мыло", batch_yield=10.0)
     db_session.add(recipe)
     db_session.commit()
 

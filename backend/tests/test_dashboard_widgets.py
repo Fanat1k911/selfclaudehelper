@@ -2,7 +2,7 @@ from datetime import date, datetime
 
 from app.constants import FOUNDER, WORKER
 from app.models import Counterparty, Material, Product, ProductionLog, Recipe, Sale
-from tests.conftest import auth_headers, make_user
+from tests.conftest import auth_headers, default_company_id, make_user
 
 
 def test_widget_catalog_lists_all_keys(client, db_session):
@@ -67,14 +67,15 @@ def test_widget_data_unknown_key_404(client, db_session):
 
 
 def test_monthly_revenue_widget(client, db_session):
-    product = Product(name="Мыло", category="мыло", gtin="1")
+    company_id = default_company_id(db_session)
+    product = Product(company_id=company_id, name="Мыло", category="мыло", gtin="1")
     db_session.add(product)
     db_session.flush()
     db_session.add_all(
         [
-            Sale(product_id=product.id, qty=10, price=100, date=date(2026, 6, 1)),
-            Sale(product_id=product.id, qty=5, price=100, date=date(2026, 7, 1)),
-            Sale(product_id=product.id, qty=3, price=None, date=date(2026, 7, 2)),  # без цены — не считается
+            Sale(company_id=company_id, product_id=product.id, qty=10, price=100, date=date(2026, 6, 1)),
+            Sale(company_id=company_id, product_id=product.id, qty=5, price=100, date=date(2026, 7, 1)),
+            Sale(company_id=company_id, product_id=product.id, qty=3, price=None, date=date(2026, 7, 2)),  # без цены
         ]
     )
     db_session.commit()
@@ -86,16 +87,17 @@ def test_monthly_revenue_widget(client, db_session):
 
 
 def test_top_counterparties_widget_excludes_anonymous_sales(client, db_session):
-    product = Product(name="Мыло", category="мыло", gtin="1")
-    cp1 = Counterparty(name="ИП Иванов")
-    cp2 = Counterparty(name="ООО Ромашка")
+    company_id = default_company_id(db_session)
+    product = Product(company_id=company_id, name="Мыло", category="мыло", gtin="1")
+    cp1 = Counterparty(company_id=company_id, name="ИП Иванов")
+    cp2 = Counterparty(company_id=company_id, name="ООО Ромашка")
     db_session.add_all([product, cp1, cp2])
     db_session.flush()
     db_session.add_all(
         [
-            Sale(product_id=product.id, counterparty_id=cp1.id, qty=10, price=100),
-            Sale(product_id=product.id, counterparty_id=cp2.id, qty=1, price=50),
-            Sale(product_id=product.id, counterparty_id=None, qty=100, price=100),  # анонимная
+            Sale(company_id=company_id, product_id=product.id, counterparty_id=cp1.id, qty=10, price=100),
+            Sale(company_id=company_id, product_id=product.id, counterparty_id=cp2.id, qty=1, price=50),
+            Sale(company_id=company_id, product_id=product.id, counterparty_id=None, qty=100, price=100),  # анонимная
         ]
     )
     db_session.commit()
@@ -110,12 +112,12 @@ def test_top_counterparties_widget_excludes_anonymous_sales(client, db_session):
 
 def test_defect_rate_widget(client, db_session):
     worker = make_user(db_session, login="wd4", role=WORKER)
-    recipe = Recipe(name="Мыло", category="мыло", produces="мыло", batch_yield=10.0)
+    recipe = Recipe(company_id=worker.company_id, name="Мыло", category="мыло", produces="мыло", batch_yield=10.0)
     db_session.add(recipe)
     db_session.flush()
     db_session.add(
         ProductionLog(
-            worker_id=worker.id, recipe_id=recipe.id, batches=2, defects=2,
+            company_id=worker.company_id, worker_id=worker.id, recipe_id=recipe.id, batches=2, defects=2,
             date=date(2026, 7, 1), started_at=datetime(2026, 7, 1, 9), finished_at=datetime(2026, 7, 1, 10),
         )
     )
@@ -130,16 +132,17 @@ def test_defect_rate_widget(client, db_session):
 def test_stock_by_category_widget(client, db_session):
     from app.constants import TRANSACTION_INCOME
 
-    m1 = Material(name="Масло", category="жидкое", unit="кг")
-    m2 = Material(name="Сода", category="сыпучее", unit="кг")
+    company_id = default_company_id(db_session)
+    m1 = Material(company_id=company_id, name="Масло", category="жидкое", unit="кг")
+    m2 = Material(company_id=company_id, name="Сода", category="сыпучее", unit="кг")
     db_session.add_all([m1, m2])
     db_session.flush()
     from app.models import Transaction
 
     db_session.add_all(
         [
-            Transaction(material_id=m1.id, type=TRANSACTION_INCOME, qty=5),
-            Transaction(material_id=m2.id, type=TRANSACTION_INCOME, qty=3),
+            Transaction(company_id=company_id, material_id=m1.id, type=TRANSACTION_INCOME, qty=5),
+            Transaction(company_id=company_id, material_id=m2.id, type=TRANSACTION_INCOME, qty=3),
         ]
     )
     db_session.commit()

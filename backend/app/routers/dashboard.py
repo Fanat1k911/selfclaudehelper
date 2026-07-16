@@ -1,5 +1,7 @@
 """Дашборд: остатки/движения/топ расхода по Materials+Transactions. Доступ — только
-founder/developer (см. таблицу ролей в CLAUDE.md), как и в Streamlit-версии."""
+founder/developer (см. таблицу ролей в CLAUDE.md), как и в Streamlit-версии.
+
+Мультитенантность: каждый запрос фильтруется по user["company_id"]."""
 
 from collections import defaultdict
 from datetime import date as date_
@@ -14,7 +16,7 @@ from app.dashboard_widgets import WIDGET_BY_KEY, WIDGET_CATALOG
 from app.db import get_db
 from app.models import DashboardWidgetLayout, Material, ProductionLog, Transaction
 from app.schemas import DashboardLayoutItem
-from app.security import require_roles
+from app.security import get_current_user, require_roles
 
 router = APIRouter(
     prefix="/api/dashboard", tags=["dashboard"], dependencies=[Depends(require_roles(FOUNDER, DEVELOPER))]
@@ -24,9 +26,10 @@ _SIGN_BY_TYPE = {TRANSACTION_INCOME: 1, TRANSACTION_EXPENSE: -1, TRANSACTION_ADJ
 
 
 @router.get("")
-def get_dashboard(db: Session = Depends(get_db)) -> dict:
-    materials = db.scalars(select(Material)).all()
-    transactions = db.scalars(select(Transaction).order_by(Transaction.date.desc())).all()
+def get_dashboard(user: dict = Depends(get_current_user), db: Session = Depends(get_db)) -> dict:
+    materials = db.scalars(select(Material).where(Material.company_id == user["company_id"])).all()
+    stmt = select(Transaction).where(Transaction.company_id == user["company_id"]).order_by(Transaction.date.desc())
+    transactions = db.scalars(stmt).all()
 
     name_by_id = {m.id: m.name for m in materials}
     unit_by_id = {m.id: m.unit for m in materials}
@@ -90,17 +93,21 @@ def get_dashboard(db: Session = Depends(get_db)) -> dict:
 def get_spend(
     date_from: date_ | None = Query(None),
     date_to: date_ | None = Query(None),
+    user: dict = Depends(get_current_user),
     db: Session = Depends(get_db),
 ) -> dict:
     """Траты = приход сырья (qty*price). Расход/корректировка остатков — не траты денег."""
-    stmt = select(Transaction).where(Transaction.type == TRANSACTION_INCOME, Transaction.price.is_not(None))
+    stmt = select(Transaction).where(
+        Transaction.company_id == user["company_id"], Transaction.type == TRANSACTION_INCOME,
+        Transaction.price.is_not(None),
+    )
     if date_from:
         stmt = stmt.where(Transaction.date >= date_from)
     if date_to:
         stmt = stmt.where(Transaction.date <= date_to)
     transactions = db.scalars(stmt).all()
 
-    name_by_id = {m.id: m.name for m in db.scalars(select(Material))}
+    name_by_id = {m.id: m.name for m in db.scalars(select(Material).where(Material.company_id == user["company_id"]))}
 
     by_month: dict[str, float] = defaultdict(float)
     by_material: dict[str, float] = defaultdict(float)
@@ -124,9 +131,10 @@ def get_spend(
 
 
 @router.get("/kpi")
-def get_kpi(db: Session = Depends(get_db)) -> list[dict]:
+def get_kpi(user: dict = Depends(get_current_user), db: Session = Depends(get_db)) -> list[dict]:
     """Выработка по кол-ву произведённого (партии*выход − брак), помесячно на сотрудника."""
-    entries = db.scalars(select(ProductionLog)).all()
+    stmt = select(ProductionLog).where(ProductionLog.company_id == user["company_id"])
+    entries = db.scalars(stmt).all()
 
     totals: dict[tuple[str, str], dict] = {}
     for entry in entries:
@@ -161,29 +169,36 @@ def get_widget_catalog() -> list[dict]:
 
 
 @router.get("/widgets/layout")
-def get_widget_layout(db: Session = Depends(get_db)) -> list[dict]:
-    rows = db.scalars(select(DashboardWidgetLayout)).all()
+def get_widget_layout(user: dict = Depends(get_current_user), db: Session = Depends(get_db)) -> list[dict]:
+    stmt = select(DashboardWidgetLayout).where(DashboardWidgetLayout.company_id == user["company_id"])
+    rows = db.scalars(stmt).all()
     return [{"widget_key": r.widget_key, "x": r.x, "y": r.y, "w": r.w, "h": r.h} for r in rows]
 
 
 @router.put("/widgets/layout")
-def save_widget_layout(items: list[DashboardLayoutItem], db: Session = Depends(get_db)) -> dict:
-    """Раскладка общая на всю мастерскую — сохраняет одна роль, видят обе (founder и
+def save_widget_layout(
+    items: list[DashboardLayoutItem], user: dict = Depends(get_current_user), db: Session = Depends(get_db)
+) -> dict:
+    """Раскладка общая на всю компанию — сохраняет одна роль, видят обе (founder и
     developer), поэтому это полная замена, а не per-user upsert."""
     unknown = [i.widget_key for i in items if i.widget_key not in WIDGET_BY_KEY]
     if unknown:
         raise HTTPException(400, f"Неизвестные виджеты: {', '.join(unknown)}")
 
-    db.query(DashboardWidgetLayout).delete()
+    db.query(DashboardWidgetLayout).filter_by(company_id=user["company_id"]).delete()
     for i in items:
-        db.add(DashboardWidgetLayout(widget_key=i.widget_key, x=i.x, y=i.y, w=i.w, h=i.h))
+        db.add(
+            DashboardWidgetLayout(
+                company_id=user["company_id"], widget_key=i.widget_key, x=i.x, y=i.y, w=i.w, h=i.h
+            )
+        )
     db.commit()
     return {"saved": len(items)}
 
 
 @router.get("/widgets/{key}/data")
-def get_widget_data(key: str, db: Session = Depends(get_db)):
+def get_widget_data(key: str, user: dict = Depends(get_current_user), db: Session = Depends(get_db)):
     widget = WIDGET_BY_KEY.get(key)
     if widget is None:
         raise HTTPException(404, "Виджет не найден.")
-    return widget["compute"](db)
+    return widget["compute"](db, user["company_id"])
