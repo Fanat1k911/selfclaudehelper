@@ -13,7 +13,7 @@ from app.constants import DEVELOPER, FOUNDER
 from app.db import get_db
 from app.models import PackagingLog, Product
 from app.schemas import PackagingRequest
-from app.security import get_current_user
+from app.security import get_current_user, get_owned_or_404
 
 router = APIRouter(prefix="/api/packaging", tags=["packaging"], dependencies=[Depends(get_current_user)])
 
@@ -52,9 +52,7 @@ def create_packaging(
 ) -> dict:
     if body.qty <= 0:
         raise HTTPException(400, "Количество должно быть больше нуля.")
-    product = db.get(Product, body.product_id)
-    if product is None or product.company_id != user["company_id"]:
-        raise HTTPException(404, "Продукт не найден.")
+    get_owned_or_404(db, Product, body.product_id, user["company_id"], "Продукт не найден.")
 
     log = PackagingLog(
         company_id=user["company_id"],

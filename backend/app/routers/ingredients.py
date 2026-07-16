@@ -20,7 +20,7 @@ from app.constants import TRANSACTION_ADJUSTMENT, TRANSACTION_EXPENSE, TRANSACTI
 from app.db import get_db
 from app.models import Material, Transaction
 from app.schemas import AdjustmentRequest, ImportCommitRequest, NewMaterialRequest, TransactionRequest
-from app.security import get_current_user
+from app.security import get_current_user, get_owned_or_404
 
 router = APIRouter(prefix="/api/ingredients", tags=["ingredients"], dependencies=[Depends(get_current_user)])
 
@@ -77,10 +77,7 @@ def _balances_and_last_movement(db: Session, company_id: str) -> tuple[dict[str,
 
 
 def _get_own_material(db: Session, material_id: str, company_id: str) -> Material:
-    material = db.get(Material, material_id)
-    if material is None or material.company_id != company_id:
-        raise HTTPException(404, "Компонент не найден.")
-    return material
+    return get_owned_or_404(db, Material, material_id, company_id, "Компонент не найден.")
 
 
 @router.get("")
@@ -96,7 +93,9 @@ def list_transactions(
 ) -> list[dict]:
     _get_own_material(db, material_id, user["company_id"])
     rows = db.scalars(
-        select(Transaction).where(Transaction.material_id == material_id).order_by(Transaction.date.desc())
+        select(Transaction)
+        .where(Transaction.material_id == material_id, Transaction.company_id == user["company_id"])
+        .order_by(Transaction.date.desc())
     )
     return [_transaction_dict(tx) for tx in rows]
 
@@ -312,9 +311,13 @@ def import_commit(
     """Строки прилетают уже подтверждённые фронтом после превью — здесь без
     повторного парсинга файла, только запись движений."""
     balances, _ = _balances_and_last_movement(db, user["company_id"])
+    own_material_ids = set(
+        db.scalars(select(Material.id).where(Material.company_id == user["company_id"]))
+    )
     applied = 0
     for row in body.rows:
-        _get_own_material(db, row.material_id, user["company_id"])
+        if row.material_id not in own_material_ids:
+            raise HTTPException(404, "Компонент не найден.")
         current = balances.get(row.material_id, 0.0)
         delta = row.new_qty - current
         if delta == 0:

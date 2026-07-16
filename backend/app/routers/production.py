@@ -16,7 +16,7 @@ from app.constants import DEVELOPER, FOUNDER, TRANSACTION_ADJUSTMENT, TRANSACTIO
 from app.db import get_db
 from app.models import Product, ProductionLog, Recipe, RecipeItem, Transaction
 from app.schemas import ProductionRequest
-from app.security import get_current_user
+from app.security import get_current_user, get_owned_or_404
 
 router = APIRouter(prefix="/api/production", tags=["production"], dependencies=[Depends(get_current_user)])
 
@@ -53,7 +53,11 @@ def list_producible_products(user: dict = Depends(get_current_user), db: Session
     stmt = (
         select(Product)
         .join(Recipe, Product.recipe_id == Recipe.id)
-        .where(Product.company_id == user["company_id"], Recipe.archived.is_(False))
+        .where(
+            Product.company_id == user["company_id"],
+            Recipe.company_id == user["company_id"],
+            Recipe.archived.is_(False),
+        )
     )
     return [
         {"id": p.id, "название": p.name, "recipe_id": p.recipe_id}
@@ -120,9 +124,7 @@ def create_production(
     if body.batches <= 0:
         raise HTTPException(400, "Количество партий должно быть больше нуля.")
 
-    recipe = db.get(Recipe, body.recipe_id)
-    if recipe is None or recipe.company_id != user["company_id"]:
-        raise HTTPException(404, "Рецепт не найден.")
+    recipe = get_owned_or_404(db, Recipe, body.recipe_id, user["company_id"], "Рецепт не найден.")
     if recipe.archived:
         raise HTTPException(400, "Рецепт в архиве, производство по нему недоступно.")
 

@@ -21,7 +21,7 @@ from app.constants import DEVELOPER, FOUNDER
 from app.db import get_db
 from app.models import Material, Recipe, RecipeItem
 from app.schemas import NewRecipeItemRequest, NewRecipeRequest, UpdateRecipeArchivedRequest
-from app.security import get_current_user, require_roles
+from app.security import get_current_user, get_owned_or_404, require_roles
 
 router = APIRouter(prefix="/api/recipes", tags=["recipes"], dependencies=[Depends(get_current_user)])
 
@@ -39,17 +39,11 @@ def _recipe_dict(recipe: Recipe) -> dict:
 
 
 def _get_own_recipe(db: Session, recipe_id: str, company_id: str) -> Recipe:
-    recipe = db.get(Recipe, recipe_id)
-    if recipe is None or recipe.company_id != company_id:
-        raise HTTPException(404, "Рецепт не найден.")
-    return recipe
+    return get_owned_or_404(db, Recipe, recipe_id, company_id, "Рецепт не найден.")
 
 
 def _get_own_material(db: Session, material_id: str, company_id: str) -> Material:
-    material = db.get(Material, material_id)
-    if material is None or material.company_id != company_id:
-        raise HTTPException(404, "Компонент не найден.")
-    return material
+    return get_owned_or_404(db, Material, material_id, company_id, "Компонент не найден.")
 
 
 @router.get("")

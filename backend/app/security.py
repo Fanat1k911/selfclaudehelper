@@ -3,6 +3,7 @@
 
 import time
 from datetime import datetime, timedelta, timezone
+from typing import TypeVar
 
 import bcrypt
 import jwt
@@ -13,8 +14,10 @@ from sqlalchemy.orm import Session
 
 from app.config import JWT_ALGORITHM, JWT_EXPIRE_MINUTES, JWT_SECRET
 from app.constants import USER_STATUS_ACTIVE
-from app.db import get_db
+from app.db import Base, get_db
 from app.models import User
+
+_ModelT = TypeVar("_ModelT", bound=Base)
 
 _bearer = HTTPBearer(auto_error=False)
 
@@ -86,10 +89,26 @@ def get_current_user(
         raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Доступ отозван.")
     # company_id — как и role, берётся из payload токена, не перечитывается из БД
     # (пользователь не переезжает между компаниями, в отличие от статуса/увольнения).
+    # .get(), не payload["company_id"]: токены, выданные до мультитенантности (2026-07-16),
+    # этого поля не несут — без этого падает KeyError -> 500 вместо чистого 401,
+    # пока не истечёт старый токен (до JWT_EXPIRE_MINUTES).
+    company_id = payload.get("company_id")
+    if company_id is None:
+        raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Токен устарел, войдите заново.")
     return {
         "id": payload["id"], "fio": payload["fio"], "login": payload["login"],
-        "role": payload["role"], "company_id": payload["company_id"],
+        "role": payload["role"], "company_id": company_id,
     }
+
+
+def get_owned_or_404(db: Session, model: type[_ModelT], id_: str, company_id: str, not_found_message: str) -> _ModelT:
+    """Мультитенантность: fetch-by-id-or-404 с проверкой company_id в одном месте, а не
+    отдельной копией в каждом роутере (см. CLAUDE.md — забытый фильтр это критический баг).
+    404, не 403 — не подтверждаем даже факт существования чужой записи."""
+    obj = db.get(model, id_)
+    if obj is None or obj.company_id != company_id:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, not_found_message)
+    return obj
 
 
 def require_roles(*allowed_roles: str):

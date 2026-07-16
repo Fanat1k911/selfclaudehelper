@@ -2,8 +2,10 @@
 данных между компаниями через забытый фильтр company_id — критический баг, эти
 тесты покрывают каждый тип ресурса отдельно."""
 
+from datetime import datetime
+
 from app.constants import FOUNDER, WORKER
-from app.models import Counterparty, Material, Product, Recipe
+from app.models import Counterparty, Material, PackagingLog, Product, ProductionLog, Recipe
 from tests.conftest import auth_headers, make_company, make_user
 
 
@@ -136,6 +138,52 @@ def test_dashboard_widget_layout_isolated_between_companies(client, db_session):
     resp_b = client.get("/api/dashboard/widgets/layout", headers=auth_headers(founder_b))
     keys_b = [row["widget_key"] for row in resp_b.json()]
     assert keys_b == ["monthly_spend"]
+
+
+def test_production_log_isolated_between_companies(client, db_session):
+    company_a, company_b, founder_a, founder_b = _two_companies(db_session)
+    worker_a = make_user(db_session, login="mtpw_a", role=WORKER, company_id=company_a.id)
+    recipe_a = Recipe(company_id=company_a.id, name="Рецепт А", category="мыло", produces="мыло", batch_yield=10.0)
+    db_session.add(recipe_a)
+    db_session.flush()
+    db_session.add(
+        ProductionLog(
+            company_id=company_a.id, worker_id=worker_a.id, recipe_id=recipe_a.id, batches=1,
+            started_at=datetime(2026, 7, 1, 9), finished_at=datetime(2026, 7, 1, 10),
+        )
+    )
+    db_session.commit()
+
+    resp_b = client.get("/api/production", headers=auth_headers(founder_b))
+    assert resp_b.json() == []
+
+    resp = client.post(
+        "/api/production",
+        json={
+            "recipe_id": recipe_a.id, "batches": 1,
+            "started_at": "2026-07-01T09:00:00", "finished_at": "2026-07-01T10:00:00",
+        },
+        headers=auth_headers(founder_b),
+    )
+    assert resp.status_code == 404
+
+
+def test_packaging_log_isolated_between_companies(client, db_session):
+    company_a, company_b, founder_a, founder_b = _two_companies(db_session)
+    worker_a = make_user(db_session, login="mtpkw_a", role=WORKER, company_id=company_a.id)
+    product_a = Product(company_id=company_a.id, name="Продукт А", category="мыло", gtin="333")
+    db_session.add(product_a)
+    db_session.flush()
+    db_session.add(PackagingLog(company_id=company_a.id, worker_id=worker_a.id, product_id=product_a.id, qty=1))
+    db_session.commit()
+
+    resp_b = client.get("/api/packaging", headers=auth_headers(founder_b))
+    assert resp_b.json() == []
+
+    resp = client.post(
+        "/api/packaging", json={"product_id": product_a.id, "qty": 1}, headers=auth_headers(founder_b)
+    )
+    assert resp.status_code == 404
 
 
 def test_dashboard_widget_data_isolated_between_companies(client, db_session):

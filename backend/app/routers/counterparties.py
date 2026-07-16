@@ -12,7 +12,7 @@ from app.constants import DEVELOPER, FOUNDER
 from app.db import get_db
 from app.models import Counterparty
 from app.schemas import NewCounterpartyRequest, UpdateCounterpartyRequest
-from app.security import get_current_user, require_roles
+from app.security import get_current_user, get_owned_or_404, require_roles
 
 router = APIRouter(
     prefix="/api/counterparties", tags=["counterparties"], dependencies=[Depends(require_roles(FOUNDER, DEVELOPER))]
@@ -67,9 +67,7 @@ def update_counterparty(
     counterparty_id: str, body: UpdateCounterpartyRequest,
     user: dict = Depends(get_current_user), db: Session = Depends(get_db),
 ) -> dict:
-    cp = db.get(Counterparty, counterparty_id)
-    if cp is None or cp.company_id != user["company_id"]:
-        raise HTTPException(404, "Контрагент не найден.")
+    cp = get_owned_or_404(db, Counterparty, counterparty_id, user["company_id"], "Контрагент не найден.")
 
     if body.name is not None:
         if not body.name.strip():

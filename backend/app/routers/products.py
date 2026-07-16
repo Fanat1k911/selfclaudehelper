@@ -20,7 +20,7 @@ from app.constants import DEVELOPER, FOUNDER, PRODUCT_REQUIRED_FIELDS
 from app.db import get_db
 from app.models import Product, ProductionLog, Recipe, Sale
 from app.schemas import NewProductRequest, ProductImportCommitRequest
-from app.security import get_current_user, require_roles
+from app.security import get_current_user, get_owned_or_404, require_roles
 
 router = APIRouter(prefix="/api/products", tags=["products"], dependencies=[Depends(require_roles(FOUNDER, DEVELOPER))])
 
@@ -89,9 +89,7 @@ def create_product(body: NewProductRequest, user: dict = Depends(get_current_use
         raise HTTPException(400, f"Не заполнены обязательные поля: {', '.join(missing)}.")
 
     if body.recipe_id:
-        recipe = db.get(Recipe, body.recipe_id)
-        if recipe is None or recipe.company_id != user["company_id"]:
-            raise HTTPException(404, "Рецепт не найден.")
+        recipe = get_owned_or_404(db, Recipe, body.recipe_id, user["company_id"], "Рецепт не найден.")
         if recipe.archived:
             raise HTTPException(400, "Рецепт в архиве, привязать к продукту нельзя.")
 
@@ -199,6 +197,10 @@ async def import_preview(
     content = await file.read()
     parsed = _parse_import_file(content, sheet_name)
 
+    # GTIN-дедуп намеренно per-company (не глобальный, как до мультитенантности) — компании
+    # не видят чужой каталог вообще, так что предупреждать про совпадение с чужим GTIN тут
+    # было бы утечкой факта существования чужого товара. Разных компаний с одинаковым
+    # реальным штрихкодом в этой системе не бывает на практике (разные производители).
     existing_gtins = {p.gtin for p in db.scalars(select(Product).where(Product.company_id == user["company_id"]))}
     seen_gtins: set[str] = set()
 

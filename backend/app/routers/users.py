@@ -17,7 +17,7 @@ from app.constants import DEVELOPER, FOUNDER, USER_ROLES, USER_STATUS_ACTIVE
 from app.db import get_db
 from app.models import User
 from app.schemas import NewUserRequest, ResetPasswordRequest, UpdateUserRequest
-from app.security import get_current_user, require_roles
+from app.security import get_current_user, get_owned_or_404, require_roles
 
 router = APIRouter(prefix="/api/users", tags=["users"], dependencies=[Depends(require_roles(FOUNDER, DEVELOPER))])
 
@@ -38,10 +38,7 @@ def _user_dict(user: User) -> dict:
 
 
 def _get_own_user(db: Session, user_id: str, company_id: str) -> User:
-    target = db.get(User, user_id)
-    if target is None or target.company_id != company_id:
-        raise HTTPException(404, "Сотрудник не найден.")
-    return target
+    return get_owned_or_404(db, User, user_id, company_id, "Сотрудник не найден.")
 
 
 @router.get("")

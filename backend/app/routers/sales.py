@@ -16,7 +16,7 @@ from app.db import get_db
 from app.models import Counterparty, Product, Sale
 from app.routers.products import _ready_to_ship_by_recipe, _sold_by_product
 from app.schemas import SaleRequest
-from app.security import get_current_user, require_roles
+from app.security import get_current_user, get_owned_or_404, require_roles
 
 router = APIRouter(prefix="/api/sales", tags=["sales"], dependencies=[Depends(require_roles(FOUNDER, DEVELOPER))])
 
@@ -57,13 +57,9 @@ def top_products(limit: int = 3, user: dict = Depends(get_current_user), db: Ses
 def create_sale(body: SaleRequest, user: dict = Depends(get_current_user), db: Session = Depends(get_db)) -> dict:
     if body.qty <= 0:
         raise HTTPException(400, "Количество должно быть больше нуля.")
-    product = db.get(Product, body.product_id)
-    if product is None or product.company_id != user["company_id"]:
-        raise HTTPException(404, "Продукт не найден.")
+    product = get_owned_or_404(db, Product, body.product_id, user["company_id"], "Продукт не найден.")
     if body.counterparty_id:
-        cp = db.get(Counterparty, body.counterparty_id)
-        if cp is None or cp.company_id != user["company_id"]:
-            raise HTTPException(404, "Контрагент не найден.")
+        get_owned_or_404(db, Counterparty, body.counterparty_id, user["company_id"], "Контрагент не найден.")
 
     if product.recipe_id:
         ready = _ready_to_ship_by_recipe(db, user["company_id"]).get(product.recipe_id, 0.0) - _sold_by_product(
