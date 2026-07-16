@@ -17,7 +17,18 @@ JWT_EXPIRE_MINUTES = int(os.environ.get("JWT_EXPIRE_MINUTES", str(24 * 60)))
 
 CORS_ORIGINS = os.environ.get("CORS_ORIGINS", "http://localhost:5173,http://localhost:3000").split(",")
 
-DATABASE_URL = os.environ.get("DATABASE_URL", "postgresql+psycopg://localhost:5432/oinarri")
+
+def _normalize_db_url(url: str) -> str:
+    """Render/Neon отдают DATABASE_URL как postgres:// или postgresql:// (без драйвера) —
+    SQLAlchemy 2.0 с одним psycopg (v3, не psycopg2) в зависимостях требует явный +psycopg."""
+    if url.startswith("postgres://"):
+        url = "postgresql://" + url[len("postgres://"):]
+    if url.startswith("postgresql://"):
+        url = url.replace("postgresql://", "postgresql+psycopg://", 1)
+    return url
+
+
+DATABASE_URL = _normalize_db_url(os.environ.get("DATABASE_URL", "postgresql+psycopg://localhost:5432/oinarri"))
 
 
 @lru_cache

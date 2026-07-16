@@ -9,3 +9,4 @@ CLAUDE.local.md
 screen_fails/
 .playwright-mcp/
 /*.png
+backend/static/

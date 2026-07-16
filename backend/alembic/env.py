@@ -10,6 +10,7 @@ from alembic import context
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
+from app.config import DATABASE_URL
 from app.db import Base
 from app import models  # noqa: F401 — регистрирует модели в Base.metadata
 
@@ -22,9 +23,10 @@ config = context.config
 if config.config_file_name is not None:
     fileConfig(config.config_file_name)
 
-db_url = os.environ.get("DATABASE_URL")
-if db_url:
-    config.set_main_option("sqlalchemy.url", db_url)
+# DATABASE_URL из app.config уже нормализован (postgres:// -> postgresql+psycopg://,
+# см. Render/Neon в config.py) — та же логика, что использует сам backend.
+if os.environ.get("DATABASE_URL"):
+    config.set_main_option("sqlalchemy.url", DATABASE_URL)
 
 # add your model's MetaData object here
 # for 'autogenerate' support

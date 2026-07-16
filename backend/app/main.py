@@ -1,5 +1,8 @@
+from pathlib import Path
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse
 
 from app.config import CORS_ORIGINS
 from app.routers import auth, counterparties, dashboard, ingredients, packaging, production, products, recipes, sales, techpanel, users
@@ -32,3 +35,18 @@ app.include_router(techpanel.router)
 @app.get("/api/health")
 def health() -> dict:
     return {"status": "ok"}
+
+
+# Собранный фронт (Dockerfile копирует frontend/dist сюда) — раздаём тем же процессом,
+# один домен, без CORS между фронтом и бэком в проде. В локальной разработке этой
+# папки нет (фронт крутится отдельно через vite dev-сервер), маршрут просто не регистрируется.
+_FRONTEND_DIST = Path(__file__).resolve().parent.parent / "static"
+
+if _FRONTEND_DIST.exists():
+
+    @app.get("/{full_path:path}")
+    def serve_frontend(full_path: str) -> FileResponse:
+        requested = (_FRONTEND_DIST / full_path).resolve()
+        if requested.is_relative_to(_FRONTEND_DIST) and requested.is_file():
+            return FileResponse(requested)
+        return FileResponse(_FRONTEND_DIST / "index.html")
