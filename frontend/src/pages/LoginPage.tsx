@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from 'react'
+import { useEffect, useState, type FormEvent } from 'react'
 import { Navigate, useNavigate } from 'react-router-dom'
 import { ArrowRight } from 'lucide-react'
 import { defaultPathForRole, useAuth } from '../lib/auth'
@@ -24,6 +24,22 @@ export function LoginPage() {
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
 
+  // iOS/Brave rubber-band overscroll (тянешь за верх/низ страницы) показывает фон САМОГО
+  // document, а не нашего div — если он остаётся дефолтным белым, за краем экрана мелькают
+  // белые полосы независимо от темы логина. Синхронизируем на время жизни страницы,
+  // возвращаем как было при уходе (остальное приложение всегда светлое).
+  useEffect(() => {
+    const bg = resolved === 'dark' ? '#16110d' : '#fdf8f3'
+    const prevHtml = document.documentElement.style.background
+    const prevBody = document.body.style.background
+    document.documentElement.style.background = bg
+    document.body.style.background = bg
+    return () => {
+      document.documentElement.style.background = prevHtml
+      document.body.style.background = prevBody
+    }
+  }, [resolved])
+
   if (user) return <Navigate to={defaultPathForRole(user.role)} replace />
 
   async function handleSubmit(e: FormEvent) {
@@ -43,7 +59,7 @@ export function LoginPage() {
   return (
     <div
       data-login-theme={resolved}
-      className="relative flex min-h-screen items-center justify-center overflow-hidden px-4 transition-colors duration-300"
+      className="relative flex min-h-dvh items-center justify-center overflow-hidden px-4 transition-colors duration-300"
       style={{ background: 'var(--login-bg)' }}
     >
       <div className="fixed right-4 top-4 z-10">
