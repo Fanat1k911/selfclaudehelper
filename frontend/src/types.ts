@@ -202,6 +202,51 @@ export interface TopProduct {
   'кол-во': number
 }
 
+export interface WidgetCatalogItem {
+  key: string
+  title: string
+  kind: 'list' | 'bar' | 'line' | 'donut' | 'stat'
+  w: number
+  h: number
+  min_w: number
+  min_h: number
+}
+
+export interface WidgetLayoutItem {
+  widget_key: string
+  x: number
+  y: number
+  w: number
+  h: number
+}
+
+export interface WidgetKpiRow {
+  'месяц': string
+  'ФИО': string
+  'произведено': number
+}
+
+export interface MonthlyRevenueRow {
+  'месяц': string
+  'выручка': number
+}
+
+export interface TopCounterpartyRow {
+  counterparty_id: string
+  'название': string
+  'выручка': number
+}
+
+export interface DefectRateRow {
+  'месяц': string
+  'брак_процент': number
+}
+
+export interface StockByCategoryRow {
+  'категория': string
+  'остаток': number
+}
+
 export interface TechStatus {
   api: 'ok'
   db: 'ok' | 'error'

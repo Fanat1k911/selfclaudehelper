@@ -4,14 +4,16 @@ founder/developer (см. таблицу ролей в CLAUDE.md), как и в S
 from collections import defaultdict
 from datetime import date as date_
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.constants import DEVELOPER, FOUNDER, TRANSACTION_ADJUSTMENT, TRANSACTION_EXPENSE, TRANSACTION_INCOME
+from app.dashboard_widgets import WIDGET_BY_KEY, WIDGET_CATALOG
 
 from app.db import get_db
-from app.models import Material, ProductionLog, Transaction
+from app.models import DashboardWidgetLayout, Material, ProductionLog, Transaction
+from app.schemas import DashboardLayoutItem
 from app.security import require_roles
 
 router = APIRouter(
@@ -143,3 +145,45 @@ def get_kpi(db: Session = Depends(get_db)) -> list[dict]:
     result = list(totals.values())
     result.sort(key=lambda r: (r["месяц"], r["ФИО"]))
     return result
+
+
+@router.get("/widgets/catalog")
+def get_widget_catalog() -> list[dict]:
+    """Виджет-конструктор (роадмап): доступные типы виджетов + метаданные сетки.
+    Раскладка (что показано и где) — отдельно, см. /widgets/layout."""
+    return [
+        {
+            "key": w["key"], "title": w["title"], "kind": w["kind"],
+            "w": w["w"], "h": w["h"], "min_w": w["min_w"], "min_h": w["min_h"],
+        }
+        for w in WIDGET_CATALOG
+    ]
+
+
+@router.get("/widgets/layout")
+def get_widget_layout(db: Session = Depends(get_db)) -> list[dict]:
+    rows = db.scalars(select(DashboardWidgetLayout)).all()
+    return [{"widget_key": r.widget_key, "x": r.x, "y": r.y, "w": r.w, "h": r.h} for r in rows]
+
+
+@router.put("/widgets/layout")
+def save_widget_layout(items: list[DashboardLayoutItem], db: Session = Depends(get_db)) -> dict:
+    """Раскладка общая на всю мастерскую — сохраняет одна роль, видят обе (founder и
+    developer), поэтому это полная замена, а не per-user upsert."""
+    unknown = [i.widget_key for i in items if i.widget_key not in WIDGET_BY_KEY]
+    if unknown:
+        raise HTTPException(400, f"Неизвестные виджеты: {', '.join(unknown)}")
+
+    db.query(DashboardWidgetLayout).delete()
+    for i in items:
+        db.add(DashboardWidgetLayout(widget_key=i.widget_key, x=i.x, y=i.y, w=i.w, h=i.h))
+    db.commit()
+    return {"saved": len(items)}
+
+
+@router.get("/widgets/{key}/data")
+def get_widget_data(key: str, db: Session = Depends(get_db)):
+    widget = WIDGET_BY_KEY.get(key)
+    if widget is None:
+        raise HTTPException(404, "Виджет не найден.")
+    return widget["compute"](db)

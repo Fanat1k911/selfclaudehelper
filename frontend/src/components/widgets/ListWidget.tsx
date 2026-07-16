@@ -1,0 +1,98 @@
+import type {
+  DashboardLowStockItem,
+  DashboardTransaction,
+  LeaderboardRow,
+  TopProduct,
+} from '../../types'
+
+function formatDate(value: string) {
+  const d = new Date(value)
+  if (Number.isNaN(d.getTime())) return '—'
+  return d.toLocaleDateString('ru-RU')
+}
+
+function LowStockRows({ rows }: { rows: DashboardLowStockItem[] }) {
+  if (rows.length === 0) return <Empty text="Все остатки в норме." />
+  return (
+    <ul className="space-y-1.5">
+      {rows.map((r) => (
+        <li key={r.id} className="flex items-center justify-between gap-2 text-sm">
+          <span className="truncate text-ink">{r['название']}</span>
+          <span className="shrink-0 font-medium text-red-600">
+            {r['остаток']} / {r['мин.остаток']} {r['ед.измерения']}
+          </span>
+        </li>
+      ))}
+    </ul>
+  )
+}
+
+function RecentTransactionRows({ rows }: { rows: DashboardTransaction[] }) {
+  if (rows.length === 0) return <Empty text="Движений пока нет." />
+  return (
+    <ul className="space-y-1.5">
+      {rows.map((r) => (
+        <li key={r.id} className="flex items-center justify-between gap-2 text-sm">
+          <span className="min-w-0 truncate text-ink">{r['название']}</span>
+          <span className="shrink-0 text-ink/40">{formatDate(r['дата'])}</span>
+          <span className={`shrink-0 font-medium ${r['тип'] === 'расход' ? 'text-red-600' : 'text-ink'}`}>
+            {r['тип'] === 'расход' ? '-' : '+'}
+            {r['кол-во']}
+          </span>
+        </li>
+      ))}
+    </ul>
+  )
+}
+
+function TopProductRows({ rows }: { rows: TopProduct[] }) {
+  if (rows.length === 0) return <Empty text="Продаж пока нет." />
+  return (
+    <ol className="space-y-1.5">
+      {rows.map((r, i) => (
+        <li key={r.product_id} className="flex items-center justify-between gap-2 text-sm">
+          <span className="truncate text-ink">
+            {i + 1}. {r['название']}
+          </span>
+          <span className="shrink-0 font-medium text-ink">{r['кол-во']}</span>
+        </li>
+      ))}
+    </ol>
+  )
+}
+
+function LeaderboardRows({ rows }: { rows: LeaderboardRow[] }) {
+  if (rows.length === 0) return <Empty text="Производства в этом месяце ещё не было." />
+  return (
+    <ul className="space-y-1.5">
+      {rows.map((r) => (
+        <li key={r.worker_id} className="flex items-center justify-between gap-2 text-sm">
+          <span className="truncate text-ink">{r['ФИО']}</span>
+          <span className="shrink-0 text-ink/50">
+            <span className="font-medium text-ink">{r['сегодня']}</span> сегодня ·{' '}
+            <span className="font-medium text-ink">{r['месяц']}</span> за месяц
+          </span>
+        </li>
+      ))}
+    </ul>
+  )
+}
+
+function Empty({ text }: { text: string }) {
+  return <div className="py-4 text-center text-sm text-ink/40">{text}</div>
+}
+
+export function ListWidget({ widgetKey, data }: { widgetKey: string; data: unknown }) {
+  switch (widgetKey) {
+    case 'low_stock':
+      return <LowStockRows rows={data as DashboardLowStockItem[]} />
+    case 'recent_transactions':
+      return <RecentTransactionRows rows={data as DashboardTransaction[]} />
+    case 'top_products':
+      return <TopProductRows rows={data as TopProduct[]} />
+    case 'production_leaderboard':
+      return <LeaderboardRows rows={data as LeaderboardRow[]} />
+    default:
+      return <Empty text="Нет отрисовки для этого виджета." />
+  }
+}

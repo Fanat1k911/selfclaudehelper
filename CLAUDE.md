@@ -157,8 +157,17 @@ production/leaderboard (см. ProductionLog выше): осознанно отк
    параметров — вся история); `GET /dashboard/kpi` — выработка (партии×выход_партии − брак) помесячно
    на сотрудника, только по Производству (Упаковка — отдельный будущий блок, см. "Отложенные темы").
    Единого сводного КПД-балла нет — Founder осознанно решила пока считать только выработку по
-   количеству, без взвешивания скорости/брака. Виджет-конструктор для дашборда (подключаемые блоки
-   вместо фиксированного набора) — идея Founder на будущее, не в реализации.
+   количеству, без взвешивания скорости/брака.
+   ✅ Виджет-конструктор (2026-07-16): `app/dashboard_widgets.py` — реестр из 11 виджетов (ключ,
+   заголовок, тип отрисовки list/bar/line/donut/stat, размер сетки по умолчанию/минимальный,
+   функция расчёта данных). Раскладка — `DashboardWidgetLayout` (widget_key, x, y, w, h), общая на
+   всю мастерскую (founder и developer видят одно и то же — не per-user, так решила Founder).
+   Эндпоинты: `GET /dashboard/widgets/catalog`, `GET/PUT /dashboard/widgets/layout`,
+   `GET /dashboard/widgets/{key}/data`. Фронт — `DashboardPage.tsx` на `react-grid-layout` (drag/resize
+   мышью в стиле iOS-виджетов, `/legacy` — v1 flat-props API, вторая версия либы 2026 переписана на
+   хуки и композитные пропсы) + `recharts` для графиков (палитра — см. skill `dataviz`). Известный
+   Vite-гоча: react-draggable (транзитивная зависимость) читает `process.env.NODE_ENV` в браузере —
+   без `define` в `vite.config.ts` падает `ReferenceError` при первом mousedown на драге.
 8. ✅ Техпанель для разработчика: `app/routers/techpanel.py` (только developer) — статус API
    (пинг БД, аптайм), последние 200 записей логгера в памяти (`app/techlog.py`, не персистентно),
    сброс `lru_cache` секретов (`app/config.py::_secrets`). Фронт: `TechPanelPage.tsx`, ссылка в

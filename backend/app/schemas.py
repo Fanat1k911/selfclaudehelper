@@ -23,6 +23,14 @@ class LoginRequest(BaseModel):
     password: str
 
 
+class DashboardLayoutItem(BaseModel):
+    widget_key: str
+    x: int
+    y: int
+    w: int
+    h: int
+
+
 class TokenResponse(BaseModel):
     access_token: str
     token_type: str = "bearer"

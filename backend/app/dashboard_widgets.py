@@ -1,0 +1,198 @@
+"""Реестр виджетов дашборда-конструктора (роадмап-идея из CLAUDE.md, реализована по
+запросу Founder). Каждый виджет — ключ, метаданные для сетки (размер по умолчанию,
+минимальный размер, тип отрисовки) и функция compute(db) -> JSON-сериализуемые данные.
+Раскладка (какие виджеты показаны и где) хранится отдельно в DashboardWidgetLayout —
+общая на всю мастерскую (founder/developer видят одно и то же), не per-user."""
+
+from collections import defaultdict
+from datetime import date as date_
+
+from sqlalchemy import select
+from sqlalchemy.orm import Session
+
+from app.constants import TRANSACTION_ADJUSTMENT, TRANSACTION_EXPENSE, TRANSACTION_INCOME
+from app.models import Material, ProductionLog, Sale, Transaction
+
+_SIGN_BY_TYPE = {TRANSACTION_INCOME: 1, TRANSACTION_EXPENSE: -1, TRANSACTION_ADJUSTMENT: 1}
+
+
+def _balances(db: Session) -> dict[str, float]:
+    balances: dict[str, float] = defaultdict(float)
+    for tx in db.scalars(select(Transaction)):
+        balances[tx.material_id] += float(tx.qty) * _SIGN_BY_TYPE.get(tx.type, 0)
+    return balances
+
+
+def _low_stock(db: Session) -> list[dict]:
+    materials = db.scalars(select(Material)).all()
+    balances = _balances(db)
+    rows = [
+        {
+            "id": m.id,
+            "название": m.name,
+            "остаток": balances.get(m.id, 0.0),
+            "мин.остаток": float(m.min_stock),
+            "ед.измерения": m.unit,
+        }
+        for m in materials
+        if balances.get(m.id, 0.0) < float(m.min_stock)
+    ]
+    rows.sort(key=lambda r: r["остаток"])
+    return rows
+
+
+def _recent_transactions(db: Session) -> list[dict]:
+    name_by_id = {m.id: m.name for m in db.scalars(select(Material))}
+    transactions = db.scalars(select(Transaction).order_by(Transaction.date.desc())).all()[:10]
+    return [
+        {
+            "id": tx.id,
+            "дата": tx.date.isoformat(),
+            "название": name_by_id.get(tx.material_id, tx.material_id),
+            "тип": tx.type,
+            "кол-во": float(tx.qty),
+            "цена": float(tx.price) if tx.price is not None else "",
+            "комментарий": tx.comment or "",
+        }
+        for tx in transactions
+    ]
+
+
+def _spend_totals(db: Session) -> tuple[dict[str, float], dict[str, float], dict[str, str]]:
+    stmt = select(Transaction).where(Transaction.type == TRANSACTION_INCOME, Transaction.price.is_not(None))
+    name_by_id = {m.id: m.name for m in db.scalars(select(Material))}
+
+    by_month: dict[str, float] = defaultdict(float)
+    by_material: dict[str, float] = defaultdict(float)
+    for tx in db.scalars(stmt):
+        amount = float(tx.qty) * float(tx.price)
+        by_month[tx.date.strftime("%Y-%m")] += amount
+        by_material[tx.material_id] += amount
+    return by_month, by_material, name_by_id
+
+
+def _monthly_spend(db: Session) -> list[dict]:
+    by_month, _, _ = _spend_totals(db)
+    return [{"месяц": month, "сумма": round(v, 2)} for month, v in sorted(by_month.items())]
+
+
+def _top_expense_materials(db: Session) -> list[dict]:
+    _, by_material, name_by_id = _spend_totals(db)
+    top = sorted(by_material.items(), key=lambda kv: kv[1], reverse=True)[:5]
+    return [{"material_id": mid, "название": name_by_id.get(mid, mid), "сумма": round(v, 2)} for mid, v in top]
+
+
+def _kpi_by_worker(db: Session) -> list[dict]:
+    totals: dict[tuple[str, str], dict] = {}
+    for entry in db.scalars(select(ProductionLog)):
+        month = entry.date.strftime("%Y-%m")
+        key = (month, entry.worker_id)
+        row = totals.setdefault(key, {"месяц": month, "ФИО": entry.worker.fio, "произведено": 0.0})
+        row["произведено"] += float(entry.batches) * float(entry.recipe.batch_yield) - float(entry.defects)
+    result = list(totals.values())
+    result.sort(key=lambda r: (r["месяц"], r["ФИО"]))
+    return result
+
+
+def _top_products(db: Session, limit: int = 3) -> list[dict]:
+    totals: dict[str, float] = defaultdict(float)
+    names: dict[str, str] = {}
+    for s in db.scalars(select(Sale)):
+        totals[s.product_id] += float(s.qty)
+        if s.product:
+            names[s.product_id] = s.product.name
+    top = sorted(totals.items(), key=lambda kv: kv[1], reverse=True)[:limit]
+    return [{"product_id": pid, "название": names.get(pid, pid), "кол-во": qty} for pid, qty in top]
+
+
+def _production_leaderboard(db: Session) -> list[dict]:
+    today = date_.today()
+    month_start = today.replace(day=1)
+    entries = db.scalars(select(ProductionLog).where(ProductionLog.date >= month_start))
+    totals: dict[str, dict] = {}
+    for entry in entries:
+        row = totals.setdefault(
+            entry.worker_id, {"worker_id": entry.worker_id, "ФИО": entry.worker.fio, "сегодня": 0.0, "месяц": 0.0}
+        )
+        qty = float(entry.batches) * float(entry.recipe.batch_yield) - float(entry.defects)
+        row["месяц"] += qty
+        if entry.date == today:
+            row["сегодня"] += qty
+    result = list(totals.values())
+    result.sort(key=lambda r: r["месяц"], reverse=True)
+    return result
+
+
+def _monthly_revenue(db: Session) -> list[dict]:
+    """Выручка = кол-во×цена по Sales с заполненной ценой, помесячно."""
+    by_month: dict[str, float] = defaultdict(float)
+    for s in db.scalars(select(Sale).where(Sale.price.is_not(None))):
+        by_month[s.date.strftime("%Y-%m")] += float(s.qty) * float(s.price)
+    return [{"месяц": m, "выручка": round(v, 2)} for m, v in sorted(by_month.items())]
+
+
+def _top_counterparties(db: Session, limit: int = 5) -> list[dict]:
+    """Топ контрагентов по выручке. Продажи без привязки к контрагенту не учитываются —
+    ранжировать анонимную отгрузку не по чему (общая выручка есть в monthly_revenue)."""
+    totals: dict[str, float] = defaultdict(float)
+    names: dict[str, str] = {}
+    stmt = select(Sale).where(Sale.price.is_not(None), Sale.counterparty_id.is_not(None))
+    for s in db.scalars(stmt):
+        totals[s.counterparty_id] += float(s.qty) * float(s.price)
+        if s.counterparty:
+            names[s.counterparty_id] = s.counterparty.name
+    top = sorted(totals.items(), key=lambda kv: kv[1], reverse=True)[:limit]
+    return [{"counterparty_id": cid, "название": names.get(cid, cid), "выручка": round(v, 2)} for cid, v in top]
+
+
+def _defect_rate(db: Session) -> list[dict]:
+    """% брака от выпуска (брак / (партии×выход_партии)), помесячно."""
+    produced: dict[str, float] = defaultdict(float)
+    defects: dict[str, float] = defaultdict(float)
+    for entry in db.scalars(select(ProductionLog)):
+        month = entry.date.strftime("%Y-%m")
+        produced[month] += float(entry.batches) * float(entry.recipe.batch_yield)
+        defects[month] += float(entry.defects)
+    result = []
+    for month in sorted(produced):
+        total = produced[month]
+        rate = round(defects[month] / total * 100, 2) if total > 0 else 0.0
+        result.append({"месяц": month, "брак_процент": rate})
+    return result
+
+
+def _stock_by_category(db: Session) -> list[dict]:
+    materials = db.scalars(select(Material)).all()
+    balances = _balances(db)
+    by_category: dict[str, float] = defaultdict(float)
+    for m in materials:
+        by_category[m.category] += max(balances.get(m.id, 0.0), 0.0)
+    return [{"категория": cat, "остаток": round(v, 2)} for cat, v in sorted(by_category.items())]
+
+
+WIDGET_CATALOG: list[dict] = [
+    {"key": "low_stock", "title": "Остатки ниже минимума", "kind": "list",
+     "w": 4, "h": 5, "min_w": 3, "min_h": 4, "compute": _low_stock},
+    {"key": "recent_transactions", "title": "Последние движения сырья", "kind": "list",
+     "w": 8, "h": 6, "min_w": 6, "min_h": 4, "compute": _recent_transactions},
+    {"key": "top_expense_materials", "title": "Топ-5 сырья по тратам", "kind": "bar",
+     "w": 6, "h": 6, "min_w": 4, "min_h": 4, "compute": _top_expense_materials},
+    {"key": "monthly_spend", "title": "Траты по месяцам", "kind": "line",
+     "w": 8, "h": 6, "min_w": 6, "min_h": 4, "compute": _monthly_spend},
+    {"key": "kpi_by_worker", "title": "КПД по сотрудникам", "kind": "bar",
+     "w": 8, "h": 6, "min_w": 6, "min_h": 4, "compute": _kpi_by_worker},
+    {"key": "top_products", "title": "Топ-3 продукта по продажам", "kind": "list",
+     "w": 4, "h": 5, "min_w": 3, "min_h": 4, "compute": _top_products},
+    {"key": "production_leaderboard", "title": "Лидерборд производства", "kind": "list",
+     "w": 4, "h": 5, "min_w": 3, "min_h": 4, "compute": _production_leaderboard},
+    {"key": "monthly_revenue", "title": "Выручка по месяцам", "kind": "line",
+     "w": 8, "h": 6, "min_w": 6, "min_h": 4, "compute": _monthly_revenue},
+    {"key": "top_counterparties", "title": "Топ контрагентов по выручке", "kind": "bar",
+     "w": 6, "h": 6, "min_w": 4, "min_h": 4, "compute": _top_counterparties},
+    {"key": "defect_rate", "title": "Брак, % от выпуска", "kind": "stat",
+     "w": 4, "h": 4, "min_w": 3, "min_h": 3, "compute": _defect_rate},
+    {"key": "stock_by_category", "title": "Остатки по категориям сырья", "kind": "donut",
+     "w": 6, "h": 6, "min_w": 4, "min_h": 4, "compute": _stock_by_category},
+]
+
+WIDGET_BY_KEY = {w["key"]: w for w in WIDGET_CATALOG}
