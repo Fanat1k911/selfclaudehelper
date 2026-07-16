@@ -34,7 +34,10 @@ function formatParts(now: Date, tz: string) {
   return { date, weekday, time }
 }
 
-export function TimezoneClock({ dark = false }: { dark?: boolean }) {
+// Живёт только на LoginPage — стилизуется через те же CSS-переменные темы логина
+// (--login-*, см. index.css), поэтому светлая/тёмная/системная тема совпадает с карточкой
+// без отдельного набора классов.
+export function TimezoneClock() {
   const [tz, setTz] = useState(() => localStorage.getItem(STORAGE_KEY) || '')
   const [now, setNow] = useState(new Date())
 
@@ -50,32 +53,33 @@ export function TimezoneClock({ dark = false }: { dark?: boolean }) {
     setNow(new Date())
   }
 
-  const wrapClass = dark
-    ? 'fixed bottom-4 right-4 rounded-xl border border-white/10 bg-white/[0.04] px-4 py-3 text-right shadow-lg shadow-black/20 backdrop-blur-xl'
-    : 'fixed bottom-4 right-4 rounded-xl border border-ink/10 bg-white/90 px-4 py-3 text-right shadow-sm backdrop-blur'
-  const selectClass = dark
-    ? 'rounded-lg border border-white/10 bg-white/[0.03] px-2 py-1 text-xs text-white outline-none focus:border-terracotta/70'
-    : 'rounded-lg border border-ink/10 px-2 py-1 text-xs text-ink outline-none focus:border-terracotta'
-  const timeClass = dark ? 'text-lg font-semibold tabular-nums text-white' : 'text-lg font-semibold tabular-nums text-ink'
-  const dateClass = dark ? 'text-xs text-white/40' : 'text-xs text-ink/50'
-
   return (
-    <div className={wrapClass}>
+    <div
+      className="fixed bottom-4 right-4 rounded-xl border px-4 py-3 text-right shadow-lg shadow-black/10 backdrop-blur-xl"
+      style={{ background: 'var(--login-card-bg)', borderColor: 'var(--login-card-border)' }}
+    >
       {!tz ? (
-        <select value="" onChange={(e) => selectTz(e.target.value)} className={selectClass}>
+        <select
+          value=""
+          onChange={(e) => selectTz(e.target.value)}
+          className="rounded-lg border bg-transparent px-2 py-1 text-xs outline-none"
+          style={{ borderColor: 'var(--login-input-border)', color: 'var(--login-text)' }}
+        >
           <option value="" disabled>
             Часовой пояс…
           </option>
           {TIMEZONES.map((t) => (
-            <option key={t.value} value={t.value}>
+            <option key={t.value} value={t.value} style={{ color: '#000' }}>
               {t.label}
             </option>
           ))}
         </select>
       ) : (
         <button onClick={() => selectTz('')} className="block w-full text-right" title="Сменить часовой пояс">
-          <div className={timeClass}>{formatParts(now, tz).time}</div>
-          <div className={dateClass}>
+          <div className="text-lg font-semibold tabular-nums" style={{ color: 'var(--login-text)' }}>
+            {formatParts(now, tz).time}
+          </div>
+          <div className="text-xs" style={{ color: 'var(--login-text-muted)' }}>
             {formatParts(now, tz).date}, {formatParts(now, tz).weekday}
           </div>
         </button>
