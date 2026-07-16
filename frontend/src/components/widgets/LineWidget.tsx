@@ -24,7 +24,7 @@ export function LineWidget({ widgetKey, data }: { widgetKey: string; data: unkno
         <CartesianGrid strokeDasharray="3 3" stroke={CHROME.gridline} vertical={false} />
         <XAxis dataKey="x" tick={{ fontSize: 12, fill: CHROME.muted }} axisLine={{ stroke: CHROME.baseline }} />
         <YAxis tick={{ fontSize: 12, fill: CHROME.muted }} axisLine={{ stroke: CHROME.baseline }} />
-        <Tooltip formatter={(v: number) => [v, label]} contentStyle={{ fontSize: 12, borderColor: CHROME.gridline }} />
+        <Tooltip formatter={(v) => [v, label]} contentStyle={{ fontSize: 12, borderColor: CHROME.gridline }} />
         <Line
           type="monotone"
           dataKey="value"

@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import GridLayout, { WidthProvider } from 'react-grid-layout/legacy'
+import type { Layout } from 'react-grid-layout/legacy'
 import 'react-grid-layout/css/styles.css'
 import 'react-resizable/css/styles.css'
 import { apiFetch } from '../lib/api'
@@ -45,14 +46,14 @@ export function DashboardPage() {
     apiFetch('/dashboard/widgets/layout', { method: 'PUT', body: JSON.stringify(next) })
   }
 
-  function handleRglLayoutChange(rglLayout: { i: string; x: number; y: number; w: number; h: number }[]) {
+  function handleRglLayoutChange(rglLayout: Layout) {
     const next = rglLayout.map((l) => ({ widget_key: l.i, x: l.x, y: l.y, w: l.w, h: l.h }))
     setLayout(next)
   }
 
   // onDragStop/onResizeStop получают финальную раскладку первым аргументом — брать её
   // напрямую, а не читать React-state, который onLayoutChange мог ещё не успеть обновить.
-  function handleDragOrResizeStop(rglLayout: { i: string; x: number; y: number; w: number; h: number }[]) {
+  function handleDragOrResizeStop(rglLayout: Layout) {
     const next = rglLayout.map((l) => ({ widget_key: l.i, x: l.x, y: l.y, w: l.w, h: l.h }))
     setLayout(next)
     persistLayout(next)

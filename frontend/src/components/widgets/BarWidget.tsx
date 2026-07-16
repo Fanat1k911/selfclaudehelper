@@ -19,7 +19,7 @@ function SingleSeriesBar({ rows, valueKey }: { rows: { name: string; value: numb
           axisLine={{ stroke: CHROME.baseline }}
         />
         <Tooltip
-          formatter={(v: number) => [v, valueKey]}
+          formatter={(v) => [v, valueKey]}
           contentStyle={{ fontSize: 12, borderColor: CHROME.gridline }}
         />
         <Bar dataKey="value" fill={CATEGORICAL[0]} radius={[0, 4, 4, 0]} maxBarSize={24} />
