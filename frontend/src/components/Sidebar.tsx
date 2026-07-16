@@ -14,7 +14,7 @@ import {
 } from 'lucide-react'
 import { useAuth, defaultPathForRole } from '../lib/auth'
 import type { User } from '../types'
-import logo from '../assets/logo-light.png'
+import { Brand } from './Brand'
 
 const NAV_ITEMS: { to: string; label: string; icon: LucideIcon; enabled: boolean; roles?: User['role'][] }[] = [
   { to: '/dashboard', label: 'Дашборд', icon: LayoutDashboard, enabled: true, roles: ['founder', 'developer'] },
@@ -73,8 +73,12 @@ export function Sidebar({ mobileOpen = false, onCloseMobile }: { mobileOpen?: bo
           onClick={onCloseMobile}
           className="px-6 py-6 flex items-center md:px-0 md:justify-center lg:px-6 lg:justify-start"
         >
-          <img src={logo} alt="oinarri" className="h-6 w-auto md:hidden lg:block" />
-          <span className="hidden md:inline lg:hidden text-2xl font-bold italic tracking-wide text-white">o</span>
+          <span className="md:hidden lg:block">
+            <Brand user={user} />
+          </span>
+          <span className="hidden md:inline lg:hidden">
+            <Brand user={user} collapsed />
+          </span>
         </Link>
 
         <nav className="flex-1 px-3 space-y-1">

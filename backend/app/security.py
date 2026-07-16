@@ -34,7 +34,10 @@ def _find_user(db: Session, login: str) -> User | None:
 
 
 def _public_fields(user: User) -> dict:
-    return {"id": user.id, "fio": user.fio, "login": user.login, "role": user.role, "company_id": user.company_id}
+    return {
+        "id": user.id, "fio": user.fio, "login": user.login, "role": user.role,
+        "company_id": user.company_id, "company_name": user.company.name,
+    }
 
 
 def authenticate(login: str, password: str, db: Session) -> dict:
@@ -95,9 +98,11 @@ def get_current_user(
     company_id = payload.get("company_id")
     if company_id is None:
         raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Токен устарел, войдите заново.")
+    # company_name — то же самое (payload, не БД), но без принудительного релогина при
+    # отсутствии: это просто текст для брендинга интерфейса, не граница безопасности.
     return {
         "id": payload["id"], "fio": payload["fio"], "login": payload["login"],
-        "role": payload["role"], "company_id": company_id,
+        "role": payload["role"], "company_id": company_id, "company_name": payload.get("company_name", ""),
     }
 
 

@@ -3,6 +3,8 @@ export interface User {
   fio: string
   login: string
   role: 'founder' | 'worker' | 'developer'
+  company_id: string
+  company_name: string
 }
 
 export interface StaffUser {

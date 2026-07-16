@@ -7,6 +7,7 @@
   --color-terracotta-dark: #ad6350;
   --color-sidebar: #2b211c;
   --color-sidebar-hover: #3a2d25;
+  --color-obsidian: #16110d;
 }
 
 body {
@@ -20,4 +21,33 @@ button:not(:disabled),
 [role='button'],
 a[href] {
   cursor: pointer;
+}
+
+/* Логин-страница: медленный дрейф фоновых бликов + мягкое появление карточки.
+   Отдельно от остального приложения — единственное место с фоновой анимацией. */
+@keyframes login-drift-a {
+  0%, 100% { transform: translate(-8%, -6%) scale(1); }
+  50% { transform: translate(4%, 6%) scale(1.15); }
+}
+@keyframes login-drift-b {
+  0%, 100% { transform: translate(6%, 4%) scale(1.1); }
+  50% { transform: translate(-5%, -8%) scale(1); }
+}
+@keyframes login-rise {
+  from { opacity: 0; transform: translateY(16px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes login-fade {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+.login-blob-a { animation: login-drift-a 22s ease-in-out infinite; }
+.login-blob-b { animation: login-drift-b 26s ease-in-out infinite; }
+.login-card-enter { animation: login-rise 0.7s cubic-bezier(0.16, 1, 0.3, 1) both; }
+.login-fade-enter { animation: login-fade 1s ease-out both; }
+
+@media (prefers-reduced-motion: reduce) {
+  .login-blob-a, .login-blob-b, .login-card-enter, .login-fade-enter {
+    animation: none !important;
+  }
 }

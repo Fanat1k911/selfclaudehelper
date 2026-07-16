@@ -1,5 +1,5 @@
 from app.constants import USER_STATUS_FIRED, WORKER
-from tests.conftest import auth_headers, make_user
+from tests.conftest import auth_headers, make_company, make_user
 
 
 def test_login_success(client, db_session):
@@ -9,6 +9,17 @@ def test_login_success(client, db_session):
     body = resp.json()
     assert body["user"]["login"] == "worker1"
     assert body["access_token"]
+
+
+def test_login_returns_company_name_for_whitelabel(client, db_session):
+    company = make_company(db_session, name="3D Print Co")
+    make_user(db_session, login="worker1b", role=WORKER, password="pass1234", company_id=company.id)
+    resp = client.post("/api/auth/login", json={"login": "worker1b", "password": "pass1234"})
+    body = resp.json()
+    assert body["user"]["company_name"] == "3D Print Co"
+
+    resp = client.get("/api/auth/me", headers={"Authorization": f"Bearer {body['access_token']}"})
+    assert resp.json()["company_name"] == "3D Print Co"
 
 
 def test_login_wrong_password(client, db_session):

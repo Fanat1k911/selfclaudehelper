@@ -34,7 +34,7 @@ function formatParts(now: Date, tz: string) {
   return { date, weekday, time }
 }
 
-export function TimezoneClock() {
+export function TimezoneClock({ dark = false }: { dark?: boolean }) {
   const [tz, setTz] = useState(() => localStorage.getItem(STORAGE_KEY) || '')
   const [now, setNow] = useState(new Date())
 
@@ -50,14 +50,19 @@ export function TimezoneClock() {
     setNow(new Date())
   }
 
+  const wrapClass = dark
+    ? 'fixed bottom-4 right-4 rounded-xl border border-white/10 bg-white/[0.04] px-4 py-3 text-right shadow-lg shadow-black/20 backdrop-blur-xl'
+    : 'fixed bottom-4 right-4 rounded-xl border border-ink/10 bg-white/90 px-4 py-3 text-right shadow-sm backdrop-blur'
+  const selectClass = dark
+    ? 'rounded-lg border border-white/10 bg-white/[0.03] px-2 py-1 text-xs text-white outline-none focus:border-terracotta/70'
+    : 'rounded-lg border border-ink/10 px-2 py-1 text-xs text-ink outline-none focus:border-terracotta'
+  const timeClass = dark ? 'text-lg font-semibold tabular-nums text-white' : 'text-lg font-semibold tabular-nums text-ink'
+  const dateClass = dark ? 'text-xs text-white/40' : 'text-xs text-ink/50'
+
   return (
-    <div className="fixed bottom-4 right-4 rounded-xl border border-ink/10 bg-white/90 px-4 py-3 text-right shadow-sm backdrop-blur">
+    <div className={wrapClass}>
       {!tz ? (
-        <select
-          value=""
-          onChange={(e) => selectTz(e.target.value)}
-          className="rounded-lg border border-ink/10 px-2 py-1 text-xs text-ink outline-none focus:border-terracotta"
-        >
+        <select value="" onChange={(e) => selectTz(e.target.value)} className={selectClass}>
           <option value="" disabled>
             Часовой пояс…
           </option>
@@ -69,8 +74,8 @@ export function TimezoneClock() {
         </select>
       ) : (
         <button onClick={() => selectTz('')} className="block w-full text-right" title="Сменить часовой пояс">
-          <div className="text-lg font-semibold tabular-nums text-ink">{formatParts(now, tz).time}</div>
-          <div className="text-xs text-ink/50">
+          <div className={timeClass}>{formatParts(now, tz).time}</div>
+          <div className={dateClass}>
             {formatParts(now, tz).date}, {formatParts(now, tz).weekday}
           </div>
         </button>

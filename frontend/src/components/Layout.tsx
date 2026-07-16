@@ -1,11 +1,17 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Outlet } from 'react-router-dom'
 import { Menu } from 'lucide-react'
+import { useAuth } from '../lib/auth'
+import { Brand } from './Brand'
 import { Sidebar } from './Sidebar'
-import logo from '../assets/logo-dark.png'
 
 export function Layout() {
   const [mobileOpen, setMobileOpen] = useState(false)
+  const { user } = useAuth()
+
+  useEffect(() => {
+    document.title = user?.company_name || 'oinarri'
+  }, [user])
 
   return (
     <div className="flex h-screen overflow-hidden">
@@ -19,7 +25,7 @@ export function Layout() {
           >
             <Menu className="h-5 w-5" />
           </button>
-          <img src={logo} alt="oinarri" className="h-5 w-auto" />
+          <Brand user={user} className="text-ink" />
         </header>
         <main className="flex-1 overflow-y-auto">
           <Outlet />
