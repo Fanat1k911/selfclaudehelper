@@ -75,6 +75,9 @@ def make_user(
 
 def auth_headers(user: User) -> dict:
     token = create_access_token(
-        {"id": user.id, "fio": user.fio, "login": user.login, "role": user.role, "company_id": user.company_id}
+        {
+            "id": user.id, "fio": user.fio, "login": user.login, "role": user.role,
+            "company_id": user.company_id, "company_name": user.company.name,
+        }
     )
     return {"Authorization": f"Bearer {token}"}

@@ -10,7 +10,7 @@ export function Layout() {
   const { user } = useAuth()
 
   useEffect(() => {
-    document.title = user?.company_name || 'oinarri'
+    document.title = user?.company_name || 'Мастерская'
   }, [user])
 
   return (

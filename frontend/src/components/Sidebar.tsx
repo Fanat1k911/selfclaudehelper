@@ -73,7 +73,7 @@ export function Sidebar({ mobileOpen = false, onCloseMobile }: { mobileOpen?: bo
           onClick={onCloseMobile}
           className="px-6 py-6 flex items-center md:px-0 md:justify-center lg:px-6 lg:justify-start"
         >
-          <span className="md:hidden lg:block">
+          <span className="min-w-0 md:hidden lg:block">
             <Brand user={user} />
           </span>
           <span className="hidden md:inline lg:hidden">

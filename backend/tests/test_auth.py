@@ -1,3 +1,8 @@
+from datetime import datetime, timedelta, timezone
+
+import jwt
+
+from app.config import JWT_ALGORITHM, JWT_EXPIRE_MINUTES, JWT_SECRET
 from app.constants import USER_STATUS_FIRED, WORKER
 from tests.conftest import auth_headers, make_company, make_user
 
@@ -20,6 +25,23 @@ def test_login_returns_company_name_for_whitelabel(client, db_session):
 
     resp = client.get("/api/auth/me", headers={"Authorization": f"Bearer {body['access_token']}"})
     assert resp.json()["company_name"] == "3D Print Co"
+
+
+def test_stale_token_missing_company_name_forces_relogin(client, db_session):
+    """Регрессия: до фикса компания_name молча дефолтилась на "" вместо форса релогина,
+    из-за чего фронт мог показать чужой бренд (см. code-review белого лейбла).
+    Токен, выданный до этого деплоя, имеет company_id, но не company_name — симулируем
+    напрямую, а не через auth_headers (та уже несёт оба поля)."""
+    worker = make_user(db_session, login="worker_stale", role=WORKER)
+    stale_payload = {
+        "id": worker.id, "fio": worker.fio, "login": worker.login, "role": worker.role,
+        "company_id": worker.company_id,
+        # company_name отсутствует намеренно
+        "exp": datetime.now(timezone.utc) + timedelta(minutes=JWT_EXPIRE_MINUTES),
+    }
+    token = jwt.encode(stale_payload, JWT_SECRET, algorithm=JWT_ALGORITHM)
+    resp = client.get("/api/auth/me", headers={"Authorization": f"Bearer {token}"})
+    assert resp.status_code == 401
 
 
 def test_login_wrong_password(client, db_session):

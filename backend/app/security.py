@@ -90,19 +90,20 @@ def get_current_user(
     fresh = _find_user(db, payload["login"])
     if fresh is None or fresh.status != USER_STATUS_ACTIVE:
         raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Доступ отозван.")
-    # company_id — как и role, берётся из payload токена, не перечитывается из БД
-    # (пользователь не переезжает между компаниями, в отличие от статуса/увольнения).
-    # .get(), не payload["company_id"]: токены, выданные до мультитенантности (2026-07-16),
-    # этого поля не несут — без этого падает KeyError -> 500 вместо чистого 401,
-    # пока не истечёт старый токен (до JWT_EXPIRE_MINUTES).
+    # company_id и company_name — как и role, берутся из payload токена, не перечитываются
+    # из БД (пользователь не переезжает между компаниями, в отличие от статуса/увольнения).
+    # .get(), не payload["company_id"]: токены, выданные до мультитенантности (2026-07-16)
+    # или до вайт-лейбла (company_name добавлен отдельным деплоем позже), этих полей не
+    # несут — без .get() падает KeyError -> 500 вместо чистого 401. Оба обязательны и оба
+    # требуют релогина, если хоть одно отсутствует: иначе на компанию Б мог утечь через
+    # фронтовый фоллбек чужой бренд компании А, пока не истечёт старый токен.
     company_id = payload.get("company_id")
-    if company_id is None:
+    company_name = payload.get("company_name")
+    if company_id is None or company_name is None:
         raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Токен устарел, войдите заново.")
-    # company_name — то же самое (payload, не БД), но без принудительного релогина при
-    # отсутствии: это просто текст для брендинга интерфейса, не граница безопасности.
     return {
         "id": payload["id"], "fio": payload["fio"], "login": payload["login"],
-        "role": payload["role"], "company_id": company_id, "company_name": payload.get("company_name", ""),
+        "role": payload["role"], "company_id": company_id, "company_name": company_name,
     }
 
 
