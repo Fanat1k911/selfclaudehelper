@@ -10,6 +10,7 @@ import {
   ShoppingBag,
   Building2,
   ChevronDown,
+  Video,
   type LucideIcon,
 } from 'lucide-react'
 import { useAuth, defaultPathForRole } from '../lib/auth'
@@ -25,6 +26,7 @@ const NAV_ITEMS: { to: string; label: string; icon: LucideIcon; enabled: boolean
   { to: '/recipes', label: 'Рецепты', icon: BookOpen, enabled: true },
   { to: '/products', label: 'Продукт', icon: ShoppingBag, enabled: true, roles: ['founder', 'developer'] },
   { to: '/counterparties', label: 'Контрагенты', icon: Building2, enabled: true, roles: ['founder', 'developer'] },
+  { to: '/surveillance', label: 'Видеонаблюдение', icon: Video, enabled: true, roles: ['founder', 'developer'] },
 ]
 
 const MANAGEMENT_ROLES: User['role'][] = ['founder', 'developer']
