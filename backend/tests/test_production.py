@@ -40,7 +40,7 @@ def test_production_rejected_when_stock_insufficient(client, db_session):
         headers=auth_headers(worker),
     )
     assert resp.status_code == 400
-    assert "Недостаточно сырья" in resp.json()["detail"]
+    assert "Недостаточно компонентов" in resp.json()["detail"]
 
     # Ни одной транзакции списания не должно было создаться.
     assert db_session.query(Transaction).count() == 1

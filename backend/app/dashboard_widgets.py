@@ -183,9 +183,9 @@ def _stock_by_category(db: Session, company_id: str) -> list[dict]:
 WIDGET_CATALOG: list[dict] = [
     {"key": "low_stock", "title": "Остатки ниже минимума", "kind": "list",
      "w": 4, "h": 5, "min_w": 3, "min_h": 4, "compute": _low_stock},
-    {"key": "recent_transactions", "title": "Последние движения сырья", "kind": "list",
+    {"key": "recent_transactions", "title": "Последние движения компонентов", "kind": "list",
      "w": 8, "h": 6, "min_w": 6, "min_h": 4, "compute": _recent_transactions},
-    {"key": "top_expense_materials", "title": "Топ-5 сырья по тратам", "kind": "bar",
+    {"key": "top_expense_materials", "title": "Топ-5 компонентов по тратам", "kind": "bar",
      "w": 6, "h": 6, "min_w": 4, "min_h": 4, "compute": _top_expense_materials},
     {"key": "monthly_spend", "title": "Траты по месяцам", "kind": "line",
      "w": 8, "h": 6, "min_w": 6, "min_h": 4, "compute": _monthly_spend},
@@ -201,7 +201,7 @@ WIDGET_CATALOG: list[dict] = [
      "w": 6, "h": 6, "min_w": 4, "min_h": 4, "compute": _top_counterparties},
     {"key": "defect_rate", "title": "Брак, % от выпуска", "kind": "stat",
      "w": 4, "h": 4, "min_w": 3, "min_h": 3, "compute": _defect_rate},
-    {"key": "stock_by_category", "title": "Остатки по категориям сырья", "kind": "donut",
+    {"key": "stock_by_category", "title": "Остатки по категориям компонентов", "kind": "donut",
      "w": 6, "h": 6, "min_w": 4, "min_h": 4, "compute": _stock_by_category},
 ]
 

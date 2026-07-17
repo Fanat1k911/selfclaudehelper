@@ -137,7 +137,7 @@ def create_production(
         if available < need:
             shortages.append(f"{item.material.name}: нужно {need:g}, в наличии {available:g}")
     if shortages:
-        raise HTTPException(400, "Недостаточно сырья на складе: " + "; ".join(shortages))
+        raise HTTPException(400, "Недостаточно компонентов на складе: " + "; ".join(shortages))
 
     for item in recipe_items:
         db.add(
