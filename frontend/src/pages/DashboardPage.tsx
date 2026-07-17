@@ -77,26 +77,33 @@ export function DashboardPage() {
   const available = catalog.filter((w) => !layout.some((l) => l.widget_key === w.key))
 
   if (loading) {
-    return <div className="px-4 py-4 text-ink/40 sm:px-8 sm:py-6">Загрузка…</div>
+    return (
+      <div className="min-h-full bg-premium-bg px-4 py-4 text-premium-text-muted sm:px-8 sm:py-6">Загрузка…</div>
+    )
   }
 
   return (
-    <div className="px-4 py-4 sm:px-8 sm:py-6">
-      <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <h1 className="text-xl font-semibold text-ink sm:text-2xl">Дашборд</h1>
+    <div className="relative min-h-full overflow-hidden bg-premium-bg px-4 py-4 sm:px-8 sm:py-6">
+      <div className="premium-grain" aria-hidden />
+      <div className="relative mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <h1 className="font-display text-2xl font-semibold italic text-premium-text sm:text-3xl">
+          Дашборд
+        </h1>
         <div className="flex gap-2">
           {editing && (
             <button
               onClick={() => setShowAdd(true)}
-              className="whitespace-nowrap rounded-lg border border-ink/10 bg-white px-3 py-2 text-sm font-medium text-ink hover:bg-ink/5"
+              className="whitespace-nowrap rounded-lg border border-premium-border bg-premium-surface px-3 py-2 text-sm font-medium text-premium-text hover:bg-premium-surface-2"
             >
               + Добавить виджет
             </button>
           )}
           <button
             onClick={() => setEditing((v) => !v)}
-            className={`whitespace-nowrap rounded-lg px-3 py-2 text-sm font-medium ${
-              editing ? 'bg-terracotta text-white hover:bg-terracotta-dark' : 'border border-ink/10 text-ink hover:bg-ink/5'
+            className={`whitespace-nowrap rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
+              editing
+                ? 'bg-premium-gold text-premium-bg hover:bg-premium-gold-hi'
+                : 'border border-premium-border text-premium-text hover:bg-premium-surface-2'
             }`}
           >
             {editing ? 'Готово' : 'Настроить'}
@@ -105,7 +112,7 @@ export function DashboardPage() {
       </div>
 
       {layout.length === 0 && (
-        <div className="rounded-xl border border-dashed border-ink/20 py-16 text-center text-sm text-ink/40">
+        <div className="relative rounded-xl border border-dashed border-premium-border py-16 text-center text-sm text-premium-text-muted">
           Дашборд пуст. Нажми "Настроить" → "+ Добавить виджет".
         </div>
       )}

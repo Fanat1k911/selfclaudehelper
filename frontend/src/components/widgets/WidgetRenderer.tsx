@@ -7,7 +7,7 @@ import { StatWidget } from './StatWidget'
 
 export function WidgetRenderer({ widget, data }: { widget: WidgetCatalogItem; data: unknown }) {
   if (data === undefined) {
-    return <div className="flex h-full items-center justify-center text-sm text-ink/40">Загрузка…</div>
+    return <div className="flex h-full items-center justify-center text-sm text-premium-text-muted">Загрузка…</div>
   }
   switch (widget.kind) {
     case 'list':

@@ -8,6 +8,19 @@
   --color-sidebar: #2b211c;
   --color-sidebar-hover: #3a2d25;
   --color-obsidian: #16110d;
+
+  /* "Refined Industrial" — premium tokens for the dashboard/sidebar redesign
+     (2026-07-17, see DESIGN.md). Additive only: cream/ink/terracotta above stay
+     untouched so the other 10 pages don't shift look until their own pass. */
+  --color-premium-bg: #14120f;
+  --color-premium-surface: #1d1a16;
+  --color-premium-surface-2: #262219;
+  --color-premium-border: #332d24;
+  --color-premium-text: #f3eee4;
+  --color-premium-text-muted: #a99c89;
+  --color-premium-gold: #c6a15b;
+  --color-premium-gold-hi: #ddbb7c;
+  --font-display: 'Fraunces', serif;
 }
 
 body {
@@ -71,6 +84,71 @@ a[href] {
   --login-toggle-active-bg: rgba(255, 255, 255, 0.12);
   --login-toggle-shadow: rgba(0, 0, 0, 0.4);
 }
+/* "Refined Industrial" premium surface — grain, hero numerals, row/card hover.
+   Scoped to the dashboard/sidebar (2026-07-17 redesign, see DESIGN.md); not
+   applied to the other pages yet, so keep selectors opt-in (.premium-*). */
+.premium-grain {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  opacity: 0.05;
+  mix-blend-mode: overlay;
+  /* feTurbulence noise baked into a tiling SVG data-URI — a bare div with no
+     background here was a no-op (2026-07-17 code-review catch: opacity/blend-mode
+     on nothing paints nothing). Base64 avoids escaping `#`/`%` for CSS url(). */
+  background-image: url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyMDAiIGhlaWdodD0iMjAwIj48ZmlsdGVyIGlkPSJuIj48ZmVUdXJidWxlbmNlIHR5cGU9ImZyYWN0YWxOb2lzZSIgYmFzZUZyZXF1ZW5jeT0iMC45IiBudW1PY3RhdmVzPSIyIiBzdGl0Y2hUaWxlcz0ic3RpdGNoIi8+PGZlQ29sb3JNYXRyaXggdHlwZT0ibWF0cml4IiB2YWx1ZXM9IjAgMCAwIDAgMSAgMCAwIDAgMCAxICAwIDAgMCAwIDEgIDAgMCAwIDAuOSAwIi8+PC9maWx0ZXI+PHJlY3Qgd2lkdGg9IjEwMCUiIGhlaWdodD0iMTAwJSIgZmlsdGVyPSJ1cmwoJTIzbikiLz48L3N2Zz4=');
+  background-size: 200px 200px;
+}
+
+.premium-card {
+  transition: transform 0.25s ease, border-color 0.25s ease;
+}
+.premium-card:hover {
+  transform: translateY(-2px);
+  border-color: color-mix(in srgb, var(--color-premium-gold) 45%, var(--color-premium-border));
+}
+
+.premium-stat {
+  position: relative;
+  overflow: hidden;
+  transition: box-shadow 0.25s ease, transform 0.25s ease;
+}
+.premium-stat::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--color-premium-gold), transparent);
+}
+.premium-stat::after {
+  content: attr(data-watermark);
+  position: absolute;
+  right: -6px;
+  bottom: -22px;
+  font-family: var(--font-display);
+  font-style: italic;
+  font-size: 84px;
+  color: var(--color-premium-gold);
+  opacity: 0.07;
+  line-height: 1;
+  pointer-events: none;
+}
+.premium-stat:hover {
+  box-shadow: 0 0 40px -12px color-mix(in srgb, var(--color-premium-gold) 45%, transparent);
+  transform: translateY(-2px);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .premium-card,
+  .premium-stat {
+    transition: none !important;
+    transform: none !important;
+  }
+}
+
 [data-login-theme='light'] {
   --login-bg: var(--color-cream);
   --login-card-bg: rgba(255, 255, 255, 0.65);

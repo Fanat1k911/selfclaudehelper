@@ -66,7 +66,7 @@ export function Sidebar({ mobileOpen = false, onCloseMobile }: { mobileOpen?: bo
         <div className="fixed inset-0 z-40 bg-black/30 md:hidden" onClick={onCloseMobile} />
       )}
       <aside
-        className={`fixed inset-y-0 left-0 z-50 flex h-screen w-64 flex-col bg-sidebar text-cream/90 shrink-0 transition-transform duration-200 ease-out md:static md:z-auto md:w-16 md:translate-x-0 lg:w-64 ${
+        className={`fixed inset-y-0 left-0 z-50 flex h-screen w-64 flex-col bg-premium-bg text-premium-text/90 shrink-0 transition-transform duration-200 ease-out md:static md:z-auto md:w-16 md:translate-x-0 lg:w-64 ${
           mobileOpen ? 'translate-x-0' : '-translate-x-full'
         }`}
       >
@@ -95,8 +95,8 @@ export function Sidebar({ mobileOpen = false, onCloseMobile }: { mobileOpen?: bo
                 className={({ isActive }) =>
                   `flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors md:justify-center lg:justify-start ${
                     isActive
-                      ? 'bg-terracotta text-white font-medium'
-                      : 'text-white/70 hover:bg-sidebar-hover hover:text-white'
+                      ? 'bg-premium-gold/16 text-premium-gold-hi font-medium'
+                      : 'text-premium-text/60 hover:bg-premium-surface-2 hover:text-premium-text'
                   }`
                 }
               >
@@ -106,7 +106,7 @@ export function Sidebar({ mobileOpen = false, onCloseMobile }: { mobileOpen?: bo
             ) : (
               <div
                 key={item.to}
-                className="flex cursor-not-allowed items-center gap-3 rounded-lg px-3 py-2 text-sm text-white/30 md:justify-center lg:justify-start"
+                className="flex cursor-not-allowed items-center gap-3 rounded-lg px-3 py-2 text-sm text-premium-text/25 md:justify-center lg:justify-start"
                 title="Скоро"
               >
                 <Icon className="h-4.5 w-4.5 shrink-0" size={18} />
@@ -116,9 +116,9 @@ export function Sidebar({ mobileOpen = false, onCloseMobile }: { mobileOpen?: bo
           })}
         </nav>
 
-        <div ref={menuRef} className="relative border-t border-white/10 px-3 py-4">
+        <div ref={menuRef} className="relative border-t border-premium-border px-3 py-4">
           <div
-            className={`absolute bottom-full left-3 right-3 mb-2 origin-bottom overflow-hidden rounded-xl border border-white/10 bg-sidebar shadow-2xl transition-all duration-200 ease-out md:left-full md:right-auto md:bottom-2 md:mb-0 md:ml-2 md:w-56 lg:left-3 lg:right-3 lg:bottom-full lg:w-auto lg:ml-0 lg:mb-2 ${
+            className={`absolute bottom-full left-3 right-3 mb-2 origin-bottom overflow-hidden rounded-xl border border-premium-border bg-premium-surface shadow-2xl transition-all duration-200 ease-out md:left-full md:right-auto md:bottom-2 md:mb-0 md:ml-2 md:w-56 lg:left-3 lg:right-3 lg:bottom-full lg:w-auto lg:ml-0 lg:mb-2 ${
               menuOpen
                 ? 'translate-y-0 scale-100 opacity-100'
                 : 'pointer-events-none translate-y-2 scale-95 opacity-0'
@@ -133,7 +133,9 @@ export function Sidebar({ mobileOpen = false, onCloseMobile }: { mobileOpen?: bo
                 }}
                 className={({ isActive }) =>
                   `block px-4 py-2.5 text-sm font-medium transition-colors ${
-                    isActive ? 'bg-terracotta text-white' : 'text-white/80 hover:bg-sidebar-hover hover:text-white'
+                    isActive
+                      ? 'bg-premium-gold/16 text-premium-gold-hi'
+                      : 'text-premium-text/80 hover:bg-premium-surface-2 hover:text-premium-text'
                   }`
                 }
               >
@@ -149,7 +151,9 @@ export function Sidebar({ mobileOpen = false, onCloseMobile }: { mobileOpen?: bo
                 }}
                 className={({ isActive }) =>
                   `block px-4 py-2.5 text-sm font-medium transition-colors ${
-                    isActive ? 'bg-terracotta text-white' : 'text-white/80 hover:bg-sidebar-hover hover:text-white'
+                    isActive
+                      ? 'bg-premium-gold/16 text-premium-gold-hi'
+                      : 'text-premium-text/80 hover:bg-premium-surface-2 hover:text-premium-text'
                   }`
                 }
               >
@@ -162,7 +166,7 @@ export function Sidebar({ mobileOpen = false, onCloseMobile }: { mobileOpen?: bo
                 logout()
                 navigate('/login', { replace: true })
               }}
-              className="block w-full px-4 py-2.5 text-left text-sm font-medium text-white/80 transition-colors hover:bg-sidebar-hover hover:text-white"
+              className="block w-full px-4 py-2.5 text-left text-sm font-medium text-premium-text/80 transition-colors hover:bg-premium-surface-2 hover:text-premium-text"
             >
               Выйти
             </button>
@@ -170,21 +174,21 @@ export function Sidebar({ mobileOpen = false, onCloseMobile }: { mobileOpen?: bo
 
           <button
             onClick={() => setMenuOpen((v) => !v)}
-            className="flex w-full items-center justify-between gap-2 rounded-lg px-3 py-2 text-left transition-colors hover:bg-sidebar-hover md:justify-center lg:justify-between"
+            className="flex w-full items-center justify-between gap-2 rounded-lg px-3 py-2 text-left transition-colors hover:bg-premium-surface-2 md:justify-center lg:justify-between"
           >
             <div className="flex min-w-0 items-center gap-2">
-              <div className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-terracotta text-xs font-bold text-white">
+              <div className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-premium-gold text-xs font-bold text-premium-bg">
                 {initial}
               </div>
               <div className="min-w-0 md:hidden lg:block">
-                <div className="truncate text-sm font-bold tracking-wide text-white">
+                <div className="truncate text-sm font-bold tracking-wide text-premium-text">
                   {user ? shortDisplayName(user.fio, user.role) : ''}
                 </div>
-                <div className="text-xs text-white/50">{user?.role}</div>
+                <div className="text-xs text-premium-text/50">{user?.role}</div>
               </div>
             </div>
             <ChevronDown
-              className={`h-4 w-4 shrink-0 text-white/50 transition-transform duration-200 ease-out md:hidden lg:block ${
+              className={`h-4 w-4 shrink-0 text-premium-text/50 transition-transform duration-200 ease-out md:hidden lg:block ${
                 menuOpen ? 'rotate-180' : ''
               }`}
             />

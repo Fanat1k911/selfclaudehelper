@@ -1,5 +1,5 @@
 import { Cell, Legend, Pie, PieChart, ResponsiveContainer, Tooltip } from 'recharts'
-import { CATEGORICAL, CHROME } from '../../lib/vizColors'
+import { CATEGORICAL, CHROME_DARK as CHROME } from '../../lib/vizColors'
 import type { StockByCategoryRow } from '../../types'
 
 export function DonutWidget({ widgetKey, data }: { widgetKey: string; data: unknown }) {
@@ -7,7 +7,7 @@ export function DonutWidget({ widgetKey, data }: { widgetKey: string; data: unkn
 
   const rows = data as StockByCategoryRow[]
   if (rows.length === 0 || rows.every((r) => r['остаток'] === 0)) {
-    return <div className="flex h-full items-center justify-center text-sm text-ink/40">Данных пока нет.</div>
+    return <div className="flex h-full items-center justify-center text-sm text-premium-text-muted">Данных пока нет.</div>
   }
 
   const chartData = rows.map((r) => ({ name: r['категория'], value: r['остаток'] }))
@@ -20,8 +20,11 @@ export function DonutWidget({ widgetKey, data }: { widgetKey: string; data: unkn
             <Cell key={i} fill={CATEGORICAL[i % CATEGORICAL.length]} stroke={CHROME.surface} strokeWidth={2} />
           ))}
         </Pie>
-        <Tooltip contentStyle={{ fontSize: 12, borderColor: CHROME.gridline }} />
-        <Legend wrapperStyle={{ fontSize: 12 }} />
+        <Tooltip
+          contentStyle={{ fontSize: 12, background: CHROME.surface, borderColor: CHROME.gridline, color: CHROME.textPrimary }}
+          labelStyle={{ color: CHROME.textPrimary }}
+        />
+        <Legend wrapperStyle={{ fontSize: 12, color: CHROME.textSecondary }} />
       </PieChart>
     </ResponsiveContainer>
   )

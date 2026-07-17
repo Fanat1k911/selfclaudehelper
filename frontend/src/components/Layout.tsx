@@ -17,6 +17,9 @@ export function Layout() {
     <div className="flex h-screen overflow-hidden">
       <Sidebar mobileOpen={mobileOpen} onCloseMobile={() => setMobileOpen(false)} />
       <div className="flex flex-1 flex-col overflow-hidden">
+        {/* Общий для ВСЕХ 11 страниц (Outlet ниже) — только Sidebar/Dashboard мигрировали
+            на тёмную тему (см. DESIGN.md), поэтому этот хедер остаётся светлым, чтобы не
+            ломать 8 нетронутых светлых страниц на мобильных viewport-ах. */}
         <header className="flex items-center gap-3 border-b border-ink/10 bg-white px-4 py-3 md:hidden">
           <button
             onClick={() => setMobileOpen(true)}

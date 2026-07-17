@@ -1,10 +1,10 @@
 import { Bar, BarChart, CartesianGrid, Legend, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
-import { CATEGORICAL, CHROME } from '../../lib/vizColors'
+import { CATEGORICAL, CHROME_DARK as CHROME } from '../../lib/vizColors'
 import type { DashboardSpendTopMaterial, TopCounterpartyRow, WidgetKpiRow } from '../../types'
 
 function SingleSeriesBar({ rows, valueKey }: { rows: { name: string; value: number }[]; valueKey: string }) {
   if (rows.length === 0) {
-    return <div className="flex h-full items-center justify-center text-sm text-ink/40">Данных пока нет.</div>
+    return <div className="flex h-full items-center justify-center text-sm text-premium-text-muted">Данных пока нет.</div>
   }
   return (
     <ResponsiveContainer width="100%" height="100%">
@@ -20,7 +20,8 @@ function SingleSeriesBar({ rows, valueKey }: { rows: { name: string; value: numb
         />
         <Tooltip
           formatter={(v) => [v, valueKey]}
-          contentStyle={{ fontSize: 12, borderColor: CHROME.gridline }}
+          contentStyle={{ fontSize: 12, background: CHROME.surface, borderColor: CHROME.gridline, color: CHROME.textPrimary }}
+          labelStyle={{ color: CHROME.textPrimary }}
         />
         <Bar dataKey="value" fill={CATEGORICAL[0]} radius={[0, 4, 4, 0]} maxBarSize={24} />
       </BarChart>
@@ -30,7 +31,7 @@ function SingleSeriesBar({ rows, valueKey }: { rows: { name: string; value: numb
 
 function KpiByWorkerBar({ rows }: { rows: WidgetKpiRow[] }) {
   if (rows.length === 0) {
-    return <div className="flex h-full items-center justify-center text-sm text-ink/40">Данных пока нет.</div>
+    return <div className="flex h-full items-center justify-center text-sm text-premium-text-muted">Данных пока нет.</div>
   }
   const months = Array.from(new Set(rows.map((r) => r['месяц']))).sort()
   const workers = Array.from(new Set(rows.map((r) => r['ФИО'])))
@@ -49,8 +50,11 @@ function KpiByWorkerBar({ rows }: { rows: WidgetKpiRow[] }) {
         <CartesianGrid strokeDasharray="3 3" stroke={CHROME.gridline} vertical={false} />
         <XAxis dataKey="month" tick={{ fontSize: 12, fill: CHROME.muted }} axisLine={{ stroke: CHROME.baseline }} />
         <YAxis tick={{ fontSize: 12, fill: CHROME.muted }} axisLine={{ stroke: CHROME.baseline }} />
-        <Tooltip contentStyle={{ fontSize: 12, borderColor: CHROME.gridline }} />
-        {workers.length > 1 && <Legend wrapperStyle={{ fontSize: 12 }} />}
+        <Tooltip
+          contentStyle={{ fontSize: 12, background: CHROME.surface, borderColor: CHROME.gridline, color: CHROME.textPrimary }}
+          labelStyle={{ color: CHROME.textPrimary }}
+        />
+        {workers.length > 1 && <Legend wrapperStyle={{ fontSize: 12, color: CHROME.textSecondary }} />}
         {workers.map((worker, i) => (
           <Bar key={worker} dataKey={worker} fill={CATEGORICAL[i % CATEGORICAL.length]} radius={[4, 4, 0, 0]} maxBarSize={28} />
         ))}

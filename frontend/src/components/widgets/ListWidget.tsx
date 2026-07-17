@@ -17,8 +17,8 @@ function LowStockRows({ rows }: { rows: DashboardLowStockItem[] }) {
     <ul className="space-y-1.5">
       {rows.map((r) => (
         <li key={r.id} className="flex items-center justify-between gap-2 text-sm">
-          <span className="truncate text-ink">{r['название']}</span>
-          <span className="shrink-0 font-medium text-red-600">
+          <span className="truncate text-premium-text">{r['название']}</span>
+          <span className="shrink-0 font-medium text-red-400">
             {r['остаток']} / {r['мин.остаток']} {r['ед.измерения']}
           </span>
         </li>
@@ -33,9 +33,9 @@ function RecentTransactionRows({ rows }: { rows: DashboardTransaction[] }) {
     <ul className="space-y-1.5">
       {rows.map((r) => (
         <li key={r.id} className="flex items-center justify-between gap-2 text-sm">
-          <span className="min-w-0 truncate text-ink">{r['название']}</span>
-          <span className="shrink-0 text-ink/40">{formatDate(r['дата'])}</span>
-          <span className={`shrink-0 font-medium ${r['тип'] === 'расход' ? 'text-red-600' : 'text-ink'}`}>
+          <span className="min-w-0 truncate text-premium-text">{r['название']}</span>
+          <span className="shrink-0 text-premium-text-muted">{formatDate(r['дата'])}</span>
+          <span className={`shrink-0 font-medium ${r['тип'] === 'расход' ? 'text-red-400' : 'text-premium-text'}`}>
             {r['тип'] === 'расход' ? '-' : '+'}
             {r['кол-во']}
           </span>
@@ -51,10 +51,10 @@ function TopProductRows({ rows }: { rows: TopProduct[] }) {
     <ol className="space-y-1.5">
       {rows.map((r, i) => (
         <li key={r.product_id} className="flex items-center justify-between gap-2 text-sm">
-          <span className="truncate text-ink">
+          <span className="truncate text-premium-text">
             {i + 1}. {r['название']}
           </span>
-          <span className="shrink-0 font-medium text-ink">{r['кол-во']}</span>
+          <span className="shrink-0 font-medium text-premium-text">{r['кол-во']}</span>
         </li>
       ))}
     </ol>
@@ -67,10 +67,10 @@ function LeaderboardRows({ rows }: { rows: LeaderboardRow[] }) {
     <ul className="space-y-1.5">
       {rows.map((r) => (
         <li key={r.worker_id} className="flex items-center justify-between gap-2 text-sm">
-          <span className="truncate text-ink">{r['ФИО']}</span>
-          <span className="shrink-0 text-ink/50">
-            <span className="font-medium text-ink">{r['сегодня']}</span> сегодня ·{' '}
-            <span className="font-medium text-ink">{r['месяц']}</span> за месяц
+          <span className="truncate text-premium-text">{r['ФИО']}</span>
+          <span className="shrink-0 text-premium-text-muted">
+            <span className="font-medium text-premium-text">{r['сегодня']}</span> сегодня ·{' '}
+            <span className="font-medium text-premium-text">{r['месяц']}</span> за месяц
           </span>
         </li>
       ))}
@@ -79,7 +79,7 @@ function LeaderboardRows({ rows }: { rows: LeaderboardRow[] }) {
 }
 
 function Empty({ text }: { text: string }) {
-  return <div className="py-4 text-center text-sm text-ink/40">{text}</div>
+  return <div className="py-4 text-center text-sm text-premium-text-muted">{text}</div>
 }
 
 export function ListWidget({ widgetKey, data }: { widgetKey: string; data: unknown }) {

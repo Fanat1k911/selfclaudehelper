@@ -5,6 +5,16 @@
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>oinarri</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <!-- Geist Mono сознательно не подключён — --font-mono-premium в index.css пока нигде
+         не используется (следующая фаза редизайна), не тратим лишний запрос на неиспользуемый
+         шрифт. Fraunces — 500 (обычный) и 600 (font-semibold) для italic, оба веса реально
+         применяются в Brand/StatWidget/DashboardPage. -->
+    <link
+      href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,500;1,9..144,500;1,9..144,600&display=swap"
+      rel="stylesheet"
+    />
   </head>
   <body>
     <div id="root"></div>
