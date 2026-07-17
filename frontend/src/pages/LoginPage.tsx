@@ -1,14 +1,16 @@
 import { useEffect, useState, type FormEvent } from 'react'
 import { Navigate, useNavigate } from 'react-router-dom'
-import { ArrowRight } from 'lucide-react'
+import { ArrowRight, Eye, EyeOff } from 'lucide-react'
 import { defaultPathForRole, useAuth } from '../lib/auth'
 import { ApiError } from '../lib/api'
 import { useLoginTheme } from '../lib/useLoginTheme'
 import { TimezoneClock } from '../components/TimezoneClock'
 import { ThemeToggle } from '../components/ThemeToggle'
 
+// text-base (16px), не text-sm (14px) — iOS Safari/Chrome/Brave автоматически зумят
+// страницу при фокусе на любой input мельче 16px, независимо от viewport meta.
 const inputClassName =
-  'w-full rounded-lg border px-4 py-3 text-sm outline-none transition-colors focus:border-terracotta/70 focus:bg-[var(--login-input-bg-focus)]'
+  'w-full rounded-lg border px-4 py-3 text-base outline-none transition-colors focus:border-terracotta/70 focus:bg-[var(--login-input-bg-focus)]'
 const inputStyle = {
   background: 'var(--login-input-bg)',
   borderColor: 'var(--login-input-border)',
@@ -21,6 +23,7 @@ export function LoginPage() {
   const { pref, setPref, resolved } = useLoginTheme()
   const [loginValue, setLoginValue] = useState('')
   const [password, setPassword] = useState('')
+  const [showPassword, setShowPassword] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
 
@@ -121,16 +124,37 @@ export function LoginPage() {
             >
               Пароль
             </label>
-            <input
-              id="password"
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className={inputClassName}
-              style={inputStyle}
-              autoComplete="current-password"
-              required
-            />
+            <div className="relative">
+              <input
+                id="password"
+                type={showPassword ? 'text' : 'password'}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className={`${inputClassName} pr-11`}
+                style={inputStyle}
+                autoComplete="current-password"
+                required
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword((v) => !v)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 rounded-md p-1 transition-colors"
+                style={{ color: 'var(--login-text-faint)' }}
+                aria-label={showPassword ? 'Скрыть пароль' : 'Показать пароль'}
+                tabIndex={-1}
+              >
+                <span className="relative block h-4.5 w-4.5">
+                  <Eye
+                    className={`absolute inset-0 h-4.5 w-4.5 transition-all duration-200 ${showPassword ? 'scale-75 opacity-0' : 'scale-100 opacity-100'}`}
+                    strokeWidth={2}
+                  />
+                  <EyeOff
+                    className={`absolute inset-0 h-4.5 w-4.5 transition-all duration-200 ${showPassword ? 'scale-100 opacity-100' : 'scale-75 opacity-0'}`}
+                    strokeWidth={2}
+                  />
+                </span>
+              </button>
+            </div>
           </div>
         </div>
 

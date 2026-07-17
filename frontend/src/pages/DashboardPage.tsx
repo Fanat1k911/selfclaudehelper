@@ -23,6 +23,20 @@ export function DashboardPage() {
 
   const catalogByKey = Object.fromEntries(catalog.map((w) => [w.key, w]))
 
+  // Тот же 100vh/rubber-band баг, что чинили на логине (fix(login): мобильный 100vh-баг) —
+  // body по умолчанию светлый (--color-cream), Дашборд теперь тёмный. При овербаунсе
+  // на iOS/Brave снизу мелькает светлый body вместо тёмного фона страницы.
+  useEffect(() => {
+    const prevHtml = document.documentElement.style.background
+    const prevBody = document.body.style.background
+    document.documentElement.style.background = '#14120f'
+    document.body.style.background = '#14120f'
+    return () => {
+      document.documentElement.style.background = prevHtml
+      document.body.style.background = prevBody
+    }
+  }, [])
+
   async function loadWidgetData(key: string) {
     const data = await apiFetch(`/dashboard/widgets/${key}/data`)
     setWidgetData((prev) => ({ ...prev, [key]: data }))
