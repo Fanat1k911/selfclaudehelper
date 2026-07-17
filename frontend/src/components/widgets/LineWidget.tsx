@@ -1,5 +1,5 @@
 import { CartesianGrid, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
-import { CHROME_DARK as CHROME, SEQUENTIAL_BLUE } from '../../lib/vizColors'
+import { CHROME_DARK as CHROME, SEQUENTIAL_BLUE_DARK as SEQUENTIAL_BLUE } from '../../lib/vizColors'
 import type { DashboardSpendMonth, MonthlyRevenueRow } from '../../types'
 
 export function LineWidget({ widgetKey, data }: { widgetKey: string; data: unknown }) {

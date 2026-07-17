@@ -1,5 +1,5 @@
 import { Cell, Legend, Pie, PieChart, ResponsiveContainer, Tooltip } from 'recharts'
-import { CATEGORICAL, CHROME_DARK as CHROME } from '../../lib/vizColors'
+import { CATEGORICAL_DARK as CATEGORICAL, CHROME_DARK as CHROME } from '../../lib/vizColors'
 import type { StockByCategoryRow } from '../../types'
 
 export function DonutWidget({ widgetKey, data }: { widgetKey: string; data: unknown }) {

@@ -13,6 +13,27 @@ export const CATEGORICAL = [
 
 export const SEQUENTIAL_BLUE = '#2a78d6'
 
+// Dark-mode categorical/sequential steps — skill dataviz is explicit that "dark mode
+// is SELECTED, its own steps from the same ramps, validated against the dark surface,
+// not an automatic flip". Reusing the light CATEGORICAL hexes as-is on the dark
+// dashboard (2026-07-17 first pass) was exactly that mistake — same eight hues,
+// re-stepped per references/palette.md's own dark column, order unchanged (CVD
+// ordering is what matters, not the raw hex).
+export const CATEGORICAL_DARK = [
+  '#3987e5', // blue
+  '#008300', // green (mode-invariant per palette.md)
+  '#d55181', // magenta
+  '#c98500', // yellow
+  '#199e70', // aqua
+  '#d95926', // orange
+  '#9085e9', // violet
+  '#e66767', // red
+]
+
+export const SEQUENTIAL_BLUE_DARK = '#3987e5'
+
+// Status colors ARE mode-invariant per palette.md ("Dark: same four steps — all
+// clear 3:1 on the dark surface") — unlike CATEGORICAL, these don't get a dark variant.
 export const STATUS = {
   good: '#0ca30c',
   warning: '#fab219',
@@ -30,10 +51,7 @@ export const CHROME = {
 }
 
 // Chrome (axis/gridline/tooltip/surface) for charts on the dark "Refined Industrial"
-// dashboard surface (2026-07-17, see DESIGN.md). CATEGORICAL/STATUS above are the
-// CVD-validated data colors and stay unchanged on any background — only the
-// non-data chrome needs a dark counterpart so gridlines/axis labels stay legible
-// instead of rendering near-white-on-dark or dark-gray-on-dark.
+// dashboard surface (2026-07-17, see DESIGN.md).
 export const CHROME_DARK = {
   surface: '#1d1a16',
   textPrimary: '#f3eee4',

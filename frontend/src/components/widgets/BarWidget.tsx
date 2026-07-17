@@ -1,5 +1,5 @@
 import { Bar, BarChart, CartesianGrid, Legend, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
-import { CATEGORICAL, CHROME_DARK as CHROME } from '../../lib/vizColors'
+import { CATEGORICAL_DARK as CATEGORICAL, CHROME_DARK as CHROME } from '../../lib/vizColors'
 import type { DashboardSpendTopMaterial, TopCounterpartyRow, WidgetKpiRow } from '../../types'
 
 function SingleSeriesBar({ rows, valueKey }: { rows: { name: string; value: number }[]; valueKey: string }) {
