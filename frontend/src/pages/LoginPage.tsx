@@ -1,4 +1,4 @@
-import { useEffect, useState, type FormEvent } from 'react'
+import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { Navigate, useNavigate } from 'react-router-dom'
 import { ArrowRight, Eye, EyeOff } from 'lucide-react'
 import { defaultPathForRole, useAuth } from '../lib/auth'
@@ -27,6 +27,30 @@ export function LoginPage() {
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
   const [formFocused, setFormFocused] = useState(false)
+  const passwordRef = useRef<HTMLInputElement>(null)
+  const passwordMountedOnce = useRef(false)
+
+  // key на password-инпуте (см. ниже) форсирует remount при клике на глазик — новый DOM-узел
+  // не получает фокус сам по себе, возвращаем его и ставим курсор в конец, чтобы не сбивать
+  // человека с потока ввода. Пропускаем самый первый рендер — иначе клавиатура сама
+  // выскакивает при заходе на страницу логина.
+  useEffect(() => {
+    if (!passwordMountedOnce.current) {
+      passwordMountedOnce.current = true
+      return
+    }
+    const el = passwordRef.current
+    if (!el) return
+    el.focus()
+    // Safari исторически кидает InvalidStateError на setSelectionRange для type="password" —
+    // не критично, курсор просто окажется в начале, если браузер не разрешил.
+    try {
+      const len = el.value.length
+      el.setSelectionRange(len, len)
+    } catch {
+      /* no-op */
+    }
+  }, [showPassword])
 
   // iOS/Brave rubber-band overscroll (тянешь за верх/низ страницы) показывает фон САМОГО
   // document, а не нашего div — если он остаётся дефолтным белым, за краем экрана мелькают
@@ -129,6 +153,14 @@ export function LoginPage() {
             </label>
             <div className="relative">
               <input
+                // key форсирует remount при смене type — Safari/WebKit держит внутреннее
+                // состояние автозаполнения привязанным к type="password", и при смене
+                // type на "text" у уже автозаполненного инпута in-place значение визуально
+                // пропадает (React-state с паролем остаётся верным, но поле рендерится
+                // пустым). Новый DOM-узел с value уже проставленным через React — не
+                // задет автозаполнением, значение показывается сразу.
+                key={showPassword ? 'text' : 'password'}
+                ref={passwordRef}
                 id="password"
                 type={showPassword ? 'text' : 'password'}
                 value={password}
