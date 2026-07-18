@@ -34,6 +34,12 @@ export function LoginPage() {
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
   const [formFocused, setFormFocused] = useState(false)
+  // readOnly до фокуса (2026-07-18, категоричный ask Founder после автозаполнения) —
+  // браузеры/iOS не предлагают подстановку сохранённых логина/пароля в readOnly-поле,
+  // так что превью старых/чужих кредов на /login просто не появляется. Разблокируем
+  // ровно в момент фокуса — обычный ручной ввод не затронут, только автопредложение.
+  const [loginLocked, setLoginLocked] = useState(true)
+  const [passwordLocked, setPasswordLocked] = useState(true)
   // Мульти-компанийные пользователи (2026-07-18) — после пароля, если у логина несколько
   // компаний, вместо навигации показываем выбор; pendingChoice=null — обычный однокомпанийный
   // вход, ничего не меняется для 99% пользователей.
@@ -248,6 +254,8 @@ export function LoginPage() {
               value={loginValue}
               onChange={(e) => setLoginValue(e.target.value)}
               onAnimationStart={(e) => handleAutofillAnimation(e, setLoginValue)}
+              readOnly={loginLocked}
+              onFocus={() => setLoginLocked(false)}
               className={inputClassName}
               style={inputStyle}
               autoComplete="username"
@@ -278,6 +286,8 @@ export function LoginPage() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 onAnimationStart={(e) => handleAutofillAnimation(e, setPassword)}
+                readOnly={passwordLocked}
+                onFocus={() => setPasswordLocked(false)}
                 className={`${inputClassName} pr-11`}
                 style={inputStyle}
                 autoComplete="current-password"
