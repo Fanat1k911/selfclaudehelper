@@ -267,6 +267,20 @@ a[href] {
      весь список transition этого инпута до только background-color/color, стерев
      focus:border-terracotta/70 переход (0.15s из transition-colors) на время автозаполнения. */
   transition: background-color 600000s 0s, color 600000s 0s, border-color 0.15s ease;
+  /* Маркер-анимация (2026-07-18) — сама по себе визуально ничего не делает (пустые
+     keyframes), нужна только чтобы поймать момент автозаполнения через onAnimationStart
+     в LoginPage.tsx. WebKit/Brave иногда проставляет DOM value при автозаполнении без
+     синтетического input-события — React ничего не узнаёт, state остаётся '', и при
+     следующем ре-рендере React стирает то, что реально видно в DOM (жалоба Founder: "ввожу,
+     а там будто пусто, но видны старые символы"). animationstart — единственный надёжный
+     кросс-браузерный сигнал "автозаполнение произошло" без разрешений/полинга. */
+  animation-name: onAutoFillStart;
+  animation-duration: 0.001s;
+}
+
+@keyframes onAutoFillStart {
+  from {}
+  to {}
 }
 
 [data-login-theme='light'] {

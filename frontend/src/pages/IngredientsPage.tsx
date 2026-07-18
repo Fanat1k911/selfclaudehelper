@@ -59,22 +59,22 @@ export function IngredientsPage() {
     <div className="px-4 py-4 sm:px-8 sm:py-6">
       <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <h1 className="text-xl font-semibold text-ink sm:text-2xl">Компоненты</h1>
-        <div className="flex flex-wrap gap-2">
+        <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:justify-end">
           <button
             onClick={() => apiDownload('/ingredients/export', 'компоненты.xlsx')}
-            className="whitespace-nowrap rounded-lg bg-cream px-3 py-2 text-sm font-medium text-ink hover:bg-ink/5 sm:px-4"
+            className="w-full whitespace-nowrap rounded-lg border border-ink/15 bg-cream px-3 py-2 text-sm font-medium text-ink hover:bg-ink/5 sm:w-auto sm:px-4"
           >
             Экспорт (.xlsx)
           </button>
           <button
             onClick={() => setShowImport(true)}
-            className="whitespace-nowrap rounded-lg bg-cream px-3 py-2 text-sm font-medium text-ink hover:bg-ink/5 sm:px-4"
+            className="w-full whitespace-nowrap rounded-lg border border-ink/15 bg-cream px-3 py-2 text-sm font-medium text-ink hover:bg-ink/5 sm:w-auto sm:px-4"
           >
             Импорт из файла
           </button>
           <button
             onClick={() => setShowCreate(true)}
-            className="whitespace-nowrap rounded-lg bg-accent-add px-3 py-2 text-sm font-medium text-white hover:bg-accent-add-dark sm:px-4"
+            className="w-full whitespace-nowrap rounded-lg bg-accent-add px-3 py-2 text-sm font-medium text-white hover:bg-accent-add-dark sm:w-auto sm:px-4"
           >
             + Добавить компонент
           </button>

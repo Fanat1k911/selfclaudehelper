@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type FormEvent } from 'react'
+import { useEffect, useRef, useState, type AnimationEvent, type FormEvent } from 'react'
 import { Navigate, useNavigate } from 'react-router-dom'
 import { ArrowLeft, ArrowRight, Eye, EyeOff } from 'lucide-react'
 import { defaultPathForRole, useAuth } from '../lib/auth'
@@ -39,6 +39,16 @@ export function LoginPage() {
   // вход, ничего не меняется для 99% пользователей.
   const [pendingChoice, setPendingChoice] = useState<{ token: string; companies: CompanyMembership[] } | null>(null)
   const passwordRef = useRef<HTMLInputElement>(null)
+  // WebKit/Brave автозаполнение иногда проставляет DOM value без синтетического input-события
+  // React — состояние (loginValue/password) остаётся '' даже когда поле визуально уже
+  // заполнено браузером. Дальше это стреляет так: пользователь начинает печатать, но
+  // следующий ре-рендер форсит DOM обратно к устаревшему React-state (''), визуально стирая
+  // то, что он только что ввёл — выглядит будто поле "не даёт ввести". CSS ниже вешает
+  // анимацию на :-webkit-autofill (animationName как маркер), которая стреляет ровно в
+  // момент автозаполнения — синхронизируем React state с реальным DOM value в этот момент.
+  function handleAutofillAnimation(e: AnimationEvent<HTMLInputElement>, setValue: (v: string) => void) {
+    if (e.animationName === 'onAutoFillStart') setValue(e.currentTarget.value)
+  }
   // Сравнение с ПРЕДЫДУЩИМ значением, не булевый "первый раз ли это" флаг — StrictMode
   // (main.tsx) в dev дважды подряд вызывает mount-эффекты без cleanup между ними, из-за
   // чего булевый флаг "уже true" после первого вызова пропускал вторую защиту вхолостую,
@@ -237,6 +247,7 @@ export function LoginPage() {
               id="login"
               value={loginValue}
               onChange={(e) => setLoginValue(e.target.value)}
+              onAnimationStart={(e) => handleAutofillAnimation(e, setLoginValue)}
               className={inputClassName}
               style={inputStyle}
               autoComplete="username"
@@ -266,6 +277,7 @@ export function LoginPage() {
                 type={showPassword ? 'text' : 'password'}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
+                onAnimationStart={(e) => handleAutofillAnimation(e, setPassword)}
                 className={`${inputClassName} pr-11`}
                 style={inputStyle}
                 autoComplete="current-password"
