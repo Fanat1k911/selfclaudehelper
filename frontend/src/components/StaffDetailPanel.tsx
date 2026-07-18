@@ -1,13 +1,20 @@
-import { useState, type FormEvent } from 'react'
+import { useEffect, useState, type FormEvent } from 'react'
 import { apiFetch, ApiError } from '../lib/api'
+import { useAuth } from '../lib/auth'
 import { sanitizePhone } from '../lib/validators'
-import type { StaffUser } from '../types'
+import type { CompanyMembership, StaffUser } from '../types'
 
 const ROLES: { value: StaffUser['role']; label: string }[] = [
   { value: 'worker', label: 'Сотрудник' },
   { value: 'founder', label: 'Founder' },
   { value: 'developer', label: 'Developer' },
 ]
+
+const ROLE_LABEL: Record<CompanyMembership['role'], string> = {
+  founder: 'Founder',
+  worker: 'Сотрудник',
+  developer: 'Developer',
+}
 
 function formatDate(value: string) {
   const d = new Date(value)
@@ -38,6 +45,18 @@ export function StaffDetailPanel({
   const [resetMsg, setResetMsg] = useState<string | null>(null)
 
   const [statusBusy, setStatusBusy] = useState(false)
+
+  // Только Developer видит, в каких ЕЩЁ компаниях состоит этот человек (2026-07-18,
+  // см. CLAUDE.md → "Мульти-компанийные пользователи") — Founder не должен узнавать
+  // о чужих тенантах через своего же мульти-компанийного сотрудника.
+  const { user: currentUser } = useAuth()
+  const [otherCompanies, setOtherCompanies] = useState<CompanyMembership[] | null>(null)
+  useEffect(() => {
+    if (currentUser?.role !== 'developer') return
+    apiFetch<CompanyMembership[]>(`/users/${staff.id}/companies`)
+      .then(setOtherCompanies)
+      .catch(() => setOtherCompanies(null))
+  }, [staff.id, currentUser?.role])
 
   async function handleSave(e: FormEvent) {
     e.preventDefault()
@@ -126,6 +145,22 @@ export function StaffDetailPanel({
             {staff.status === 'активен' ? 'Уволить' : 'Восстановить'}
           </button>
         </div>
+
+        {otherCompanies && otherCompanies.length > 1 && (
+          <div className="px-6 py-4 border-b border-ink/10">
+            <div className="text-xs text-ink/50 mb-2">
+              Состоит в {otherCompanies.length} компаниях (видно только Developer)
+            </div>
+            <div className="space-y-1.5">
+              {otherCompanies.map((c) => (
+                <div key={c.id} className="flex items-center justify-between text-sm">
+                  <span className="text-ink">{c.name}</span>
+                  <span className="text-ink/50 text-xs">{ROLE_LABEL[c.role]}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         <form onSubmit={handleSave} className="px-6 py-4 border-b border-ink/10 space-y-3">
           <div>

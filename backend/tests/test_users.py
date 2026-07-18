@@ -1,5 +1,5 @@
 from app.constants import DEVELOPER, FOUNDER, USER_STATUS_FIRED, WORKER
-from tests.conftest import auth_headers, make_company, make_user
+from tests.conftest import add_membership, auth_headers, make_company, make_user
 
 
 def test_create_user(client, db_session):
@@ -126,3 +126,34 @@ def test_worker_cannot_manage_users(client, db_session):
     worker = make_user(db_session, login="uw1", role=WORKER)
     resp = client.get("/api/users", headers=auth_headers(worker))
     assert resp.status_code == 403
+
+
+def test_user_companies_visible_only_to_developer(client, db_session):
+    """StaffDetailPanel (2026-07-18) — список всех компаний сотрудника, но только
+    Developer видит это, не Founder (не должен узнавать о чужих тенантах через
+    своего же мульти-компанийного сотрудника)."""
+    other_company = make_company(db_session, name="Другая мастерская 4")
+    dev = make_user(db_session, login="uf6dev", role=DEVELOPER)
+    add_membership(db_session, dev, company_id=other_company.id, role=DEVELOPER)
+    # founder без явного company_id — попадает в ТУ ЖЕ дефолтную компанию, что и dev
+    # (make_user создаёт "Test Company" один раз на тест), так что founder законно
+    # видит dev как своего сотрудника без лишнего add_membership.
+    founder = make_user(db_session, login="uf6f", role=FOUNDER)
+
+    resp_dev = client.get(f"/api/users/{dev.id}/companies", headers=auth_headers(dev))
+    assert resp_dev.status_code == 200
+    assert len(resp_dev.json()) == 2
+
+    resp_founder = client.get(f"/api/users/{dev.id}/companies", headers=auth_headers(founder))
+    assert resp_founder.status_code == 403
+
+
+def test_user_companies_rejects_probing_unrelated_user(client, db_session):
+    """Developer не может подглядеть компании человека, который даже не в его СВОЕЙ
+    компании — иначе можно было бы перебирать произвольные user_id вслепую."""
+    dev = make_user(db_session, login="uf7dev", role=DEVELOPER)
+    unrelated_company = make_company(db_session, name="Совсем чужая")
+    stranger = make_user(db_session, login="uf7stranger", role=WORKER, company_id=unrelated_company.id)
+
+    resp = client.get(f"/api/users/{stranger.id}/companies", headers=auth_headers(dev))
+    assert resp.status_code == 404

@@ -134,3 +134,26 @@ def reset_password(
     target.password_hash = bcrypt.hashpw(body.new_password.encode("utf-8"), bcrypt.gensalt()).decode()
     db.commit()
     return {"ok": True}
+
+
+@router.get("/{user_id}/companies")
+def user_companies(
+    user_id: str, user: dict = Depends(get_current_user), db: Session = Depends(get_db)
+) -> list[dict]:
+    """Все компании этого человека, не только текущая — карточка сотрудника в StaffDetailPanel
+    (2026-07-18). Только Developer: Founder не должен узнавать о существовании/составе чужих
+    компаний через своего сотрудника (это была бы утечка мимо CompanyMembership-изоляции).
+    Сначала проверяем, что user_id вообще состоит в СВОЕЙ компании смотрящего — иначе Developer
+    мог бы перебирать произвольные user_id и просматривать чужие тенанты вслепую."""
+    if user["role"] != DEVELOPER:
+        raise HTTPException(403, "Нет доступа к этому разделу.")
+    _get_own_membership(db, user_id, user["company_id"])
+
+    stmt = (
+        select(CompanyMembership)
+        .where(CompanyMembership.user_id == user_id)
+        .options(joinedload(CompanyMembership.company))
+    )
+    return [
+        {"id": m.company_id, "name": m.company.name, "role": m.role} for m in db.scalars(stmt)
+    ]
