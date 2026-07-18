@@ -141,3 +141,35 @@ def test_developer_with_two_companies_logs_into_either_with_correct_scope(client
     resp_b = client.get("/api/companies", headers=auth_headers(dev, company_id=company_b.id, role=DEVELOPER))
     assert resp_a.status_code == 200
     assert resp_b.status_code == 200
+
+
+def test_get_company_returns_created_at_and_members_by_role(client, db_session):
+    """Карточка компании (2026-07-18, запрос Founder) — дата создания + участники
+    с ролями, доступна Developer'у (тот же cross-tenant роутер, что list_companies)."""
+    company = make_company(db_session, name="Компания с деталями")
+    dev = make_user(db_session, login="cdev9", role=DEVELOPER)
+    founder = make_user(db_session, login="cfound9", role=FOUNDER, company_id=company.id)
+    worker = make_user(db_session, login="cwork9", role=WORKER, company_id=company.id)
+    add_membership(db_session, dev, company_id=company.id, role=DEVELOPER)
+
+    resp = client.get(f"/api/companies/{company.id}", headers=auth_headers(dev, company_id=company.id, role=DEVELOPER))
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body["id"] == company.id
+    assert body["name"] == "Компания с деталями"
+    assert body["created_at"]
+
+    roles_by_login = {m["login"]: m["role"] for m in body["members"]}
+    assert roles_by_login == {"cdev9": "developer", "cfound9": "founder", "cwork9": "worker"}
+
+
+def test_get_company_not_found(client, db_session):
+    dev = make_user(db_session, login="cdev10", role=DEVELOPER)
+    resp = client.get("/api/companies/doesnotexist", headers=auth_headers(dev))
+    assert resp.status_code == 404
+
+
+def test_get_company_forbidden_for_founder(client, db_session):
+    founder = make_user(db_session, login="cfound10", role=FOUNDER)
+    resp = client.get(f"/api/companies/{founder.company_id}", headers=auth_headers(founder))
+    assert resp.status_code == 403

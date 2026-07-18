@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { apiFetch } from '../lib/api'
 import type { Company } from '../types'
+import { CompanyDetailPanel } from '../components/CompanyDetailPanel'
 import { NewCompanyModal } from '../components/NewCompanyModal'
 
 function formatDate(value: string) {
@@ -13,6 +14,7 @@ export function CompaniesPage() {
   const [companies, setCompanies] = useState<Company[]>([])
   const [loading, setLoading] = useState(true)
   const [showCreate, setShowCreate] = useState(false)
+  const [selectedId, setSelectedId] = useState<string | null>(null)
 
   async function load() {
     setLoading(true)
@@ -65,7 +67,11 @@ export function CompaniesPage() {
               </tr>
             )}
             {companies.map((c) => (
-              <tr key={c.id} className="border-b border-ink/5 last:border-0">
+              <tr
+                key={c.id}
+                onClick={() => setSelectedId(c.id)}
+                className="cursor-pointer border-b border-ink/5 last:border-0 hover:bg-cream/60"
+              >
                 <td className="px-4 py-3">{c.name}</td>
                 <td className="px-4 py-3 text-ink/50 font-mono text-xs">{c.id}</td>
                 <td className="px-4 py-3 text-ink/60">{formatDate(c.created_at)}</td>
@@ -74,6 +80,10 @@ export function CompaniesPage() {
           </tbody>
         </table>
       </div>
+
+      {selectedId && (
+        <CompanyDetailPanel companyId={selectedId} onClose={() => setSelectedId(null)} />
+      )}
 
       {showCreate && (
         <NewCompanyModal

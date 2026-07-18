@@ -146,10 +146,13 @@ export function StaffDetailPanel({
           </button>
         </div>
 
-        {otherCompanies && otherCompanies.length > 1 && (
+        {otherCompanies && otherCompanies.length > 0 && (
           <div className="px-6 py-4 border-b border-ink/10">
             <div className="text-xs text-ink/50 mb-2">
-              Состоит в {otherCompanies.length} компаниях (видно только Developer)
+              {otherCompanies.length > 1
+                ? `Состоит в ${otherCompanies.length} компаниях`
+                : 'Компания'}{' '}
+              (видно только Developer)
             </div>
             <div className="space-y-1.5">
               {otherCompanies.map((c) => (

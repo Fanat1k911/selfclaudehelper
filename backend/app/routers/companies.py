@@ -13,11 +13,11 @@
 
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import select
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 
 from app.constants import DEVELOPER
 from app.db import get_db
-from app.models import Company
+from app.models import Company, CompanyMembership
 from app.schemas import NewCompanyRequest
 from app.security import attach_or_create_membership, require_roles
 
@@ -36,6 +36,35 @@ def _company_dict(company: Company) -> dict:
 def list_companies(db: Session = Depends(get_db)) -> list[dict]:
     stmt = select(Company).order_by(Company.name)
     return [_company_dict(c) for c in db.scalars(stmt)]
+
+
+@router.get("/{company_id}")
+def get_company(company_id: str, db: Session = Depends(get_db)) -> dict:
+    """Карточка компании — дата создания + участники по ролям (2026-07-18, запрос Founder).
+    Developer уже видит ВСЕ компании через list_companies — это тот же cross-tenant
+    роутер, не новая утечка (см. модуль docstring)."""
+    company = db.get(Company, company_id)
+    if company is None:
+        raise HTTPException(404, "Компания не найдена.")
+
+    stmt = (
+        select(CompanyMembership)
+        .where(CompanyMembership.company_id == company_id)
+        .options(joinedload(CompanyMembership.user))
+    )
+    members = [
+        {
+            "id": m.user.id,
+            "fio": m.user.fio,
+            "login": m.user.login,
+            "role": m.role,
+            "status": m.user.status,
+        }
+        for m in db.scalars(stmt)
+    ]
+    members.sort(key=lambda m: m["fio"])
+
+    return {**_company_dict(company), "members": members}
 
 
 @router.post("")
