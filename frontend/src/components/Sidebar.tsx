@@ -160,6 +160,24 @@ export function Sidebar({ mobileOpen = false, onCloseMobile }: { mobileOpen?: bo
                 Техпанель
               </NavLink>
             )}
+            {isDeveloper && (
+              <NavLink
+                to="/companies"
+                onClick={() => {
+                  setMenuOpen(false)
+                  onCloseMobile?.()
+                }}
+                className={({ isActive }) =>
+                  `block px-4 py-2.5 text-sm font-medium transition-colors ${
+                    isActive
+                      ? 'bg-premium-gold/16 text-premium-gold-hi'
+                      : 'text-premium-text/80 hover:bg-premium-surface-2 hover:text-premium-text'
+                  }`
+                }
+              >
+                Компании
+              </NavLink>
+            )}
             <button
               onClick={() => {
                 setMenuOpen(false)

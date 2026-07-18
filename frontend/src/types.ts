@@ -7,6 +7,12 @@ export interface User {
   company_name: string
 }
 
+export interface Company {
+  id: string
+  name: string
+  created_at: string
+}
+
 export interface StaffUser {
   id: string
   fio: string

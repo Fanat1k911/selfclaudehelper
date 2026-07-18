@@ -191,6 +191,17 @@ class NewUserRequest(BaseModel):
     _check_phone = field_validator("phone")(_check_phone)
 
 
+class NewCompanyRequest(BaseModel):
+    """Заведение нового тенанта разработчиком (см. app/routers/companies.py) —
+    вместе с компанией сразу создаётся первый Developer-аккаунт этой компании,
+    Founder заводит сам разработчик отдельно после."""
+
+    company_name: str
+    fio: str
+    login: str
+    password: str
+
+
 class UpdateUserRequest(BaseModel):
     fio: str | None = None
     role: str | None = None

@@ -8,6 +8,7 @@ import { SalesPage } from './pages/SalesPage'
 import { RecipesPage } from './pages/RecipesPage'
 import { ProductsPage } from './pages/ProductsPage'
 import { StaffPage } from './pages/StaffPage'
+import { CompaniesPage } from './pages/CompaniesPage'
 import { CounterpartiesPage } from './pages/CounterpartiesPage'
 import { TechPanelPage } from './pages/TechPanelPage'
 import { SurveillancePage } from './pages/SurveillancePage'
@@ -79,6 +80,14 @@ function App() {
           element={
             <RequireRole roles={['developer']}>
               <TechPanelPage />
+            </RequireRole>
+          }
+        />
+        <Route
+          path="/companies"
+          element={
+            <RequireRole roles={['developer']}>
+              <CompaniesPage />
             </RequireRole>
           }
         />
