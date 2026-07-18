@@ -26,6 +26,7 @@ export function LoginPage() {
   const [showPassword, setShowPassword] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
+  const [formFocused, setFormFocused] = useState(false)
 
   // iOS/Brave rubber-band overscroll (тянешь за верх/низ страницы) показывает фон САМОГО
   // document, а не нашего div — если он остаётся дефолтным белым, за краем экрана мелькают
@@ -83,6 +84,8 @@ export function LoginPage() {
 
       <form
         onSubmit={handleSubmit}
+        onFocus={() => setFormFocused(true)}
+        onBlur={() => setFormFocused(false)}
         className="login-card-enter relative w-full max-w-md rounded-2xl border p-10 shadow-2xl shadow-black/20 backdrop-blur-xl transition-colors duration-300"
         style={{ background: 'var(--login-card-bg)', borderColor: 'var(--login-card-border)' }}
       >
@@ -176,7 +179,10 @@ export function LoginPage() {
         </button>
       </form>
 
-      <TimezoneClock />
+      {/* Прячется, пока форма в фокусе — на мобильных при открытой клавиатуре fixed-часы
+          наплывали на кнопку "Войти" (визуальный viewport сужается, а fixed позиционируется
+          от layout viewport). */}
+      <TimezoneClock hidden={formFocused} />
     </div>
   )
 }

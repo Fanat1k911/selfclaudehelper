@@ -37,7 +37,7 @@ function formatParts(now: Date, tz: string) {
 // Живёт только на LoginPage — стилизуется через те же CSS-переменные темы логина
 // (--login-*, см. index.css), поэтому светлая/тёмная/системная тема совпадает с карточкой
 // без отдельного набора классов.
-export function TimezoneClock() {
+export function TimezoneClock({ hidden = false }: { hidden?: boolean }) {
   const [tz, setTz] = useState(() => localStorage.getItem(STORAGE_KEY) || '')
   const [now, setNow] = useState(new Date())
 
@@ -55,7 +55,9 @@ export function TimezoneClock() {
 
   return (
     <div
-      className="fixed bottom-4 right-4 rounded-xl border px-4 py-3 text-right shadow-lg shadow-black/10 backdrop-blur-xl"
+      className={`fixed bottom-4 right-4 rounded-xl border px-4 py-3 text-right shadow-lg shadow-black/10 backdrop-blur-xl transition-opacity duration-200 ${
+        hidden ? 'pointer-events-none opacity-0' : 'opacity-100'
+      }`}
       style={{ background: 'var(--login-card-bg)', borderColor: 'var(--login-card-border)' }}
     >
       {!tz ? (
