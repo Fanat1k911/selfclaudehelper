@@ -5,6 +5,11 @@
   --color-ink: #2b211c;
   --color-terracotta: #c97b63;
   --color-terracotta-dark: #ad6350;
+  /* Основная кнопка "Добавить" (2026-07-18, фидбек Founder — не нравился terracotta
+     здесь) — тёплый янтарь, отдельный токен, не трогает --color-terracotta саму (140
+     мест по всем страницам молча перекрасились бы, см. CLAUDE.md). */
+  --color-accent-add: #a67c34;
+  --color-accent-add-dark: #8c6428;
   --color-sidebar: #2b211c;
   --color-sidebar-hover: #3a2d25;
   --color-obsidian: #16110d;
@@ -165,6 +170,81 @@ a[href] {
   .premium-stat {
     transition: none !important;
     transform: none !important;
+  }
+}
+
+/* Плашка "доступно обновление" (2026-07-18, полировка по фидбеку Founder — "уродство") —
+   плавающая карточка в стиле Refined Industrial вместо голой светлой полосы во всю ширину,
+   видна на любой странице (и старых светлых, и новых тёмных) поверх остального UI, поэтому
+   несёт свою тёмную поверхность независимо от темы страницы, как toast/snackbar. */
+.update-banner-card {
+  background: var(--color-premium-surface);
+  border-color: var(--color-premium-border);
+  box-shadow:
+    0 20px 40px -16px rgba(0, 0, 0, 0.55),
+    0 0 32px -14px color-mix(in srgb, var(--color-premium-gold) 35%, transparent);
+  animation: update-banner-in 0.35s ease-out;
+}
+
+.update-banner-dot {
+  position: relative;
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background: var(--color-premium-gold);
+}
+.update-banner-dot::after {
+  content: '';
+  position: absolute;
+  inset: -4px;
+  border-radius: 999px;
+  border: 1px solid var(--color-premium-gold);
+  opacity: 0.5;
+  animation: update-banner-pulse 1.8s ease-out infinite;
+}
+
+.update-banner-btn {
+  background: var(--color-premium-gold);
+  color: var(--color-premium-bg);
+  transition: background-color 0.2s ease, transform 0.2s ease;
+}
+.update-banner-btn:hover {
+  background: var(--color-premium-gold-hi);
+  transform: translateY(-1px);
+}
+
+@keyframes update-banner-in {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes update-banner-pulse {
+  0% {
+    transform: scale(0.8);
+    opacity: 0.5;
+  }
+  100% {
+    transform: scale(1.6);
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .update-banner-card {
+    animation: none;
+  }
+  .update-banner-dot::after {
+    animation: none;
+    display: none;
+  }
+  .update-banner-btn {
+    transition: none;
   }
 }
 

@@ -39,14 +39,19 @@ export function UpdateBanner() {
   if (!updateAvailable) return null
 
   return (
-    <div className="fixed inset-x-0 bottom-0 z-[200] flex flex-col items-center justify-between gap-2 border-t border-ink/10 bg-ink px-4 py-3 text-sm text-white shadow-2xl sm:flex-row">
-      <span>Доступно обновление интерфейса.</span>
-      <button
-        onClick={() => window.location.reload()}
-        className="whitespace-nowrap rounded-lg bg-terracotta px-4 py-2 text-sm font-medium hover:bg-terracotta-dark"
-      >
-        Применить обновление
-      </button>
+    <div className="pointer-events-none fixed inset-x-0 bottom-0 z-[200] flex justify-center px-4 pb-4 sm:pb-5">
+      <div className="update-banner-card pointer-events-auto flex w-full max-w-md items-center gap-3 rounded-2xl border px-4 py-3 sm:gap-4 sm:px-5">
+        <span className="update-banner-dot shrink-0" aria-hidden="true" />
+        <span className="flex-1 text-sm leading-snug text-[color:var(--color-premium-text)]">
+          Доступно обновление интерфейса
+        </span>
+        <button
+          onClick={() => window.location.reload()}
+          className="update-banner-btn shrink-0 whitespace-nowrap rounded-xl px-3.5 py-2 text-sm font-medium"
+        >
+          Обновить
+        </button>
+      </div>
     </div>
   )
 }

@@ -102,7 +102,7 @@ export function NewCompanyModal({ onClose, onCreated }: { onClose: () => void; o
           <button
             type="submit"
             disabled={submitting}
-            className="flex-1 rounded-lg bg-terracotta py-2 text-sm font-medium text-white hover:bg-terracotta-dark disabled:opacity-60"
+            className="flex-1 rounded-lg bg-accent-add py-2 text-sm font-medium text-white hover:bg-accent-add-dark disabled:opacity-60"
           >
             {submitting ? 'Создаём…' : 'Создать'}
           </button>

@@ -35,7 +35,7 @@ export function SalesPage() {
         <h1 className="text-xl font-semibold text-ink sm:text-2xl">Отгрузка</h1>
         <button
           onClick={() => setShowCreate(true)}
-          className="whitespace-nowrap rounded-lg bg-terracotta px-3 py-2 text-sm font-medium text-white hover:bg-terracotta-dark sm:px-4"
+          className="whitespace-nowrap rounded-lg bg-accent-add px-3 py-2 text-sm font-medium text-white hover:bg-accent-add-dark sm:px-4"
         >
           + Внести отгрузку
         </button>

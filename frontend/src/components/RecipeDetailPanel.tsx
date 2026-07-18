@@ -133,7 +133,7 @@ export function RecipeDetailPanel({
                     <button
                       type="submit"
                       disabled={submitting || !materialId}
-                      className="rounded-lg bg-terracotta px-4 py-2 text-sm font-medium text-white hover:bg-terracotta-dark disabled:opacity-60"
+                      className="rounded-lg bg-accent-add px-4 py-2 text-sm font-medium text-white hover:bg-accent-add-dark disabled:opacity-60"
                     >
                       {submitting ? '…' : 'Добавить'}
                     </button>
