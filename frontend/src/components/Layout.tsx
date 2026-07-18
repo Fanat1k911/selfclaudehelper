@@ -14,7 +14,7 @@ export function Layout() {
   }, [user])
 
   return (
-    <div className="flex h-screen overflow-hidden">
+    <div className="flex h-dvh overflow-hidden">
       <Sidebar mobileOpen={mobileOpen} onCloseMobile={() => setMobileOpen(false)} />
       <div className="flex flex-1 flex-col overflow-hidden">
         {/* Общий для ВСЕХ 11 страниц (Outlet ниже) — только Sidebar/Dashboard мигрировали
@@ -33,7 +33,7 @@ export function Layout() {
         {/* overflow переключается на hidden, пока открыт мобильный сайдбар (2026-07-18,
             репорт Founder: "скрол при открытом сайдбаре работает" + "закрытие по тапу вне
             меню не очень хорошо работает"). document.body здесь НЕ скроллится вообще —
-            вся страница уже h-screen overflow-hidden, реальный скролл живёт только в этом
+            вся страница уже h-dvh overflow-hidden, реальный скролл живёт только в этом
             <main>. Пока он остаётся overflow-y-auto под fixed-бэкдропом сайдбара, тач по
             бэкдропу на WebKit может уйти в scroll этого элемента вместо click (лёгкое
             движение пальца браузер трактует как начало скролла, не синтезирует click) —

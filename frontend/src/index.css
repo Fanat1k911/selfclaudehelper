@@ -28,11 +28,23 @@
   --font-display: 'Fraunces', serif;
 }
 
+html {
+  /* Без этого весь документ (не отдельный скролл-контейнер) мог "оттягиваться"
+     резиновым overscroll на iOS/WebKit — тач по фиксированному бэкдропу мобильного
+     сайдбара (Sidebar.tsx) утягивал всю страницу целиком, а не просто скроллил что-то
+     внутри неё (2026-07-18, репорт Founder видео: "двигается основная страница... не
+     фиксируется статично"). overscroll-behavior — современный, однострочный фикс без
+     старого JS-хака (position:fixed+restore scrollY), достаточно широко поддерживается
+     (iOS Safari 16+, тот же движок у Brave на iOS). */
+  overscroll-behavior: none;
+}
+
 body {
   margin: 0;
   background: var(--color-cream);
   color: var(--color-ink);
   font-family: -apple-system, 'Segoe UI', Roboto, sans-serif;
+  overscroll-behavior: none;
 }
 
 button:not(:disabled),
