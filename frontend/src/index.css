@@ -149,6 +149,21 @@ a[href] {
   }
 }
 
+/* WebKit/Blink автозаполнение (Safari/Chrome/Brave) форсирует свой фон+цвет текста
+   поверх наших inline-стилей на инпуте — после неудачного логина браузер часто
+   предлагает автозаполнение при повторном вводе, и текст сливается с навязанным
+   белым/жёлтым фоном на тёмной теме. Классический фикс: длинная transition-задержка
+   не даёт её цвету "доиграть", box-shadow inset перекрывает форсированный фон,
+   -webkit-text-fill-color перекрывает форсированный цвет текста. */
+[data-login-theme] input:-webkit-autofill,
+[data-login-theme] input:-webkit-autofill:hover,
+[data-login-theme] input:-webkit-autofill:focus {
+  -webkit-text-fill-color: var(--login-text);
+  caret-color: var(--login-text);
+  box-shadow: 0 0 0 1000px var(--login-input-bg) inset;
+  transition: background-color 600000s 0s, color 600000s 0s;
+}
+
 [data-login-theme='light'] {
   --login-bg: var(--color-cream);
   --login-card-bg: rgba(255, 255, 255, 0.65);
