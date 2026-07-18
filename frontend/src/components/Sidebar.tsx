@@ -10,12 +10,19 @@ import {
   ShoppingBag,
   Building2,
   ChevronDown,
+  Repeat,
   Video,
   type LucideIcon,
 } from 'lucide-react'
 import { useAuth, defaultPathForRole } from '../lib/auth'
 import type { User } from '../types'
 import { Brand } from './Brand'
+
+const ROLE_LABEL: Record<User['role'], string> = {
+  founder: 'Founder',
+  worker: 'Сотрудник',
+  developer: 'Developer',
+}
 
 const NAV_ITEMS: { to: string; label: string; icon: LucideIcon; enabled: boolean; roles?: User['role'][] }[] = [
   { to: '/dashboard', label: 'Дашборд', icon: LayoutDashboard, enabled: true, roles: ['founder', 'developer'] },
@@ -40,14 +47,37 @@ function shortDisplayName(fio: string, role: User['role']): string {
 }
 
 export function Sidebar({ mobileOpen = false, onCloseMobile }: { mobileOpen?: boolean; onCloseMobile?: () => void }) {
-  const { user, logout } = useAuth()
+  const { user, logout, switchCompany } = useAuth()
   const navigate = useNavigate()
   const items = NAV_ITEMS.filter((item) => !item.roles || (user && item.roles.includes(user.role)))
   const canManageStaff = !!user && MANAGEMENT_ROLES.includes(user.role)
   const isDeveloper = user?.role === 'developer'
+  // Мульти-компанийные пользователи (2026-07-18) — переключалка видна только тем,
+  // у кого больше одного членства (99% сотрудников это не увидят вообще).
+  const otherCompanies = user?.companies.filter((c) => c.id !== user.company_id) ?? []
 
   const [menuOpen, setMenuOpen] = useState(false)
+  const [switching, setSwitching] = useState(false)
+  const [switchError, setSwitchError] = useState<string | null>(null)
   const menuRef = useRef<HTMLDivElement>(null)
+
+  async function handleSwitchCompany(companyId: string) {
+    setSwitching(true)
+    setSwitchError(null)
+    try {
+      const switchedUser = await switchCompany(companyId)
+      setMenuOpen(false)
+      onCloseMobile?.()
+      navigate(defaultPathForRole(switchedUser.role), { replace: true })
+    } catch {
+      // Членство могли отозвать между рендером сайдбара и кликом (companies в JWT
+      // обновляется только на следующий логин/переключение) — backend 404, показываем
+      // это, а не молча гасим клик (был unhandled rejection, поймано code-review).
+      setSwitchError('Не удалось переключиться — возможно, доступ к этой компании уже отозван.')
+    } finally {
+      setSwitching(false)
+    }
+  }
 
   useEffect(() => {
     if (!menuOpen) return
@@ -124,6 +154,27 @@ export function Sidebar({ mobileOpen = false, onCloseMobile }: { mobileOpen?: bo
                 : 'pointer-events-none translate-y-2 scale-95 opacity-0'
             }`}
           >
+            {otherCompanies.length > 0 && (
+              <div className="border-b border-premium-border pb-1 mb-1">
+                <div className="px-4 pt-2 pb-1 text-[10px] font-medium uppercase tracking-wider text-premium-text/40">
+                  Другие компании
+                </div>
+                {otherCompanies.map((c) => (
+                  <button
+                    key={c.id}
+                    type="button"
+                    disabled={switching}
+                    onClick={() => handleSwitchCompany(c.id)}
+                    className="flex w-full items-center gap-2 px-4 py-2 text-left text-sm text-premium-text/80 transition-colors hover:bg-premium-surface-2 hover:text-premium-text disabled:opacity-50"
+                  >
+                    <Repeat className="h-3.5 w-3.5 shrink-0 text-premium-text/40" />
+                    <span className="min-w-0 truncate">{c.name}</span>
+                    <span className="ml-auto shrink-0 text-xs text-premium-text/40">{ROLE_LABEL[c.role]}</span>
+                  </button>
+                ))}
+                {switchError && <div className="px-4 py-1.5 text-xs text-red-400">{switchError}</div>}
+              </div>
+            )}
             {canManageStaff && (
               <NavLink
                 to="/staff"

@@ -14,10 +14,16 @@ export function NewCompanyModal({ onClose, onCreated }: { onClose: () => void; o
     setError(null)
     setSubmitting(true)
     try {
-      await apiFetch('/companies', {
-        method: 'POST',
-        body: JSON.stringify({ company_name: companyName, fio, login, password }),
-      })
+      const res = await apiFetch<{ company_id: string; user_id: string; attached_existing: boolean }>(
+        '/companies',
+        { method: 'POST', body: JSON.stringify({ company_name: companyName, fio, login, password }) },
+      )
+      // Вариант А (см. CLAUDE.md) — существующий логин привязывается как Developer новой
+      // компании вместо создания нового аккаунта, ФИО из формы не применяется. Пароль в
+      // форме тогда — не новый пароль, а подтверждение текущего (проверяется на бэке).
+      if (res.attached_existing) {
+        alert('Такой логин уже существовал — привязали этот аккаунт как Developer новой компании. ФИО из формы не применялось.')
+      }
       onCreated()
     } catch (err) {
       setError(err instanceof ApiError ? err.message : 'Не удалось создать компанию.')
@@ -36,6 +42,8 @@ export function NewCompanyModal({ onClose, onCreated }: { onClose: () => void; o
         <div className="text-lg font-semibold text-ink mb-2">Новая компания</div>
         <p className="text-xs text-ink/50 -mt-2 mb-2">
           Founder этой компании заводится отдельно после — здесь только тенант и первый Developer-аккаунт.
+          Если логин уже существует (например, твой собственный) — введи ЕГО текущий пароль,
+          это подтвердит что аккаунт твой, а не чужой угаданный логин.
         </p>
 
         <div>

@@ -35,16 +35,21 @@ class Company(Base):
 
 
 class User(Base):
+    """Личность человека — НЕ привязана к одной компании (2026-07-18, см. CLAUDE.md →
+    "Мульти-компанийные пользователи"). company_id/role раньше жили прямо здесь; теперь
+    живут в CompanyMembership — один человек может состоять сразу в нескольких компаниях
+    с разной ролью в каждой (напр. Developer одновременно в двух мастерских).
+    status — по-прежнему глобальный (уволен = уволен из всех компаний сразу, не по одной)."""
+
     __tablename__ = "users"
 
     id: Mapped[str] = mapped_column(String(8), primary_key=True, default=_short_id)
-    company_id: Mapped[str] = mapped_column(ForeignKey("companies.id"))
     fio: Mapped[str] = mapped_column(String(255))
     # Логин глобально уникален (не per-company) — при входе компания определяется
-    # по самому аккаунту, экран логина не спрашивает "какая компания".
+    # по членству, не по самому логину. Если членств больше одного — экран входа
+    # спрашивает "какая компания" (см. app/security.py::authenticate).
     login: Mapped[str] = mapped_column(String(100), unique=True, index=True)
     password_hash: Mapped[str] = mapped_column(String(255))
-    role: Mapped[str] = mapped_column(String(20))
     status: Mapped[str] = mapped_column(String(20))
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
     phone: Mapped[str | None] = mapped_column(String(50))
@@ -52,7 +57,26 @@ class User(Base):
     address: Mapped[str | None] = mapped_column(Text)
     document: Mapped[str | None] = mapped_column(Text)
 
+    memberships: Mapped[list["CompanyMembership"]] = relationship()
+
+
+class CompanyMembership(Base):
+    """Один человек ↔ одна компания ↔ одна роль в ней. Замена прямых User.company_id/
+    User.role (2026-07-18) — позволяет одному аккаунту (напр. Developer, обслуживающий
+    несколько мастерских) состоять сразу в нескольких компаниях с разной ролью в каждой."""
+
+    __tablename__ = "company_memberships"
+
+    id: Mapped[str] = mapped_column(String(8), primary_key=True, default=_short_id)
+    user_id: Mapped[str] = mapped_column(ForeignKey("users.id"))
+    company_id: Mapped[str] = mapped_column(ForeignKey("companies.id"))
+    role: Mapped[str] = mapped_column(String(20))
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+
     company: Mapped["Company"] = relationship()
+    user: Mapped["User"] = relationship(overlaps="memberships")
+
+    __table_args__ = (UniqueConstraint("user_id", "company_id", name="uq_user_company"),)
 
 
 class LoginLog(Base):

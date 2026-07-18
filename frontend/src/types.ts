@@ -1,3 +1,9 @@
+export interface CompanyMembership {
+  id: string
+  name: string
+  role: 'founder' | 'worker' | 'developer'
+}
+
 export interface User {
   id: string
   fio: string
@@ -5,6 +11,9 @@ export interface User {
   role: 'founder' | 'worker' | 'developer'
   company_id: string
   company_name: string
+  // Мульти-компанийные пользователи (2026-07-18) — все компании этого человека, не
+  // только активная. Длина 1 — обычный случай, сайдбар не показывает переключалку.
+  companies: CompanyMembership[]
 }
 
 export interface Company {

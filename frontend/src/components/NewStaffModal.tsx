@@ -26,10 +26,17 @@ export function NewStaffModal({ onClose, onCreated }: { onClose: () => void; onC
     setError(null)
     setSubmitting(true)
     try {
-      await apiFetch('/users', {
+      const res = await apiFetch<{ id: string; attached_existing: boolean }>('/users', {
         method: 'POST',
         body: JSON.stringify({ fio, login, password, role, phone, messenger, address, document }),
       })
+      // Вариант А (см. CLAUDE.md) — существующий логин молча привязывается вместо
+      // создания нового аккаунта, ФИО/пароль из формы не применяются. Без этого
+      // предупреждения founder не узнал бы, что "новый сотрудник" на самом деле уже
+      // существующий человек (нашёл code-review 2026-07-18).
+      if (res.attached_existing) {
+        alert('Такой логин уже существовал — добавили этого человека в компанию с выбранной ролью. Пароль и ФИО из формы не применялись, у него уже есть свой аккаунт.')
+      }
       onCreated()
     } catch (err) {
       setError(err instanceof ApiError ? err.message : 'Не удалось создать сотрудника.')

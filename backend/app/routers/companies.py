@@ -5,22 +5,21 @@
 задача cross-tenant: список существующих компаний и создание новой. Это осознанное
 исключение из архитектурного принципа №5 (CLAUDE.md), не забытый фильтр.
 
-Заменяет часть сценария `scripts/create_founder.py` (CLI-скрипт остаётся для бутстрапа
-первой компании на чистой БД, где ещё некому зайти в интерфейс) — теперь Developer может
-завести новую компанию прямо из приложения. При создании компании сразу заводится первый
-Developer-аккаунт этой компании (не Founder — Founder разработчик заводит потом отдельно,
-через тот же `create_founder.py --company-id`, или это станет отдельной кнопкой позже)."""
+Мульти-компанийные пользователи (2026-07-18): если логин уже существует — не ошибка,
+а привязка ЭТОГО существующего человека как Developer'а новой компании (см.
+`attach_or_create_membership` в security.py — требует правильный пароль существующего
+аккаунта, иначе это была бы дыра; ФИО из формы игнорируется, только пароль подтверждает
+личность). Тот же helper используется в users.py и create_founder.py — не три копии."""
 
-import bcrypt
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from app.constants import DEVELOPER, USER_STATUS_ACTIVE
+from app.constants import DEVELOPER
 from app.db import get_db
-from app.models import Company, User
+from app.models import Company
 from app.schemas import NewCompanyRequest
-from app.security import require_roles
+from app.security import attach_or_create_membership, require_roles
 
 router = APIRouter(prefix="/api/companies", tags=["companies"], dependencies=[Depends(require_roles(DEVELOPER))])
 
@@ -41,26 +40,14 @@ def list_companies(db: Session = Depends(get_db)) -> list[dict]:
 
 @router.post("")
 def create_company(body: NewCompanyRequest, db: Session = Depends(get_db)) -> dict:
-    if not body.company_name.strip() or not body.fio.strip() or not body.login.strip() or not body.password:
-        raise HTTPException(400, "Название компании, ФИО, логин и пароль обязательны.")
-
-    # Логин глобально уникален (не per-company) — та же проверка, что в users.py::create_user.
-    existing = db.scalar(select(User).where(User.login.ilike(body.login.strip())))
-    if existing:
-        raise HTTPException(400, "Такой логин уже занят.")
+    if not body.company_name.strip():
+        raise HTTPException(400, "Название компании обязательно.")
 
     company = Company(name=body.company_name.strip())
     db.add(company)
     db.flush()
 
-    user = User(
-        company_id=company.id,
-        fio=body.fio.strip(),
-        login=body.login.strip(),
-        password_hash=bcrypt.hashpw(body.password.encode("utf-8"), bcrypt.gensalt()).decode(),
-        role=DEVELOPER,
-        status=USER_STATUS_ACTIVE,
+    target_user, attached_existing = attach_or_create_membership(
+        db, login=body.login, company_id=company.id, role=DEVELOPER, password=body.password, fio=body.fio
     )
-    db.add(user)
-    db.commit()
-    return {"company_id": company.id, "user_id": user.id}
+    return {"company_id": company.id, "user_id": target_user.id, "attached_existing": attached_existing}

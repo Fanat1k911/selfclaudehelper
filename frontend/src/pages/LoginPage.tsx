@@ -1,11 +1,18 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { Navigate, useNavigate } from 'react-router-dom'
-import { ArrowRight, Eye, EyeOff } from 'lucide-react'
+import { ArrowLeft, ArrowRight, Eye, EyeOff } from 'lucide-react'
 import { defaultPathForRole, useAuth } from '../lib/auth'
 import { ApiError } from '../lib/api'
 import { useLoginTheme } from '../lib/useLoginTheme'
 import { TimezoneClock } from '../components/TimezoneClock'
 import { ThemeToggle } from '../components/ThemeToggle'
+import type { CompanyMembership } from '../types'
+
+const ROLE_LABEL: Record<CompanyMembership['role'], string> = {
+  founder: 'Founder',
+  worker: 'Сотрудник',
+  developer: 'Developer',
+}
 
 // text-base (16px), не text-sm (14px) — iOS Safari/Chrome/Brave автоматически зумят
 // страницу при фокусе на любой input мельче 16px, независимо от viewport meta.
@@ -18,7 +25,7 @@ const inputStyle = {
 }
 
 export function LoginPage() {
-  const { user, login } = useAuth()
+  const { user, login, selectCompany } = useAuth()
   const navigate = useNavigate()
   const { pref, setPref, resolved } = useLoginTheme()
   const [loginValue, setLoginValue] = useState('')
@@ -27,6 +34,10 @@ export function LoginPage() {
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
   const [formFocused, setFormFocused] = useState(false)
+  // Мульти-компанийные пользователи (2026-07-18) — после пароля, если у логина несколько
+  // компаний, вместо навигации показываем выбор; pendingChoice=null — обычный однокомпанийный
+  // вход, ничего не меняется для 99% пользователей.
+  const [pendingChoice, setPendingChoice] = useState<{ token: string; companies: CompanyMembership[] } | null>(null)
   const passwordRef = useRef<HTMLInputElement>(null)
   const passwordMountedOnce = useRef(false)
 
@@ -75,10 +86,29 @@ export function LoginPage() {
     setError(null)
     setLoading(true)
     try {
-      const loggedInUser = await login(loginValue, password)
+      const result = await login(loginValue, password)
+      if (result.needsCompanyChoice) {
+        setPendingChoice({ token: result.pendingToken, companies: result.companies })
+        return
+      }
+      navigate(defaultPathForRole(result.user.role), { replace: true })
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : 'Не удалось войти.')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  async function handleSelectCompany(companyId: string) {
+    if (!pendingChoice) return
+    setError(null)
+    setLoading(true)
+    try {
+      const loggedInUser = await selectCompany(pendingChoice.token, companyId)
       navigate(defaultPathForRole(loggedInUser.role), { replace: true })
     } catch (err) {
       setError(err instanceof ApiError ? err.message : 'Не удалось войти.')
+      setPendingChoice(null)
     } finally {
       setLoading(false)
     }
@@ -106,6 +136,56 @@ export function LoginPage() {
         />
       </div>
 
+      {pendingChoice ? (
+        <div
+          className="login-card-enter relative w-full max-w-md rounded-2xl border p-10 shadow-2xl shadow-black/20 backdrop-blur-xl transition-colors duration-300"
+          style={{ background: 'var(--login-card-bg)', borderColor: 'var(--login-card-border)' }}
+        >
+          <div className="login-fade-enter mb-8 text-center">
+            <div className="mx-auto mb-4 h-px w-10 bg-terracotta/60" />
+            <h1
+              className="text-sm font-medium uppercase tracking-[0.3em] transition-colors duration-300"
+              style={{ color: 'var(--login-text-muted)' }}
+            >
+              Выбери компанию
+            </h1>
+          </div>
+
+          <div className="space-y-2">
+            {pendingChoice.companies.map((c) => (
+              <button
+                key={c.id}
+                type="button"
+                disabled={loading}
+                onClick={() => handleSelectCompany(c.id)}
+                className="flex w-full items-center justify-between rounded-lg border px-4 py-3 text-left text-sm transition-colors disabled:opacity-50"
+                style={{ background: 'var(--login-input-bg)', borderColor: 'var(--login-input-border)', color: 'var(--login-text)' }}
+              >
+                <span className="font-medium">{c.name}</span>
+                <span className="text-xs" style={{ color: 'var(--login-text-muted)' }}>
+                  {ROLE_LABEL[c.role]}
+                </span>
+              </button>
+            ))}
+          </div>
+
+          {error && (
+            <div className="mt-4 rounded-lg border border-red-500/20 bg-red-500/10 px-3 py-2 text-sm text-red-400">
+              {error}
+            </div>
+          )}
+
+          <button
+            type="button"
+            onClick={() => setPendingChoice(null)}
+            className="mt-6 flex items-center gap-1.5 text-xs transition-colors"
+            style={{ color: 'var(--login-text-faint)' }}
+          >
+            <ArrowLeft className="h-3.5 w-3.5" strokeWidth={2} />
+            Назад к логину
+          </button>
+        </div>
+      ) : (
       <form
         onSubmit={handleSubmit}
         onFocus={() => setFormFocused(true)}
@@ -210,6 +290,7 @@ export function LoginPage() {
           )}
         </button>
       </form>
+      )}
 
       {/* Прячется, пока форма в фокусе — на мобильных при открытой клавиатуре fixed-часы
           наплывали на кнопку "Войти" (визуальный viewport сужается, а fixed позиционируется

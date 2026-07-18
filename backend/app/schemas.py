@@ -23,18 +23,25 @@ class LoginRequest(BaseModel):
     password: str
 
 
+class SelectCompanyRequest(BaseModel):
+    """Второй шаг логина мульти-компанийного пользователя (см. app/security.py)."""
+
+    pending_token: str
+    company_id: str
+
+
+class SwitchCompanyRequest(BaseModel):
+    """Переключение активной компании уже залогиненного пользователя (сайдбар)."""
+
+    company_id: str
+
+
 class DashboardLayoutItem(BaseModel):
     widget_key: str
     x: int
     y: int
     w: int
     h: int
-
-
-class TokenResponse(BaseModel):
-    access_token: str
-    token_type: str = "bearer"
-    user: dict
 
 
 class NewMaterialRequest(BaseModel):
