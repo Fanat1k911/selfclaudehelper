@@ -60,18 +60,25 @@ export function IngredientsPage() {
       <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <h1 className="text-xl font-semibold text-ink sm:text-2xl">Компоненты</h1>
         <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:justify-end">
-          <button
-            onClick={() => apiDownload('/ingredients/export', 'компоненты.xlsx')}
-            className="w-full whitespace-nowrap rounded-lg border border-ink/15 bg-cream px-3 py-2 text-sm font-medium text-ink hover:bg-ink/5 sm:w-auto sm:px-4"
-          >
-            Экспорт (.xlsx)
-          </button>
-          <button
-            onClick={() => setShowImport(true)}
-            className="w-full whitespace-nowrap rounded-lg border border-ink/15 bg-cream px-3 py-2 text-sm font-medium text-ink hover:bg-ink/5 sm:w-auto sm:px-4"
-          >
-            Импорт из файла
-          </button>
+          {/* Экспорт+Импорт в одной строке на мобильном, Добавить — отдельной строкой ниже
+              (2026-07-18, уточнение Founder: "экспорт/импорт в 1 строку, кнопку на другую,
+              без расстояния между ними"). sm:contents на мобильной паре — только группировка
+              для grid-cols-2, на sm+ она "исчезает" и оба button становятся обычными flex-item
+              родителя, как раньше (десктоп без изменений). */}
+          <div className="grid grid-cols-2 gap-2 sm:contents">
+            <button
+              onClick={() => apiDownload('/ingredients/export', 'компоненты.xlsx')}
+              className="whitespace-nowrap rounded-lg border border-ink/15 bg-cream px-3 py-2 text-sm font-medium text-ink hover:bg-ink/5 sm:w-auto sm:px-4"
+            >
+              Экспорт (.xlsx)
+            </button>
+            <button
+              onClick={() => setShowImport(true)}
+              className="whitespace-nowrap rounded-lg border border-ink/15 bg-cream px-3 py-2 text-sm font-medium text-ink hover:bg-ink/5 sm:w-auto sm:px-4"
+            >
+              Импорт из файла
+            </button>
+          </div>
           <button
             onClick={() => setShowCreate(true)}
             className="w-full whitespace-nowrap rounded-lg bg-accent-add px-3 py-2 text-sm font-medium text-white hover:bg-accent-add-dark sm:w-auto sm:px-4"
