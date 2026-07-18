@@ -30,7 +30,17 @@ export function Layout() {
           </button>
           <Brand user={user} className="text-ink" />
         </header>
-        <main className="flex-1 overflow-y-auto">
+        {/* overflow переключается на hidden, пока открыт мобильный сайдбар (2026-07-18,
+            репорт Founder: "скрол при открытом сайдбаре работает" + "закрытие по тапу вне
+            меню не очень хорошо работает"). document.body здесь НЕ скроллится вообще —
+            вся страница уже h-screen overflow-hidden, реальный скролл живёт только в этом
+            <main>. Пока он остаётся overflow-y-auto под fixed-бэкдропом сайдбара, тач по
+            бэкдропу на WebKit может уйти в scroll этого элемента вместо click (лёгкое
+            движение пальца браузер трактует как начало скролла, не синтезирует click) —
+            поэтому закрытие по тапу срабатывало через раз. Лочим именно этот элемент, не
+            body/window — первая попытка (лочить body) была бы no-op, т.к. body и так не
+            скроллящийся контейнер в этой раскладке. */}
+        <main className={`flex-1 ${mobileOpen ? 'overflow-hidden' : 'overflow-y-auto'}`}>
           <Outlet />
         </main>
       </div>
