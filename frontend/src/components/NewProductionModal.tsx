@@ -91,23 +91,28 @@ export function NewProductionModal({
         </div>
 
         <div className="grid grid-cols-2 gap-3">
-          <div>
+          {/* min-w-0 на обоих ячейках грида (2026-07-18, наплыв полей на мобильном
+              Brave/iOS) — datetime-local у WebKit несёт собственный минимальный
+              intrinsic-размер нативного пикера; без min-w-0 дефолтный min-width:auto
+              грид-ячейки не даёт полю сжаться до назначенной 1fr-доли на узком экране,
+              и одно поле раздувается, наезжая на соседнее. */}
+          <div className="min-w-0">
             <label className="block text-xs text-ink/60 mb-1">Начало</label>
             <input
               type="datetime-local"
               value={startedAt}
               onChange={(e) => setStartedAt(e.target.value)}
-              className="w-full rounded-lg border border-ink/10 px-3 py-2 text-sm outline-none focus:border-terracotta"
+              className="w-full min-w-0 rounded-lg border border-ink/10 px-3 py-2 text-sm outline-none focus:border-terracotta"
               required
             />
           </div>
-          <div>
+          <div className="min-w-0">
             <label className="block text-xs text-ink/60 mb-1">Окончание</label>
             <input
               type="datetime-local"
               value={finishedAt}
               onChange={(e) => setFinishedAt(e.target.value)}
-              className="w-full rounded-lg border border-ink/10 px-3 py-2 text-sm outline-none focus:border-terracotta"
+              className="w-full min-w-0 rounded-lg border border-ink/10 px-3 py-2 text-sm outline-none focus:border-terracotta"
               required
             />
           </div>
