@@ -5,6 +5,7 @@
 import os
 import sys
 import tomllib
+import uuid
 from functools import lru_cache
 from pathlib import Path
 
@@ -14,6 +15,14 @@ SECRETS_PATH = PROJECT_ROOT / ".streamlit" / "secrets.toml"
 JWT_SECRET = os.environ.get("JWT_SECRET", "dev-insecure-secret-change-me")
 JWT_ALGORITHM = "HS256"
 JWT_EXPIRE_MINUTES = int(os.environ.get("JWT_EXPIRE_MINUTES", str(24 * 60)))
+
+# "Обновление доступно" баннер на фронте (2026-07-18, см. CLAUDE.md) — фронт поллит
+# /api/version и сравнивает со значением при загрузке страницы. RENDER_GIT_COMMIT —
+# переменная, которую Render сам прописывает в env при деплое (не нужно ничего
+# добавлять в Dockerfile). Локально/на других хостингах её нет — берём случайный
+# токен на старт процесса, тогда каждый локальный рестарт тоже считается "новой
+# версией", это ожидаемо и не мешает (dev-режим, не прод).
+APP_VERSION = os.environ.get("RENDER_GIT_COMMIT", uuid.uuid4().hex[:12])
 
 CORS_ORIGINS = os.environ.get("CORS_ORIGINS", "http://localhost:5173,http://localhost:3000").split(",")
 

@@ -4,7 +4,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 
-from app.config import CORS_ORIGINS
+from app.config import APP_VERSION, CORS_ORIGINS
 from app.routers import auth, companies, counterparties, dashboard, ingredients, packaging, production, products, recipes, sales, techpanel, users
 from app.techlog import install as install_techlog
 
@@ -36,6 +36,13 @@ app.include_router(companies.router)
 @app.get("/api/health")
 def health() -> dict:
     return {"status": "ok"}
+
+
+@app.get("/api/version")
+def version() -> dict:
+    """"Обновление доступно" баннер (2026-07-18) — фронт поллит это и сверяет со
+    значением, загруженным при открытии страницы, см. CLAUDE.md."""
+    return {"version": APP_VERSION}
 
 
 # Собранный фронт (Dockerfile копирует frontend/dist сюда) — раздаём тем же процессом,
