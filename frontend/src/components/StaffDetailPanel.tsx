@@ -29,8 +29,12 @@ export function StaffDetailPanel({
 }: {
   staff: StaffUser
   onClose: () => void
-  onChanged: () => void
+  onChanged: () => void | Promise<void>
 }) {
+  // Карточка открывается ЗАКРЫТОЙ (только просмотр) — поля становятся редактируемыми
+  // только после явного клика "Редактировать" (2026-07-18, запрос Founder: раньше поля
+  // сразу были инпутами, было легко случайно что-то поменять просто просматривая).
+  const [editing, setEditing] = useState(false)
   const [fio, setFio] = useState(staff.fio)
   const [role, setRole] = useState<StaffUser['role']>(staff.role)
   const [phone, setPhone] = useState(staff.phone)
@@ -39,6 +43,17 @@ export function StaffDetailPanel({
   const [document, setDocument] = useState(staff.document)
   const [error, setError] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
+
+  function startEditing() {
+    setFio(staff.fio)
+    setRole(staff.role)
+    setPhone(staff.phone)
+    setMessenger(staff.messenger)
+    setAddress(staff.address)
+    setDocument(staff.document)
+    setError(null)
+    setEditing(true)
+  }
 
   const [newPassword, setNewPassword] = useState('')
   const [resetting, setResetting] = useState(false)
@@ -67,7 +82,11 @@ export function StaffDetailPanel({
         method: 'PATCH',
         body: JSON.stringify({ fio, role, phone, messenger, address, document }),
       })
-      onChanged()
+      // await, не fire-and-forget — иначе read-only вид рендерится из staff-пропа СРАЗУ
+      // после setEditing(false), пока родительский onChanged() (перезапрос списка) ещё не
+      // долетел, и на долю секунды показывает старые значения (найдено review 2026-07-18).
+      await onChanged()
+      setEditing(false)
     } catch (err) {
       setError(err instanceof ApiError ? err.message : 'Не удалось сохранить.')
     } finally {
@@ -165,73 +184,118 @@ export function StaffDetailPanel({
           </div>
         )}
 
-        <form onSubmit={handleSave} className="px-6 py-4 border-b border-ink/10 space-y-3">
-          <div>
-            <label className="block text-xs text-ink/60 mb-1">ФИО</label>
-            <input
-              value={fio}
-              onChange={(e) => setFio(e.target.value)}
-              className="w-full rounded-lg border border-ink/10 px-3 py-2 text-sm outline-none focus:border-terracotta"
-              required
-            />
-          </div>
-          <div>
-            <label className="block text-xs text-ink/60 mb-1">Роль</label>
-            <select
-              value={role}
-              onChange={(e) => setRole(e.target.value as StaffUser['role'])}
-              className="w-full rounded-lg border border-ink/10 px-3 py-2 text-sm outline-none focus:border-terracotta"
+        {!editing ? (
+          <div className="px-6 py-4 border-b border-ink/10 space-y-3">
+            <div>
+              <div className="text-xs text-ink/50">ФИО</div>
+              <div className="text-sm text-ink">{staff.fio}</div>
+            </div>
+            <div>
+              <div className="text-xs text-ink/50">Роль</div>
+              <div className="text-sm text-ink">{ROLES.find((r) => r.value === staff.role)?.label ?? staff.role}</div>
+            </div>
+            <div>
+              <div className="text-xs text-ink/50">Телефон</div>
+              <div className="text-sm text-ink">{staff.phone || '—'}</div>
+            </div>
+            <div>
+              <div className="text-xs text-ink/50">Мессенджер</div>
+              <div className="text-sm text-ink">{staff.messenger || '—'}</div>
+            </div>
+            <div>
+              <div className="text-xs text-ink/50">Адрес проживания</div>
+              <div className="text-sm text-ink">{staff.address || '—'}</div>
+            </div>
+            <div>
+              <div className="text-xs text-ink/50">Документ (паспорт/ИНН)</div>
+              <div className="text-sm text-ink">{staff.document || '—'}</div>
+            </div>
+            <button
+              type="button"
+              onClick={startEditing}
+              className="w-full rounded-lg border border-ink/10 py-2 text-sm font-medium text-ink hover:bg-cream/60"
             >
-              {ROLES.map((r) => (
-                <option key={r.value} value={r.value}>
-                  {r.label}
-                </option>
-              ))}
-            </select>
+              Редактировать
+            </button>
           </div>
-          <div>
-            <label className="block text-xs text-ink/60 mb-1">Телефон</label>
-            <input
-              type="tel"
-              inputMode="tel"
-              value={phone}
-              onChange={(e) => setPhone(sanitizePhone(e.target.value))}
-              className="w-full rounded-lg border border-ink/10 px-3 py-2 text-sm outline-none focus:border-terracotta"
-            />
-          </div>
-          <div>
-            <label className="block text-xs text-ink/60 mb-1">Мессенджер</label>
-            <input
-              value={messenger}
-              onChange={(e) => setMessenger(e.target.value)}
-              className="w-full rounded-lg border border-ink/10 px-3 py-2 text-sm outline-none focus:border-terracotta"
-            />
-          </div>
-          <div>
-            <label className="block text-xs text-ink/60 mb-1">Адрес проживания</label>
-            <input
-              value={address}
-              onChange={(e) => setAddress(e.target.value)}
-              className="w-full rounded-lg border border-ink/10 px-3 py-2 text-sm outline-none focus:border-terracotta"
-            />
-          </div>
-          <div>
-            <label className="block text-xs text-ink/60 mb-1">Документ (паспорт/ИНН)</label>
-            <input
-              value={document}
-              onChange={(e) => setDocument(e.target.value)}
-              className="w-full rounded-lg border border-ink/10 px-3 py-2 text-sm outline-none focus:border-terracotta"
-            />
-          </div>
-          {error && <div className="text-sm text-red-600">{error}</div>}
-          <button
-            type="submit"
-            disabled={submitting}
-            className="w-full rounded-lg bg-terracotta py-2 text-sm font-medium text-white hover:bg-terracotta-dark disabled:opacity-60"
-          >
-            {submitting ? 'Сохраняем…' : 'Сохранить'}
-          </button>
-        </form>
+        ) : (
+          <form onSubmit={handleSave} className="px-6 py-4 border-b border-ink/10 space-y-3">
+            <div>
+              <label className="block text-xs text-ink/60 mb-1">ФИО</label>
+              <input
+                value={fio}
+                onChange={(e) => setFio(e.target.value)}
+                className="w-full rounded-lg border border-ink/10 px-3 py-2 text-sm outline-none focus:border-terracotta"
+                required
+              />
+            </div>
+            <div>
+              <label className="block text-xs text-ink/60 mb-1">Роль</label>
+              <select
+                value={role}
+                onChange={(e) => setRole(e.target.value as StaffUser['role'])}
+                className="w-full rounded-lg border border-ink/10 px-3 py-2 text-sm outline-none focus:border-terracotta"
+              >
+                {ROLES.map((r) => (
+                  <option key={r.value} value={r.value}>
+                    {r.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="block text-xs text-ink/60 mb-1">Телефон</label>
+              <input
+                type="tel"
+                inputMode="tel"
+                value={phone}
+                onChange={(e) => setPhone(sanitizePhone(e.target.value))}
+                className="w-full rounded-lg border border-ink/10 px-3 py-2 text-sm outline-none focus:border-terracotta"
+              />
+            </div>
+            <div>
+              <label className="block text-xs text-ink/60 mb-1">Мессенджер</label>
+              <input
+                value={messenger}
+                onChange={(e) => setMessenger(e.target.value)}
+                className="w-full rounded-lg border border-ink/10 px-3 py-2 text-sm outline-none focus:border-terracotta"
+              />
+            </div>
+            <div>
+              <label className="block text-xs text-ink/60 mb-1">Адрес проживания</label>
+              <input
+                value={address}
+                onChange={(e) => setAddress(e.target.value)}
+                className="w-full rounded-lg border border-ink/10 px-3 py-2 text-sm outline-none focus:border-terracotta"
+              />
+            </div>
+            <div>
+              <label className="block text-xs text-ink/60 mb-1">Документ (паспорт/ИНН)</label>
+              <input
+                value={document}
+                onChange={(e) => setDocument(e.target.value)}
+                className="w-full rounded-lg border border-ink/10 px-3 py-2 text-sm outline-none focus:border-terracotta"
+              />
+            </div>
+            {error && <div className="text-sm text-red-600">{error}</div>}
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={() => setEditing(false)}
+                className="flex-1 rounded-lg bg-cream py-2 text-sm font-medium text-ink hover:bg-ink/5"
+              >
+                Отмена
+              </button>
+              <button
+                type="submit"
+                disabled={submitting}
+                className="flex-1 rounded-lg bg-terracotta py-2 text-sm font-medium text-white hover:bg-terracotta-dark disabled:opacity-60"
+              >
+                {submitting ? 'Сохраняем…' : 'Сохранить'}
+              </button>
+            </div>
+          </form>
+        )}
 
         <form onSubmit={handleResetPassword} className="px-6 py-4 space-y-2">
           <div className="text-sm font-medium text-ink/70">Сбросить пароль</div>
