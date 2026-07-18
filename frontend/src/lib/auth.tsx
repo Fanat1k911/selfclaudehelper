@@ -27,9 +27,18 @@ function normalizeStoredUser(user: User | null): User | null {
   return { ...user, companies: [{ id: user.company_id, name: user.company_name, role: user.role }] }
 }
 
+interface RegisterCompanyPayload {
+  companyName: string
+  fio: string
+  login: string
+  password: string
+  phone: string
+}
+
 interface AuthContextValue {
   user: User | null
   login: (login: string, password: string) => Promise<LoginResult>
+  registerCompany: (payload: RegisterCompanyPayload) => Promise<User>
   selectCompany: (pendingToken: string, companyId: string) => Promise<User>
   switchCompany: (companyId: string) => Promise<User>
   logout: () => void
@@ -55,6 +64,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setSession(res.access_token, res.user)
         setUser(res.user)
         return { needsCompanyChoice: false, user: res.user }
+      },
+      async registerCompany(payload: RegisterCompanyPayload) {
+        const res = await apiFetch<{ access_token: string; user: User }>('/auth/register', {
+          method: 'POST',
+          body: JSON.stringify({
+            company_name: payload.companyName,
+            fio: payload.fio,
+            login: payload.login,
+            password: payload.password,
+            phone: payload.phone,
+          }),
+        })
+        setSession(res.access_token, res.user)
+        setUser(res.user)
+        return res.user
       },
       async selectCompany(pendingToken: string, companyId: string) {
         const res = await apiFetch<{ access_token: string; user: User }>('/auth/select-company', {

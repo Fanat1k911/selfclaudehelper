@@ -13,9 +13,9 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session, selectinload
 
 from app.config import JWT_ALGORITHM, JWT_EXPIRE_MINUTES, JWT_SECRET
-from app.constants import USER_STATUS_ACTIVE
+from app.constants import FOUNDER, USER_STATUS_ACTIVE
 from app.db import Base, get_db
-from app.models import CompanyMembership, User
+from app.models import Company, CompanyMembership, User
 
 _ModelT = TypeVar("_ModelT", bound=Base)
 
@@ -153,6 +153,52 @@ def switch_company(current_user_id: str, company_id: str, db: Session) -> dict:
 
     companies = _memberships_payload(db, user.id)
     return _public_fields(user, membership, companies)
+
+
+def register_company(company_name: str, fio: str, login: str, password: str, phone: str, db: Session) -> dict:
+    """Публичная саморегистрация (2026-07-18, см. CLAUDE.md → "Публичная self-serve
+    регистрация") — создаёт компанию и сразу логинит первого Founder'а, без залогиненного
+    Developer. Rate-limit — на уровне роутера (app/routers/auth.py), не здесь: security.py
+    не видит объект Request.
+
+    Существующий логин обрабатывается тем же attach_or_create_membership, что и внутренний
+    онбординг Developer'ом (companies.py) — если человек уже состоит в другой компании,
+    саморегистрация новой компании привязывает его туда же Founder'ом, требуя ЕГО пароль
+    (та же защита от угона чужого логина, см. attach_or_create_membership).
+
+    В отличие от internal-онбординга (companies.py/users.py, доступны только залогиненному
+    Founder/Developer) здесь ловим 400 от attach_or_create_membership и подменяем на общее
+    сообщение — "неверный пароль для существующего" и "уволен" по отдельности превращали бы
+    этот публичный, анонимный эндпоинт в оракул для перебора чужих логинов (кто существует,
+    кто уволен) — security-review 2026-07-18 поймал до пуша в прод."""
+    company_name = company_name.strip()
+    if not company_name:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "Название компании обязательно.")
+
+    company = Company(name=company_name)
+    db.add(company)
+    db.flush()
+
+    try:
+        user, _ = attach_or_create_membership(
+            db, login=login, company_id=company.id, role=FOUNDER, password=password, fio=fio, phone=phone
+        )
+    except HTTPException as exc:
+        # Явный rollback недокоммиченной Company — не полагаемся на неявный
+        # rollback-on-close у get_db(), тот работал случайно, не по контракту
+        # (code-review 2026-07-18).
+        db.rollback()
+        if exc.status_code == status.HTTP_400_BAD_REQUEST:
+            raise HTTPException(status.HTTP_400_BAD_REQUEST, "Не удалось создать аккаунт с этими данными.")
+        raise
+
+    membership = db.scalar(
+        select(CompanyMembership).where(
+            CompanyMembership.user_id == user.id, CompanyMembership.company_id == company.id
+        )
+    )
+    companies = _memberships_payload(db, user.id)
+    return {"status": "ok", "user": _public_fields(user, membership, companies)}
 
 
 def create_access_token(user: dict) -> str:

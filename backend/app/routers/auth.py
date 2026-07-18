@@ -1,14 +1,28 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Request
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.constants import DEVELOPER, FOUNDER
 from app.db import get_db
 from app.models import LoginLog
-from app.schemas import LoginRequest, SelectCompanyRequest, SwitchCompanyRequest
-from app.security import authenticate, create_access_token, get_current_user, require_roles, select_company, switch_company
+from app.rate_limit import check_rate_limit, client_ip
+from app.schemas import LoginRequest, RegisterCompanyRequest, SelectCompanyRequest, SwitchCompanyRequest
+from app.security import (
+    authenticate,
+    create_access_token,
+    get_current_user,
+    register_company,
+    require_roles,
+    select_company,
+    switch_company,
+)
 
 router = APIRouter(prefix="/api/auth", tags=["auth"])
+
+# Публичная саморегистрация компаний (2026-07-18) — без капчи пока (см. CLAUDE.md,
+# задолженность), рейт-лимит по IP как первая линия защиты от тривиального спама.
+_REGISTER_MAX_PER_HOUR = 5
+_REGISTER_WINDOW_SECONDS = 3600
 
 
 def _finalize(result: dict, db: Session) -> dict:
@@ -28,6 +42,13 @@ def login(body: LoginRequest, db: Session = Depends(get_db)) -> dict:
         # Несколько компаний у одного логина (2026-07-18) — не логиним сразу, фронт
         # показывает выбор компании и достучится через /select-company с pending_token.
         return {"needs_company_choice": True, "pending_token": result["pending_token"], "companies": result["companies"]}
+    return _finalize(result, db)
+
+
+@router.post("/register")
+def register(body: RegisterCompanyRequest, request: Request, db: Session = Depends(get_db)) -> dict:
+    check_rate_limit(f"register:{client_ip(request)}", _REGISTER_MAX_PER_HOUR, _REGISTER_WINDOW_SECONDS)
+    result = register_company(body.company_name, body.fio, body.login, body.password, body.phone, db)
     return _finalize(result, db)
 
 

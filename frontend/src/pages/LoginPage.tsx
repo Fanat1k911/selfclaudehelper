@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type AnimationEvent, type FormEvent } from 'react'
-import { Navigate, useNavigate } from 'react-router-dom'
+import { Link, Navigate, useNavigate } from 'react-router-dom'
 import { ArrowLeft, ArrowRight, Eye, EyeOff } from 'lucide-react'
 import { defaultPathForRole, useAuth } from '../lib/auth'
 import { ApiError } from '../lib/api'
@@ -335,6 +335,14 @@ export function LoginPage() {
             <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" strokeWidth={2} />
           )}
         </button>
+
+        <Link
+          to="/register"
+          className="mt-6 block text-center text-xs transition-colors"
+          style={{ color: 'var(--login-text-faint)' }}
+        >
+          Ещё нет компании? Зарегистрировать
+        </Link>
       </form>
       )}
 

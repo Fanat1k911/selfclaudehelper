@@ -1,6 +1,6 @@
 import re
 
-from pydantic import BaseModel, field_validator
+from pydantic import BaseModel, Field, field_validator
 
 PHONE_RE = re.compile(r"^[0-9+\-()\s]*$")
 DIGITS_RE = re.compile(r"^[0-9]*$")
@@ -64,10 +64,18 @@ class AdjustmentRequest(BaseModel):
 
 
 class ProductionRequest(BaseModel):
+    """qty — кол-во ГОТОВОГО ПРОДУКТА, не партий (2026-07-18, решение Founder: "Количество
+    партий" → "Количество продукта" — рабочим проще считать штуками/кг продукта, чем
+    партиями рецепта). Партии для списания сырья считаются от qty делением на выход
+    партии рецепта (см. app/routers/production.py::create_production) — материально это
+    та же величина, просто другая единица ввода. started_at/finished_at убраны из РУЧНОГО
+    ввода (тем же решением) — на бэке проставляются автоматически (started_at = первый вход
+    сотрудника сегодня из LoginLog, finished_at = момент внесения записи), не приходят с
+    фронта. Метрика скорости в KPI из них по-прежнему не считается (dashboard/leaderboard
+    используют только batches×yield−defects) — это задел на будущее, не активная фича."""
+
     recipe_id: str
-    batches: float
-    started_at: str
-    finished_at: str
+    qty: float
     defects: float = 0.0
     comment: str = ""
 
@@ -207,6 +215,44 @@ class NewCompanyRequest(BaseModel):
     fio: str
     login: str
     password: str
+
+
+class RegisterCompanyRequest(BaseModel):
+    """Публичная саморегистрация (2026-07-18, без залогиненного Developer, см. CLAUDE.md →
+    "Публичная self-serve регистрация") — компания + первый Founder этой компании, сразу
+    логинит. Телефон обязателен уже сейчас — с прицелом на будущую SMS/Telegram-верификацию,
+    сам механизм которой пока не выбран (см. CLAUDE.md), это не блокирует первый заход.
+
+    max_length здесь (в отличие от NewCompanyRequest/NewUserRequest выше, тех же полей без
+    ограничений) — этот эндпоинт публичный и анонимный, а не только для залогиненного
+    Founder/Developer: без границ длины company_name/fio/login падал бы неперехваченным
+    500 (DataError) на INSERT в Postgres при значении длиннее колонки — SQLite в тестах
+    эту ошибку не ловит, что маскировало баг (security-review 2026-07-18)."""
+
+    company_name: str = Field(max_length=255)
+    fio: str = Field(max_length=255)
+    login: str = Field(max_length=100)
+    password: str
+    phone: str
+
+    @field_validator("phone")
+    @classmethod
+    def _v_phone(cls, v: str) -> str:
+        if not v.strip():
+            raise ValueError("Телефон обязателен.")
+        return _check_phone(v)
+
+    @field_validator("password")
+    @classmethod
+    def _v_password(cls, v: str) -> str:
+        # По байтам, не символам — bcrypt (>=4.2) кидает ValueError на пароле длиннее 72
+        # БАЙТ, а не 72 символов; кириллица — 2 байта на символ в UTF-8, так что чисто
+        # символьный max_length здесь пропустил бы слишком длинные не-ASCII пароли и всё
+        # равно уронил бы hashpw в 500 (найдено на security-review 2026-07-18, там же
+        # воспроизведён сам ValueError на реальном bcrypt).
+        if len(v.encode("utf-8")) > 72:
+            raise ValueError("Пароль слишком длинный.")
+        return v
 
 
 class UpdateUserRequest(BaseModel):
