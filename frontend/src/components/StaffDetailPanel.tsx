@@ -52,6 +52,8 @@ export function StaffDetailPanel({
     setAddress(staff.address)
     setDocument(staff.document)
     setError(null)
+    setNewPassword('')
+    setResetMsg(null)
     setEditing(true)
   }
 
@@ -111,8 +113,7 @@ export function StaffDetailPanel({
     }
   }
 
-  async function handleResetPassword(e: FormEvent) {
-    e.preventDefault()
+  async function handleResetPassword() {
     setResetMsg(null)
     setResetting(true)
     try {
@@ -294,31 +295,44 @@ export function StaffDetailPanel({
                 {submitting ? 'Сохраняем…' : 'Сохранить'}
               </button>
             </div>
+
+            {/* Сброс пароля — тоже только в режиме редактирования (2026-07-18, запрос
+                Founder: раньше было видно и кликабельно всегда, даже при простом просмотре
+                карточки — риск случайного сброса чужого пароля одним лишним кликом). */}
+            <div className="mt-2 border-t border-ink/10 pt-3 space-y-2">
+              <div className="text-sm font-medium text-ink/70">Сбросить пароль</div>
+              <div className="flex gap-2">
+                <input
+                  type="password"
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  onKeyDown={(e) => {
+                    // Это поле теперь живёт ВНУТРИ основной формы (handleSave) — без этого
+                    // Enter здесь неявно сабмитил бы её (браузерное поведение "первая
+                    // submit-кнопка формы"), сохраняя ФИО/роль/телефон вместо сброса пароля,
+                    // а сам пароль тихо терялся бы (найдено review 2026-07-18).
+                    if (e.key === 'Enter') {
+                      e.preventDefault()
+                      handleResetPassword()
+                    }
+                  }}
+                  placeholder="Новый пароль"
+                  className="flex-1 rounded-lg border border-ink/10 px-3 py-2 text-sm outline-none focus:border-terracotta"
+                  autoComplete="new-password"
+                />
+                <button
+                  type="button"
+                  onClick={handleResetPassword}
+                  disabled={resetting || !newPassword}
+                  className="rounded-lg bg-ink px-4 py-2 text-sm font-medium text-white hover:bg-ink/80 disabled:opacity-60"
+                >
+                  {resetting ? '…' : 'Сбросить'}
+                </button>
+              </div>
+              {resetMsg && <div className="text-sm text-ink/60">{resetMsg}</div>}
+            </div>
           </form>
         )}
-
-        <form onSubmit={handleResetPassword} className="px-6 py-4 space-y-2">
-          <div className="text-sm font-medium text-ink/70">Сбросить пароль</div>
-          <div className="flex gap-2">
-            <input
-              type="password"
-              value={newPassword}
-              onChange={(e) => setNewPassword(e.target.value)}
-              placeholder="Новый пароль"
-              className="flex-1 rounded-lg border border-ink/10 px-3 py-2 text-sm outline-none focus:border-terracotta"
-              required
-              autoComplete="new-password"
-            />
-            <button
-              type="submit"
-              disabled={resetting}
-              className="rounded-lg bg-ink px-4 py-2 text-sm font-medium text-white hover:bg-ink/80 disabled:opacity-60"
-            >
-              {resetting ? '…' : 'Сбросить'}
-            </button>
-          </div>
-          {resetMsg && <div className="text-sm text-ink/60">{resetMsg}</div>}
-        </form>
       </div>
     </div>
   )
