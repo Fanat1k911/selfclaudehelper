@@ -36,6 +36,21 @@ a[href] {
   cursor: pointer;
 }
 
+/* iOS Safari/Chrome/Brave авто-зумят страницу при фокусе на любой input/select/textarea
+   мельче 16px — фикс раньше поставили только на 2 поля логина (text-sm=14px→text-base),
+   но тот же text-sm паттерн есть в ~15 других модалок/страниц (найдено retroactive
+   code-review 2026-07-18). Правим один раз глобально вместо потом-найдём-ещё-одно-поле. */
+@media (max-width: 767px) {
+  /* !important нужен — Tailwind-класс text-sm (font-size через className) — это
+     селектор класса, специфичность выше голого элемента input, без !important
+     это правило проигрывает и молча ничего не чинит. */
+  input,
+  select,
+  textarea {
+    font-size: 16px !important;
+  }
+}
+
 /* Логин-страница: медленный дрейф фоновых бликов + мягкое появление карточки.
    Отдельно от остального приложения — единственное место с фоновой анимацией. */
 @keyframes login-drift-a {
@@ -77,6 +92,10 @@ a[href] {
   --login-input-bg: rgba(255, 255, 255, 0.03);
   --login-input-bg-focus: rgba(255, 255, 255, 0.06);
   --login-input-border: rgba(255, 255, 255, 0.1);
+  /* Непрозрачный аналог --login-input-bg — только для autofill box-shadow ниже, той
+     нужен сплошной цвет, полупрозрачный давал почти no-op перекрытие форсированного
+     фона браузера на тёмной теме (retroactive code-review 2026-07-18). */
+  --login-input-bg-solid: #1c1713;
   --login-blob-a: rgba(201, 123, 99, 0.2);
   --login-blob-b: rgba(173, 99, 80, 0.15);
   --login-toggle-bg: rgba(255, 255, 255, 0.04);
@@ -160,8 +179,14 @@ a[href] {
 [data-login-theme] input:-webkit-autofill:focus {
   -webkit-text-fill-color: var(--login-text);
   caret-color: var(--login-text);
-  box-shadow: 0 0 0 1000px var(--login-input-bg) inset;
-  transition: background-color 600000s 0s, color 600000s 0s;
+  /* -solid, не полупрозрачный --login-input-bg: inset-тень поверх форсированного фона
+     браузера должна быть полностью непрозрачной, иначе на тёмной теме (3% альфа) это
+     почти no-op и фон браузера всё равно просвечивает (retroactive code-review 2026-07-18). */
+  box-shadow: 0 0 0 1000px var(--login-input-bg-solid) inset;
+  /* border-color отдельным свойством, не в общем transition-шортхэнде — тот бы схлопнул
+     весь список transition этого инпута до только background-color/color, стерев
+     focus:border-terracotta/70 переход (0.15s из transition-colors) на время автозаполнения. */
+  transition: background-color 600000s 0s, color 600000s 0s, border-color 0.15s ease;
 }
 
 [data-login-theme='light'] {
@@ -174,6 +199,7 @@ a[href] {
   --login-input-bg: rgba(255, 255, 255, 0.5);
   --login-input-bg-focus: rgba(255, 255, 255, 0.9);
   --login-input-border: rgba(43, 33, 28, 0.12);
+  --login-input-bg-solid: #fdfbf8;
   --login-blob-a: rgba(201, 123, 99, 0.18);
   --login-blob-b: rgba(173, 99, 80, 0.14);
   --login-toggle-bg: rgba(255, 255, 255, 0.5);

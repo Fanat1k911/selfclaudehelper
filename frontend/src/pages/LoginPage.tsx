@@ -39,27 +39,35 @@ export function LoginPage() {
   // вход, ничего не меняется для 99% пользователей.
   const [pendingChoice, setPendingChoice] = useState<{ token: string; companies: CompanyMembership[] } | null>(null)
   const passwordRef = useRef<HTMLInputElement>(null)
-  const passwordMountedOnce = useRef(false)
+  // Сравнение с ПРЕДЫДУЩИМ значением, не булевый "первый раз ли это" флаг — StrictMode
+  // (main.tsx) в dev дважды подряд вызывает mount-эффекты без cleanup между ними, из-за
+  // чего булевый флаг "уже true" после первого вызова пропускал вторую защиту вхолостую,
+  // и второй вызов проваливался в focus()+клавиатуру на самом первом заходе на /login
+  // (retroactive code-review 2026-07-18). Сравнение с prev устойчиво к повтору: на обоих
+  // вызовах prev===showPassword===false, оба раза корректно пропускаем.
+  const prevShowPassword = useRef(showPassword)
+  const blurTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   // key на password-инпуте (см. ниже) форсирует remount при клике на глазик — новый DOM-узел
-  // не получает фокус сам по себе, возвращаем его и ставим курсор в конец, чтобы не сбивать
-  // человека с потока ввода. Пропускаем самый первый рендер — иначе клавиатура сама
-  // выскакивает при заходе на страницу логина.
+  // не получает фокус сам по себе, возвращаем его.
   useEffect(() => {
-    if (!passwordMountedOnce.current) {
-      passwordMountedOnce.current = true
-      return
-    }
+    if (prevShowPassword.current === showPassword) return
+    prevShowPassword.current = showPassword
     const el = passwordRef.current
     if (!el) return
     el.focus()
-    // Safari исторически кидает InvalidStateError на setSelectionRange для type="password" —
-    // не критично, курсор просто окажется в начале, если браузер не разрешил.
-    try {
-      const len = el.value.length
-      el.setSelectionRange(len, len)
-    } catch {
-      /* no-op */
+    // Курсор в конец имеет смысл только когда РАСКРЫВАЕМ (type="text") — человек обычно
+    // хочет прочитать конец того, что напечатал. При скрытии обратно (type="password")
+    // не форсим позицию — retroactive code-review 2026-07-18 поймал: раньше прыгало в
+    // конец в обоих направлениях, даже если правили середину строки перед этим.
+    if (showPassword) {
+      try {
+        const len = el.value.length
+        el.setSelectionRange(len, len)
+      } catch {
+        // Safari исторически кидает InvalidStateError на setSelectionRange для некоторых
+        // состояний поля — не критично, курсор окажется там, где браузер сам поставил.
+      }
     }
   }, [showPassword])
 
@@ -188,8 +196,21 @@ export function LoginPage() {
       ) : (
       <form
         onSubmit={handleSubmit}
-        onFocus={() => setFormFocused(true)}
-        onBlur={() => setFormFocused(false)}
+        onFocus={() => {
+          // Клик на глазик пароля ремонтит инпут (см. эффект выше) — старый узел блёрится
+          // синхронно ДО того, как новый узел получает фокус в следующем commit, так что
+          // form ловит blur→focus за миллисекунды. Без дебаунса formFocused успевал стать
+          // false и обратно true — часы внизу успевали мигнуть видимыми на один кадр
+          // (retroactive code-review 2026-07-18, подтверждено двумя независимыми ревьюерами).
+          if (blurTimeoutRef.current) {
+            clearTimeout(blurTimeoutRef.current)
+            blurTimeoutRef.current = null
+          }
+          setFormFocused(true)
+        }}
+        onBlur={() => {
+          blurTimeoutRef.current = setTimeout(() => setFormFocused(false), 100)
+        }}
         className="login-card-enter relative w-full max-w-md rounded-2xl border p-10 shadow-2xl shadow-black/20 backdrop-blur-xl transition-colors duration-300"
         style={{ background: 'var(--login-card-bg)', borderColor: 'var(--login-card-border)' }}
       >
@@ -256,7 +277,10 @@ export function LoginPage() {
                 className="absolute right-3 top-1/2 -translate-y-1/2 rounded-md p-1 transition-colors"
                 style={{ color: 'var(--login-text-faint)' }}
                 aria-label={showPassword ? 'Скрыть пароль' : 'Показать пароль'}
-                tabIndex={-1}
+                // Раньше tabIndex={-1} — убирал единственный интерактивный элемент этой
+                // формы, добавленный этим же фиксом, из клавиатурной навигации целиком
+                // (retroactive code-review 2026-07-18, WCAG 2.1.1). Клавиатурный порядок
+                // Логин→Пароль→глазик→Войти вполне естественный, убирать не за чем.
               >
                 <span className="relative block h-4.5 w-4.5">
                   <Eye

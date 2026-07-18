@@ -55,6 +55,11 @@ export function TimezoneClock({ hidden = false }: { hidden?: boolean }) {
 
   return (
     <div
+      aria-hidden={hidden}
+      // inert — без него скрытие было чисто визуальным (opacity+pointer-events-none):
+      // клавиатурный Tab всё равно попадал на select/button часов, невидимых на экране
+      // (retroactive code-review 2026-07-18). inert разом убирает из tab-порядка и AT.
+      inert={hidden}
       className={`fixed bottom-4 right-4 rounded-xl border px-4 py-3 text-right shadow-lg shadow-black/10 backdrop-blur-xl transition-opacity duration-200 ${
         hidden ? 'pointer-events-none opacity-0' : 'opacity-100'
       }`}

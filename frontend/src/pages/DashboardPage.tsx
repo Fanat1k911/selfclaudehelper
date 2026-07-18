@@ -29,8 +29,11 @@ export function DashboardPage() {
   useEffect(() => {
     const prevHtml = document.documentElement.style.background
     const prevBody = document.body.style.background
-    document.documentElement.style.background = '#14120f'
-    document.body.style.background = '#14120f'
+    // var(...), не хардкод hex — раньше дублировал --color-premium-bg (index.css) как
+    // отдельную строку, retroactive code-review 2026-07-18 поймал: смена токена в одном
+    // месте молча разъезжалась бы с этим забытым вторым.
+    document.documentElement.style.background = 'var(--color-premium-bg)'
+    document.body.style.background = 'var(--color-premium-bg)'
     return () => {
       document.documentElement.style.background = prevHtml
       document.body.style.background = prevBody
