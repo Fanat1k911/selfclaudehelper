@@ -25,6 +25,7 @@ def _make_product_with_stock(db_session, *, batches=2.0, batch_yield=10.0, defec
             company_id=company_id,
             worker_id=worker.id,
             recipe_id=recipe.id,
+            qty=batches * batch_yield,
             batches=batches,
             started_at=datetime(2026, 7, 15, 9, 0),
             finished_at=datetime(2026, 7, 15, 10, 0),

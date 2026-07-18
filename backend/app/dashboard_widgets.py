@@ -93,7 +93,7 @@ def _kpi_by_worker(db: Session, company_id: str) -> list[dict]:
         month = entry.date.strftime("%Y-%m")
         key = (month, entry.worker_id)
         row = totals.setdefault(key, {"месяц": month, "ФИО": entry.worker.fio, "произведено": 0.0})
-        row["произведено"] += float(entry.batches) * float(entry.recipe.batch_yield) - float(entry.defects)
+        row["произведено"] += float(entry.qty) - float(entry.defects)
     result = list(totals.values())
     result.sort(key=lambda r: (r["месяц"], r["ФИО"]))
     return result
@@ -120,7 +120,7 @@ def _production_leaderboard(db: Session, company_id: str) -> list[dict]:
         row = totals.setdefault(
             entry.worker_id, {"worker_id": entry.worker_id, "ФИО": entry.worker.fio, "сегодня": 0.0, "месяц": 0.0}
         )
-        qty = float(entry.batches) * float(entry.recipe.batch_yield) - float(entry.defects)
+        qty = float(entry.qty) - float(entry.defects)
         row["месяц"] += qty
         if entry.date == today:
             row["сегодня"] += qty
@@ -161,7 +161,7 @@ def _defect_rate(db: Session, company_id: str) -> list[dict]:
     stmt = select(ProductionLog).where(ProductionLog.company_id == company_id)
     for entry in db.scalars(stmt):
         month = entry.date.strftime("%Y-%m")
-        produced[month] += float(entry.batches) * float(entry.recipe.batch_yield)
+        produced[month] += float(entry.qty)
         defects[month] += float(entry.defects)
     result = []
     for month in sorted(produced):

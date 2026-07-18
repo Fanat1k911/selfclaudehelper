@@ -117,7 +117,7 @@ def test_defect_rate_widget(client, db_session):
     db_session.flush()
     db_session.add(
         ProductionLog(
-            company_id=worker.company_id, worker_id=worker.id, recipe_id=recipe.id, batches=2, defects=2,
+            company_id=worker.company_id, worker_id=worker.id, recipe_id=recipe.id, qty=20, batches=2, defects=2,
             date=date(2026, 7, 1), started_at=datetime(2026, 7, 1, 9), finished_at=datetime(2026, 7, 1, 10),
         )
     )

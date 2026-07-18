@@ -148,7 +148,10 @@ def get_kpi(user: dict = Depends(get_current_user), db: Session = Depends(get_db
         defects = float(entry.defects)
         row["партий"] += batches
         row["брак"] += defects
-        row["произведено"] += batches * float(entry.recipe.batch_yield) - defects
+        # entry.qty напрямую (2026-07-18), не batches×yield — то же, что и раньше по
+        # значению, но без потери точности на некратных qty/yield соотношениях
+        # (Numeric(12,3) на batches округляет, см. app/routers/production.py).
+        row["произведено"] += float(entry.qty) - defects
 
     result = list(totals.values())
     result.sort(key=lambda r: (r["месяц"], r["ФИО"]))

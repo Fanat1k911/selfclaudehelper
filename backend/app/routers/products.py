@@ -30,11 +30,11 @@ def _missing_required_fields(fields: dict[str, str]) -> list[str]:
 
 
 def _ready_to_ship_by_recipe(db: Session, company_id: str) -> dict[str, float]:
-    """Готово к отгрузке = произведено по журналу смен (партии × выход) минус брак,
+    """Готово к отгрузке = произведено по журналу смен (кол-во продукта) минус брак,
     минус то, что уже продано (см. CLAUDE.md — пока связь рецепт-продукт всегда 1:1)."""
     produced: dict[str, float] = defaultdict(float)
     for log in db.scalars(select(ProductionLog).where(ProductionLog.company_id == company_id)):
-        produced[log.recipe_id] += float(log.batches) * float(log.recipe.batch_yield) - float(log.defects)
+        produced[log.recipe_id] += float(log.qty) - float(log.defects)
     return produced
 
 

@@ -148,7 +148,7 @@ def test_production_log_isolated_between_companies(client, db_session):
     db_session.flush()
     db_session.add(
         ProductionLog(
-            company_id=company_a.id, worker_id=worker_a.id, recipe_id=recipe_a.id, batches=1,
+            company_id=company_a.id, worker_id=worker_a.id, recipe_id=recipe_a.id, qty=10, batches=1,
             started_at=datetime(2026, 7, 1, 9), finished_at=datetime(2026, 7, 1, 10),
         )
     )
@@ -159,10 +159,7 @@ def test_production_log_isolated_between_companies(client, db_session):
 
     resp = client.post(
         "/api/production",
-        json={
-            "recipe_id": recipe_a.id, "batches": 1,
-            "started_at": "2026-07-01T09:00:00", "finished_at": "2026-07-01T10:00:00",
-        },
+        json={"recipe_id": recipe_a.id, "qty": 10},
         headers=auth_headers(founder_b),
     )
     assert resp.status_code == 404

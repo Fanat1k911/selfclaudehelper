@@ -203,6 +203,12 @@ class ProductionLog(Base):
     date: Mapped[date_] = mapped_column(Date, default=date_.today)
     worker_id: Mapped[str] = mapped_column(ForeignKey("users.id"))
     recipe_id: Mapped[str] = mapped_column(ForeignKey("recipes.id"))
+    # batches — для списания сырья (qty_per_batch × batches), может не делиться ровно на
+    # выход партии рецепта и терять точность в Numeric(12,3) при обратном пересчёте. qty —
+    # то, что реально ввёл человек ("Количество продукта", 2026-07-18) — хранится отдельно
+    # и НЕ реконструируется из batches×yield, чтобы не терять точность на некратных
+    # соотношениях (code-review 2026-07-18 поймал: qty=10 при yield=3 показывало бы 9.999).
+    qty: Mapped[float] = mapped_column(Numeric(12, 3))
     batches: Mapped[float] = mapped_column(Numeric(12, 3))
     started_at: Mapped[datetime] = mapped_column(DateTime)
     finished_at: Mapped[datetime] = mapped_column(DateTime)

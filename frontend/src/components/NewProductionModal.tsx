@@ -11,9 +11,7 @@ export function NewProductionModal({
 }) {
   const [products, setProducts] = useState<ProducibleProduct[]>([])
   const [productId, setProductId] = useState('')
-  const [batches, setBatches] = useState('1')
-  const [startedAt, setStartedAt] = useState('')
-  const [finishedAt, setFinishedAt] = useState('')
+  const [qty, setQty] = useState('1')
   const [defects, setDefects] = useState('0')
   const [comment, setComment] = useState('')
   const [error, setError] = useState<string | null>(null)
@@ -37,9 +35,7 @@ export function NewProductionModal({
         method: 'POST',
         body: JSON.stringify({
           recipe_id: product.recipe_id,
-          batches: Number(batches),
-          started_at: startedAt,
-          finished_at: finishedAt,
+          qty: Number(qty),
           defects: defects ? Number(defects) : 0,
           comment,
         }),
@@ -78,44 +74,16 @@ export function NewProductionModal({
         </div>
 
         <div>
-          <label className="block text-xs text-ink/60 mb-1">Количество партий</label>
+          <label className="block text-xs text-ink/60 mb-1">Количество продукта</label>
           <input
             type="number"
             step="any"
             min="0"
-            value={batches}
-            onChange={(e) => setBatches(e.target.value)}
+            value={qty}
+            onChange={(e) => setQty(e.target.value)}
             className="w-full rounded-lg border border-ink/10 px-3 py-2 text-sm outline-none focus:border-terracotta"
             required
           />
-        </div>
-
-        <div className="grid grid-cols-2 gap-3">
-          {/* min-w-0 на обоих ячейках грида (2026-07-18, наплыв полей на мобильном
-              Brave/iOS) — datetime-local у WebKit несёт собственный минимальный
-              intrinsic-размер нативного пикера; без min-w-0 дефолтный min-width:auto
-              грид-ячейки не даёт полю сжаться до назначенной 1fr-доли на узком экране,
-              и одно поле раздувается, наезжая на соседнее. */}
-          <div className="min-w-0">
-            <label className="block text-xs text-ink/60 mb-1">Начало</label>
-            <input
-              type="datetime-local"
-              value={startedAt}
-              onChange={(e) => setStartedAt(e.target.value)}
-              className="w-full min-w-0 rounded-lg border border-ink/10 px-3 py-2 text-sm outline-none focus:border-terracotta"
-              required
-            />
-          </div>
-          <div className="min-w-0">
-            <label className="block text-xs text-ink/60 mb-1">Окончание</label>
-            <input
-              type="datetime-local"
-              value={finishedAt}
-              onChange={(e) => setFinishedAt(e.target.value)}
-              className="w-full min-w-0 rounded-lg border border-ink/10 px-3 py-2 text-sm outline-none focus:border-terracotta"
-              required
-            />
-          </div>
         </div>
 
         <div>

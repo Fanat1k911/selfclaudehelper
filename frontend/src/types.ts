@@ -133,9 +133,7 @@ export interface ProductionLogEntry {
   'ФИО сотрудника': string
   recipe_id: string
   'название рецепта': string
-  'кол-во партий': number
-  'время начала': string
-  'время окончания': string
+  'кол-во продукта': number
   'брак': number
   'комментарий': string
 }

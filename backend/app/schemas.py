@@ -72,7 +72,8 @@ class ProductionRequest(BaseModel):
     ввода (тем же решением) — на бэке проставляются автоматически (started_at = первый вход
     сотрудника сегодня из LoginLog, finished_at = момент внесения записи), не приходят с
     фронта. Метрика скорости в KPI из них по-прежнему не считается (dashboard/leaderboard
-    используют только batches×yield−defects) — это задел на будущее, не активная фича."""
+    используют только qty−defects, см. ProductionLog.qty) — это задел на будущее, не
+    активная фича."""
 
     recipe_id: str
     qty: float

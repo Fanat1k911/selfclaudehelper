@@ -1,7 +1,7 @@
 from datetime import date, datetime, timedelta
 
 from app.constants import FOUNDER, TRANSACTION_INCOME, WORKER
-from app.models import Material, Product, ProductionLog, Recipe, RecipeItem, Transaction
+from app.models import LoginLog, Material, Product, ProductionLog, Recipe, RecipeItem, Transaction
 from tests.conftest import auth_headers, default_company_id, make_user
 
 
@@ -33,9 +33,7 @@ def test_production_rejected_when_stock_insufficient(client, db_session):
         "/api/production",
         json={
             "recipe_id": recipe.id,
-            "batches": 1,
-            "started_at": "2026-07-15T09:00:00",
-            "finished_at": "2026-07-15T10:00:00",
+            "qty": 10,  # 1 партия × batch_yield=10.0 (default _make_recipe_with_material)
         },
         headers=auth_headers(worker),
     )
@@ -57,9 +55,7 @@ def test_production_succeeds_when_stock_sufficient(client, db_session):
         "/api/production",
         json={
             "recipe_id": recipe.id,
-            "batches": 1,
-            "started_at": "2026-07-15T09:00:00",
-            "finished_at": "2026-07-15T10:00:00",
+            "qty": 10,  # 1 партия × batch_yield=10.0 (default _make_recipe_with_material)
         },
         headers=auth_headers(worker),
     )
@@ -93,9 +89,7 @@ def test_production_worker_sees_only_own_log(client, db_session):
             "/api/production",
             json={
                 "recipe_id": r.id,
-                "batches": 1,
-                "started_at": "2026-07-15T09:00:00",
-                "finished_at": "2026-07-15T10:00:00",
+                "qty": 1,  # batch_yield=1.0 здесь → 1 партия = qty 1
             },
             headers=auth_headers(worker),
         )
@@ -120,9 +114,7 @@ def test_production_rejected_for_archived_recipe(client, db_session):
         "/api/production",
         json={
             "recipe_id": recipe.id,
-            "batches": 1,
-            "started_at": "2026-07-15T09:00:00",
-            "finished_at": "2026-07-15T10:00:00",
+            "qty": 10,  # 1 партия × batch_yield=10.0 (default _make_recipe_with_material)
         },
         headers=auth_headers(worker),
     )
@@ -172,18 +164,19 @@ def test_leaderboard_aggregates_today_and_month_only_quantity(client, db_session
     db_session.add_all(
         [
             ProductionLog(
-                company_id=company_id, date=today, worker_id=worker.id, recipe_id=recipe.id, batches=2, defects=1,
+                company_id=company_id, date=today, worker_id=worker.id, recipe_id=recipe.id,
+                qty=20, batches=2, defects=1,
                 started_at=datetime(today.year, today.month, today.day, 9),
                 finished_at=datetime(today.year, today.month, today.day, 10),
             ),
             ProductionLog(
                 company_id=company_id, date=earlier_this_month, worker_id=worker.id, recipe_id=recipe.id,
-                batches=1, defects=0,
+                qty=10, batches=1, defects=0,
                 started_at=datetime(2020, 1, 1, 9), finished_at=datetime(2020, 1, 1, 10),
             ),
             ProductionLog(
                 company_id=company_id, date=last_month, worker_id=worker.id, recipe_id=recipe.id,
-                batches=5, defects=0,
+                qty=50, batches=5, defects=0,
                 started_at=datetime(2020, 1, 1, 9), finished_at=datetime(2020, 1, 1, 10),
             ),
         ]
@@ -203,3 +196,94 @@ def test_leaderboard_visible_to_worker(client, db_session):
     worker = make_user(db_session, login="w9", role=WORKER)
     resp = client.get("/api/production/leaderboard", headers=auth_headers(worker))
     assert resp.status_code == 200
+
+
+def test_production_qty_scales_material_writeoff_by_batch_yield(client, db_session):
+    """Ввод теперь — кол-во продукта, не партий (2026-07-18) — 20 шт при выходе партии 10
+    должно списать сырьё как за 2 партии, не как за 20."""
+    material, recipe = _make_recipe_with_material(db_session, qty_per_batch=3.0, batch_yield=10.0)
+    company_id = default_company_id(db_session)
+    db_session.add(Transaction(company_id=company_id, material_id=material.id, type=TRANSACTION_INCOME, qty=100.0))
+    db_session.commit()
+
+    worker = make_user(db_session, login="qty_worker", role=WORKER)
+    resp = client.post("/api/production", json={"recipe_id": recipe.id, "qty": 20}, headers=auth_headers(worker))
+    assert resp.status_code == 200
+
+    expense = db_session.query(Transaction).filter(Transaction.type != TRANSACTION_INCOME).one()
+    assert float(expense.qty) == 6.0  # 3.0 * (20/10) = 6.0, не 3.0*20
+
+
+def test_production_response_returns_product_quantity_not_batches(client, db_session):
+    material, recipe = _make_recipe_with_material(db_session, qty_per_batch=1.0, batch_yield=5.0)
+    company_id = default_company_id(db_session)
+    db_session.add(Transaction(company_id=company_id, material_id=material.id, type=TRANSACTION_INCOME, qty=100.0))
+    db_session.commit()
+
+    worker = make_user(db_session, login="qty_display_worker", role=WORKER)
+    client.post("/api/production", json={"recipe_id": recipe.id, "qty": 15}, headers=auth_headers(worker))
+
+    resp = client.get("/api/production", headers=auth_headers(worker))
+    entry = resp.json()[0]
+    assert entry["кол-во продукта"] == 15.0
+    assert "кол-во партий" not in entry
+    assert "время начала" not in entry
+    assert "время окончания" not in entry
+
+
+def test_production_zero_batch_yield_rejected(client, db_session):
+    material, recipe = _make_recipe_with_material(db_session, batch_yield=0.0)
+    company_id = default_company_id(db_session)
+    db_session.add(Transaction(company_id=company_id, material_id=material.id, type=TRANSACTION_INCOME, qty=100.0))
+    db_session.commit()
+
+    worker = make_user(db_session, login="zero_yield_worker", role=WORKER)
+    resp = client.post("/api/production", json={"recipe_id": recipe.id, "qty": 10}, headers=auth_headers(worker))
+    assert resp.status_code == 400
+    assert "выход партии" in resp.json()["detail"]
+
+
+def test_production_zero_qty_rejected(client, db_session):
+    _, recipe = _make_recipe_with_material(db_session)
+    worker = make_user(db_session, login="zero_qty_worker", role=WORKER)
+    resp = client.post("/api/production", json={"recipe_id": recipe.id, "qty": 0}, headers=auth_headers(worker))
+    assert resp.status_code == 400
+
+
+def test_production_started_at_uses_first_login_today(client, db_session):
+    """started_at теперь берётся с первого входа сотрудника сегодня (LoginLog), не с
+    ручного ввода (2026-07-18, решение Founder)."""
+    material, recipe = _make_recipe_with_material(db_session)
+    company_id = default_company_id(db_session)
+    db_session.add(Transaction(company_id=company_id, material_id=material.id, type=TRANSACTION_INCOME, qty=100.0))
+    worker = make_user(db_session, login="login_time_worker", role=WORKER)
+
+    today_9am = datetime.combine(date.today(), datetime.min.time().replace(hour=9))
+    today_2pm = datetime.combine(date.today(), datetime.min.time().replace(hour=14))
+    db_session.add(LoginLog(company_id=company_id, user_id=worker.id, logged_in_at=today_9am))
+    db_session.add(LoginLog(company_id=company_id, user_id=worker.id, logged_in_at=today_2pm))
+    db_session.commit()
+
+    resp = client.post("/api/production", json={"recipe_id": recipe.id, "qty": 10}, headers=auth_headers(worker))
+    assert resp.status_code == 200
+
+    log = db_session.query(ProductionLog).filter(ProductionLog.worker_id == worker.id).one()
+    assert log.started_at == today_9am  # первый, не второй вход сегодня
+
+
+def test_production_started_at_falls_back_to_now_without_login_today(client, db_session):
+    material, recipe = _make_recipe_with_material(db_session)
+    company_id = default_company_id(db_session)
+    db_session.add(Transaction(company_id=company_id, material_id=material.id, type=TRANSACTION_INCOME, qty=100.0))
+    worker = make_user(db_session, login="no_login_today_worker", role=WORKER)
+    yesterday = datetime.combine(date.today() - timedelta(days=1), datetime.min.time().replace(hour=9))
+    db_session.add(LoginLog(company_id=company_id, user_id=worker.id, logged_in_at=yesterday))
+    db_session.commit()
+
+    before = datetime.utcnow()
+    resp = client.post("/api/production", json={"recipe_id": recipe.id, "qty": 10}, headers=auth_headers(worker))
+    after = datetime.utcnow()
+    assert resp.status_code == 200
+
+    log = db_session.query(ProductionLog).filter(ProductionLog.worker_id == worker.id).one()
+    assert before <= log.started_at <= after

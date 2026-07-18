@@ -14,7 +14,7 @@ from sqlalchemy.orm import Session
 from app.constants import DEVELOPER, FOUNDER, TRANSACTION_ADJUSTMENT, TRANSACTION_EXPENSE, TRANSACTION_INCOME
 
 from app.db import get_db
-from app.models import Product, ProductionLog, Recipe, RecipeItem, Transaction
+from app.models import LoginLog, Product, ProductionLog, Recipe, RecipeItem, Transaction
 from app.schemas import ProductionRequest
 from app.security import get_current_user, get_owned_or_404
 
@@ -73,9 +73,10 @@ def _log_dict(entry: ProductionLog) -> dict:
         "ФИО сотрудника": entry.worker.fio,
         "recipe_id": entry.recipe_id,
         "название рецепта": entry.recipe.name,
-        "кол-во партий": float(entry.batches),
-        "время начала": entry.started_at.isoformat(),
-        "время окончания": entry.finished_at.isoformat(),
+        # qty хранится отдельно от batches (2026-07-18) — не реконструируем из
+        # batches×yield, это теряло точность на некратных соотношениях (code-review
+        # 2026-07-18: qty=10 при yield=3 показывало бы 9.999 вместо 10).
+        "кол-во продукта": float(entry.qty),
         "брак": float(entry.defects),
         "комментарий": entry.comment or "",
     }
@@ -107,7 +108,7 @@ def get_leaderboard(user: dict = Depends(get_current_user), db: Session = Depend
             entry.worker_id,
             {"worker_id": entry.worker_id, "ФИО": entry.worker.fio, "сегодня": 0.0, "месяц": 0.0},
         )
-        qty = float(entry.batches) * float(entry.recipe.batch_yield) - float(entry.defects)
+        qty = float(entry.qty) - float(entry.defects)
         row["месяц"] += qty
         if entry.date == today:
             row["сегодня"] += qty
@@ -121,18 +122,24 @@ def get_leaderboard(user: dict = Depends(get_current_user), db: Session = Depend
 def create_production(
     body: ProductionRequest, user: dict = Depends(get_current_user), db: Session = Depends(get_db)
 ) -> dict:
-    if body.batches <= 0:
-        raise HTTPException(400, "Количество партий должно быть больше нуля.")
+    if body.qty <= 0:
+        raise HTTPException(400, "Количество продукта должно быть больше нуля.")
 
     recipe = get_owned_or_404(db, Recipe, body.recipe_id, user["company_id"], "Рецепт не найден.")
     if recipe.archived:
         raise HTTPException(400, "Рецепт в архиве, производство по нему недоступно.")
+    if float(recipe.batch_yield) <= 0:
+        raise HTTPException(400, "У рецепта не указан выход партии — невозможно посчитать списание сырья.")
+
+    # Списание считается партиями, ввод теперь — готовым продуктом (2026-07-18): переводим
+    # обратно делением на выход партии рецепта, дальше логика та же, что и раньше.
+    batches = body.qty / float(recipe.batch_yield)
 
     recipe_items = db.scalars(select(RecipeItem).where(RecipeItem.recipe_id == body.recipe_id)).all()
 
     shortages = []
     for item in recipe_items:
-        need = float(item.qty_per_batch) * body.batches
+        need = float(item.qty_per_batch) * batches
         available = _balance(db, item.material_id, user["company_id"])
         if available < need:
             shortages.append(f"{item.material.name}: нужно {need:g}, в наличии {available:g}")
@@ -145,19 +152,40 @@ def create_production(
                 company_id=user["company_id"],
                 material_id=item.material_id,
                 type=TRANSACTION_EXPENSE,
-                qty=float(item.qty_per_batch) * body.batches,
+                qty=float(item.qty_per_batch) * batches,
                 recipe_id=body.recipe_id,
                 comment=f"списание по производству: {recipe.name}",
             )
         )
 
+    # started_at/finished_at убраны из ручного ввода (2026-07-18, решение Founder), но не из
+    # колонок БД — вместо голого "оба = сейчас" (нулевая длительность) started_at теперь берём
+    # с первого входа сотрудника СЕГОДНЯ (LoginLog), finished_at — момент внесения записи. Это
+    # даёт грубую оценку "сколько прошло с начала смены", не требуя ручного секундомера.
+    # Фоллбек на now(), если сегодняшнего входа почему-то нет (токен пережил полночь без
+    # повторного логина) — тогда длительность просто 0, как и было, не 500/ошибка.
+    now = datetime.utcnow()
+    today_start = datetime.combine(now.date(), datetime.min.time())
+    first_login_today = db.scalar(
+        select(LoginLog)
+        .where(
+            LoginLog.user_id == user["id"],
+            LoginLog.company_id == user["company_id"],
+            LoginLog.logged_in_at >= today_start,
+        )
+        .order_by(LoginLog.logged_in_at)
+        .limit(1)
+    )
+    started_at = first_login_today.logged_in_at if first_login_today else now
+
     log = ProductionLog(
         company_id=user["company_id"],
         worker_id=user["id"],
         recipe_id=body.recipe_id,
-        batches=body.batches,
-        started_at=datetime.fromisoformat(body.started_at),
-        finished_at=datetime.fromisoformat(body.finished_at),
+        qty=body.qty,
+        batches=batches,
+        started_at=started_at,
+        finished_at=now,
         defects=body.defects,
         comment=body.comment,
     )

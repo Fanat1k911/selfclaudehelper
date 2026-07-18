@@ -65,12 +65,12 @@ def test_kpi_grouped_by_month_and_worker(client, db_session):
     db_session.add_all(
         [
             ProductionLog(
-                company_id=worker.company_id, worker_id=worker.id, recipe_id=recipe.id, batches=2, defects=1,
+                company_id=worker.company_id, worker_id=worker.id, recipe_id=recipe.id, qty=20, batches=2, defects=1,
                 date=date(2026, 6, 10),
                 started_at=datetime(2026, 6, 10, 9), finished_at=datetime(2026, 6, 10, 11),
             ),
             ProductionLog(
-                company_id=worker.company_id, worker_id=worker.id, recipe_id=recipe.id, batches=1, defects=0,
+                company_id=worker.company_id, worker_id=worker.id, recipe_id=recipe.id, qty=10, batches=1, defects=0,
                 date=date(2026, 7, 5),
                 started_at=datetime(2026, 7, 5, 9), finished_at=datetime(2026, 7, 5, 10),
             ),
