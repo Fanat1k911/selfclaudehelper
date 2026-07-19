@@ -19,7 +19,13 @@ from app.constants import TRANSACTION_ADJUSTMENT, TRANSACTION_EXPENSE, TRANSACTI
 
 from app.db import get_db
 from app.models import Material, Transaction
-from app.schemas import AdjustmentRequest, ImportCommitRequest, NewMaterialRequest, TransactionRequest
+from app.schemas import (
+    AdjustmentRequest,
+    ImportCommitRequest,
+    MaterialAttrsUpdate,
+    NewMaterialRequest,
+    TransactionRequest,
+)
 from app.security import get_current_user, get_owned_or_404
 
 router = APIRouter(prefix="/api/ingredients", tags=["ingredients"], dependencies=[Depends(get_current_user)])
@@ -130,6 +136,19 @@ def create_ingredient(
         )
     db.commit()
     return {"id": material.id}
+
+
+@router.patch("/{material_id}")
+def update_ingredient_attrs(
+    material_id: str, body: MaterialAttrsUpdate, user: dict = Depends(get_current_user), db: Session = Depends(get_db)
+) -> dict:
+    """Закупочные поля карточки (себестоимость/мин.партия/поставщик/INCI) — не
+    остаток и не движение, тех правят через приход/расход/корректировку."""
+    material = _get_own_material(db, material_id, user["company_id"])
+    for field, value in body.model_dump(exclude_unset=True).items():
+        setattr(material, field, value)
+    db.commit()
+    return {"ok": True}
 
 
 def _require_positive(qty: float) -> None:

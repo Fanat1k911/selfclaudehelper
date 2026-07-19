@@ -52,6 +52,19 @@ class NewMaterialRequest(BaseModel):
     min_stock: float = 0.0
 
 
+class MaterialAttrsUpdate(BaseModel):
+    """Закупочные поля карточки компонента (2026-07-19) — частичное обновление
+    через model_dump(exclude_unset=True) в роутере: пропущенное в запросе поле не
+    трогается, явно присланный null — очищает."""
+
+    unit_cost: float | None = None
+    min_purchase_batch_qty: float | None = None
+    min_purchase_batch_cost: float | None = None
+    min_purchase_batch_weight: float | None = None
+    supplier: str | None = None
+    inci: str | None = None
+
+
 class TransactionRequest(BaseModel):
     qty: float
     price: float | None = None

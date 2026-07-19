@@ -45,6 +45,12 @@ export interface Ingredient {
   'ниже минимума': boolean
   'цвет': 'зелёный' | 'жёлтый' | 'красный'
   'последнее движение': string | null
+  'себестоимость 1 шт': number | null
+  'минимальная партия для закупки': number | null
+  'себестоимость минимальной партии': number | null
+  'вес минимальной партии': number | null
+  'поставщик': string
+  'INCI': string
 }
 
 export interface Transaction {
