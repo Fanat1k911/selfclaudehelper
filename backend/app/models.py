@@ -107,6 +107,15 @@ class Material(Base):
     category: Mapped[str] = mapped_column(String(20))
     unit: Mapped[str] = mapped_column(String(20))
     min_stock: Mapped[float] = mapped_column(Numeric(12, 3), default=0)
+    # Карточка компонента (2026-07-19, запрос Founder/Александра) — закупочные атрибуты
+    # из каталога поставщика, не связаны с остатком/движениями (те по-прежнему только в
+    # Transactions). Все опциональны — не у каждого материала есть все эти данные.
+    unit_cost: Mapped[float | None] = mapped_column(Numeric(12, 4))
+    min_purchase_batch_qty: Mapped[float | None] = mapped_column(Numeric(12, 3))
+    min_purchase_batch_cost: Mapped[float | None] = mapped_column(Numeric(12, 2))
+    min_purchase_batch_weight: Mapped[float | None] = mapped_column(Numeric(12, 3))
+    supplier: Mapped[str | None] = mapped_column(String(255))
+    inci: Mapped[str | None] = mapped_column(Text)
 
     transactions: Mapped[list["Transaction"]] = relationship(back_populates="material")
 

@@ -49,6 +49,18 @@ def _material_dict(material: Material, balance: float, last_movement: date | Non
         "ниже минимума": balance < min_stock,
         "цвет": _color(balance, min_stock),
         "последнее движение": last_movement.isoformat() if last_movement else None,
+        "себестоимость 1 шт": float(material.unit_cost) if material.unit_cost is not None else None,
+        "минимальная партия для закупки": (
+            float(material.min_purchase_batch_qty) if material.min_purchase_batch_qty is not None else None
+        ),
+        "себестоимость минимальной партии": (
+            float(material.min_purchase_batch_cost) if material.min_purchase_batch_cost is not None else None
+        ),
+        "вес минимальной партии": (
+            float(material.min_purchase_batch_weight) if material.min_purchase_batch_weight is not None else None
+        ),
+        "поставщик": material.supplier or "",
+        "INCI": material.inci or "",
     }
 
 
