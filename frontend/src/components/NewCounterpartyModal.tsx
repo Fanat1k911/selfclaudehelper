@@ -26,7 +26,13 @@ export function NewCounterpartyModal({ onClose, onCreated }: { onClose: () => vo
   // дёргаем /counterparties/lookup, на успехе блокируем найденные поля от ручного
   // редактирования (просьба Founder — исключить случайные опечатки при заведении
   // контрагента). "Ввести вручную" снимает блокировку, если DaData ошиблась/устарела.
-  const [lookupState, setLookupState] = useState<'idle' | 'loading' | 'found' | 'not_found' | 'unavailable'>('idle')
+  const [lookupState, setLookupState] = useState<'idle' | 'loading' | 'found' | 'not_found' | 'unavailable' | 'error'>('idle')
+  // 404 ("не найдена") — единственный статус, где реально стоит предлагать ручной ввод.
+  // Любая другая ошибка (502 недоступности DaData, 400 битый формат и т.п.) раньше тоже
+  // схлопывалась в "не найдена" — вводило в заблуждение при реальном сбое (2026-07-19,
+  // поймано на живом ИНН, который DaData прекрасно находит напрямую). Показываем
+  // фактический текст ошибки с бэка вместо угадывания причины.
+  const [lookupErrorMessage, setLookupErrorMessage] = useState('')
   const lookupSeq = useRef(0)
 
   useEffect(() => {
@@ -49,8 +55,11 @@ export function NewCounterpartyModal({ onClose, onCreated }: { onClose: () => vo
         if (lookupSeq.current !== seq) return
         if (err instanceof ApiError && err.status === 501) {
           setLookupState('unavailable')
-        } else {
+        } else if (err instanceof ApiError && err.status === 404) {
           setLookupState('not_found')
+        } else {
+          setLookupErrorMessage(err instanceof ApiError ? err.message : 'Не удалось выполнить поиск по ИНН.')
+          setLookupState('error')
         }
       }
     }, 400)
@@ -147,6 +156,11 @@ export function NewCounterpartyModal({ onClose, onCreated }: { onClose: () => vo
         {lookupState === 'not_found' && (
           <div className="rounded-lg bg-amber-50 px-3 py-2 text-xs text-amber-700">
             Компания с таким ИНН не найдена — заполните поля вручную.
+          </div>
+        )}
+        {lookupState === 'error' && (
+          <div className="rounded-lg bg-red-50 px-3 py-2 text-xs text-red-700">
+            {lookupErrorMessage} Заполните поля вручную.
           </div>
         )}
 
