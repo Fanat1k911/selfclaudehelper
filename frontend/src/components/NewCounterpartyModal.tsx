@@ -145,6 +145,11 @@ export function NewCounterpartyModal({ onClose, onCreated }: { onClose: () => vo
           </div>
         </div>
 
+        {lookupState === 'idle' && (
+          <div className="rounded-lg bg-cream px-3 py-2 text-xs text-ink/50">
+            Введите ИНН — если компания найдётся в реестре, остальные поля подтянутся автоматически.
+          </div>
+        )}
         {lookupState === 'found' && (
           <div className="flex items-center justify-between rounded-lg bg-emerald-50 px-3 py-2 text-xs text-emerald-700">
             <span>Данные найдены по ИНН, поля заблокированы от опечаток.</span>
