@@ -101,22 +101,54 @@ export function TechPanelPage() {
       </div>
 
       <h2 className="mb-2 text-sm font-semibold text-ink/70">Последние записи логов</h2>
-      <div className="overflow-hidden rounded-xl border border-ink/10 bg-white">
+
+      <div className="space-y-2 md:hidden">
+        {loading && (
+          <div className="rounded-xl border border-ink/10 bg-white px-4 py-6 text-center text-sm text-ink/40">
+            Загрузка…
+          </div>
+        )}
+        {!loading && logs.length === 0 && (
+          <div className="rounded-xl border border-ink/10 bg-white px-4 py-6 text-center text-sm text-ink/40">
+            Логов пока нет.
+          </div>
+        )}
+        {logs.map((row, i) => (
+          <div key={i} className="rounded-xl border border-ink/10 bg-white p-3">
+            <div className="flex items-center justify-between gap-2 text-xs">
+              <span className={`font-medium ${LEVEL_COLOR[row.level] ?? 'text-ink/60'}`}>{row.level}</span>
+              <span className="shrink-0 text-ink/40">{formatTime(row.time)}</span>
+            </div>
+            <div className="mt-0.5 truncate text-xs text-ink/40">{row.logger}</div>
+            <div className="mt-1 break-words text-sm text-ink">{row.message}</div>
+          </div>
+        ))}
+      </div>
+
+      <div className="hidden overflow-hidden rounded-xl border border-ink/10 bg-white md:block">
         {loading && <div className="px-4 py-6 text-center text-sm text-ink/40">Загрузка…</div>}
         {!loading && logs.length === 0 && (
           <div className="px-4 py-6 text-center text-sm text-ink/40">Логов пока нет.</div>
         )}
         {!loading && logs.length > 0 && (
-          <table className="w-full text-sm">
+          <table className="w-full table-fixed text-sm">
+            <colgroup>
+              <col className="w-20" />
+              <col className="w-24" />
+              <col className="w-48" />
+              <col />
+            </colgroup>
             <tbody>
               {logs.map((row, i) => (
                 <tr key={i} className="border-t border-ink/5 first:border-t-0">
-                  <td className="whitespace-nowrap px-3 py-2 text-ink/40">{formatTime(row.time)}</td>
-                  <td className={`whitespace-nowrap px-3 py-2 font-medium ${LEVEL_COLOR[row.level] ?? 'text-ink/60'}`}>
+                  <td className="whitespace-nowrap px-3 py-2 align-top text-ink/40">{formatTime(row.time)}</td>
+                  <td className={`whitespace-nowrap px-3 py-2 align-top font-medium ${LEVEL_COLOR[row.level] ?? 'text-ink/60'}`}>
                     {row.level}
                   </td>
-                  <td className="whitespace-nowrap px-3 py-2 text-ink/40">{row.logger}</td>
-                  <td className="px-3 py-2 text-ink">{row.message}</td>
+                  <td className="truncate px-3 py-2 align-top text-ink/40" title={row.logger}>
+                    {row.logger}
+                  </td>
+                  <td className="break-words px-3 py-2 align-top text-ink">{row.message}</td>
                 </tr>
               ))}
             </tbody>
