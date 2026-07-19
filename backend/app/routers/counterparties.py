@@ -3,6 +3,8 @@
 
 Мультитенантность: каждый запрос фильтруется по user["company_id"]."""
 
+import logging
+
 import httpx
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import select
@@ -20,6 +22,7 @@ router = APIRouter(
     prefix="/api/counterparties", tags=["counterparties"], dependencies=[Depends(require_roles(FOUNDER, DEVELOPER))]
 )
 
+_logger = logging.getLogger(__name__)
 _DADATA_URL = "https://suggestions.dadata.ru/suggestions/api/4_1/rs/findById/party"
 
 
@@ -41,7 +44,13 @@ def lookup_by_inn(inn: str, user: dict = Depends(get_current_user)) -> dict:
             timeout=5.0,
         )
         resp.raise_for_status()
-    except httpx.HTTPError:
+    except httpx.HTTPStatusError as exc:
+        # Видно в Техпанели (developer) и в логах Render — статус/тело от DaData сюда,
+        # не пользователю (не палим детали внешнего API в ответе фронту).
+        _logger.warning("DaData lookup HTTP %s for ИНН %s: %s", exc.response.status_code, inn, exc.response.text[:300])
+        raise HTTPException(502, "Не удалось выполнить поиск по ИНН, попробуйте позже.")
+    except httpx.HTTPError as exc:
+        _logger.warning("DaData lookup request failed for ИНН %s: %s", inn, exc)
         raise HTTPException(502, "Не удалось выполнить поиск по ИНН, попробуйте позже.")
 
     suggestions = resp.json().get("suggestions") or []
