@@ -3,12 +3,14 @@ import { apiFetch } from '../lib/api'
 import type { Product } from '../types'
 import { NewProductModal } from '../components/NewProductModal'
 import { ImportProductsModal } from '../components/ImportProductsModal'
+import { EditProductModal } from '../components/EditProductModal'
 
 export function ProductsPage() {
   const [products, setProducts] = useState<Product[]>([])
   const [loading, setLoading] = useState(true)
   const [showCreate, setShowCreate] = useState(false)
   const [showImport, setShowImport] = useState(false)
+  const [editing, setEditing] = useState<Product | null>(null)
 
   async function load() {
     setLoading(true)
@@ -56,7 +58,11 @@ export function ProductsPage() {
           </div>
         )}
         {products.map((p) => (
-          <div key={p.id} className="rounded-xl border border-ink/10 bg-white p-4 shadow-sm">
+          <div
+            key={p.id}
+            onClick={() => setEditing(p)}
+            className="cursor-pointer rounded-xl border border-ink/10 bg-white p-4 shadow-sm active:bg-ink/5"
+          >
             <div className="flex items-start justify-between gap-2">
               <span className="truncate text-sm font-medium text-ink">{p['название']}</span>
               <span className="shrink-0 text-xs text-ink/50">{p.GTIN}</span>
@@ -65,7 +71,13 @@ export function ProductsPage() {
             <div className="mt-1.5 flex items-center justify-between text-xs">
               <span className="text-ink/50">Готово к отгрузке</span>
               <span className="shrink-0 font-medium text-ink">
-                {p['готово к отгрузке'] === null ? '—' : p['готово к отгрузке']}
+                {p['готово к отгрузке'] === null ? (
+                  <span className="text-amber-600" title="Нет рецепта — продажа не проверяет остаток">
+                    без рецепта
+                  </span>
+                ) : (
+                  p['готово к отгрузке']
+                )}
               </span>
             </div>
           </div>
@@ -98,12 +110,22 @@ export function ProductsPage() {
               </tr>
             )}
             {products.map((p) => (
-              <tr key={p.id} className="border-b border-ink/5 last:border-0">
+              <tr
+                key={p.id}
+                onClick={() => setEditing(p)}
+                className="cursor-pointer border-b border-ink/5 last:border-0 hover:bg-ink/5"
+              >
                 <td className="px-4 py-3">{p['название']}</td>
                 <td className="px-4 py-3 text-ink/60">{p['категория']}</td>
                 <td className="px-4 py-3 text-ink/60">{p.GTIN}</td>
                 <td className="px-4 py-3 text-right font-medium text-ink">
-                  {p['готово к отгрузке'] === null ? '—' : p['готово к отгрузке']}
+                  {p['готово к отгрузке'] === null ? (
+                    <span className="text-amber-600" title="Нет рецепта — продажа не проверяет остаток">
+                      без рецепта
+                    </span>
+                  ) : (
+                    p['готово к отгрузке']
+                  )}
                 </td>
               </tr>
             ))}
@@ -126,6 +148,17 @@ export function ProductsPage() {
           onClose={() => setShowImport(false)}
           onImported={() => {
             setShowImport(false)
+            load()
+          }}
+        />
+      )}
+
+      {editing && (
+        <EditProductModal
+          product={editing}
+          onClose={() => setEditing(null)}
+          onSaved={() => {
+            setEditing(null)
             load()
           }}
         />

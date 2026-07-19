@@ -1,5 +1,6 @@
-import { useState, type ChangeEvent } from 'react'
+import { useEffect, useState, type ChangeEvent } from 'react'
 import { apiFetch, apiUpload, ApiError } from '../lib/api'
+import type { Recipe } from '../types'
 
 interface PreviewRow {
   name: string
@@ -22,9 +23,15 @@ export function ImportProductsModal({
   const [sheets, setSheets] = useState<string[]>([])
   const [sheetName, setSheetName] = useState('')
   const [rows, setRows] = useState<PreviewRow[]>([])
+  const [recipeByRow, setRecipeByRow] = useState<Record<number, string>>({})
+  const [recipes, setRecipes] = useState<Recipe[]>([])
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
   const [submitting, setSubmitting] = useState(false)
+
+  useEffect(() => {
+    apiFetch<Recipe[]>('/recipes').then(setRecipes)
+  }, [])
 
   async function handleFile(e: ChangeEvent<HTMLInputElement>) {
     const picked = e.target.files?.[0]
@@ -68,7 +75,7 @@ export function ImportProductsModal({
     }
   }
 
-  const okRows = rows.filter((r) => r.status === 'ok')
+  const okRows = rows.map((r, i) => ({ r, i })).filter(({ r }) => r.status === 'ok')
 
   async function handleConfirm() {
     setSubmitting(true)
@@ -77,13 +84,14 @@ export function ImportProductsModal({
       await apiFetch('/products/import/commit', {
         method: 'POST',
         body: JSON.stringify({
-          rows: okRows.map((r) => ({
+          rows: okRows.map(({ r, i }) => ({
             name: r.name,
             category: r.category,
             gtin: r.gtin,
             tn_ved: r.tn_ved,
             declaration: r.declaration,
             declaration_expires: r.declaration_expires,
+            recipe_id: recipeByRow[i] || '',
           })),
         }),
       })
@@ -105,6 +113,7 @@ export function ImportProductsModal({
         <p className="text-sm text-ink/50">
           Ожидаются колонки: Наименование, Категория, GTIN, ТН ВЭД, Декларация соответствия, Срок действия РД.
           Импорт только создаёт новые продукты — если GTIN уже есть в базе, строка пропускается.
+          Рецепт выбирается вручную по каждой строке — без него «готово к отгрузке» не будет считаться.
         </p>
 
         <label className="inline-block cursor-pointer rounded-lg bg-terracotta px-3 py-2 text-sm font-medium text-white hover:bg-terracotta-dark">
@@ -144,6 +153,7 @@ export function ImportProductsModal({
                   <th className="px-3 py-2 font-medium">Категория</th>
                   <th className="px-3 py-2 font-medium">GTIN</th>
                   <th className="px-3 py-2 font-medium">ТН ВЭД</th>
+                  <th className="px-3 py-2 font-medium">Рецепт</th>
                   <th className="px-3 py-2 font-medium">Статус</th>
                 </tr>
               </thead>
@@ -154,6 +164,24 @@ export function ImportProductsModal({
                     <td className="px-3 py-2 text-ink/60">{r.category}</td>
                     <td className="px-3 py-2 text-ink/60">{r.gtin}</td>
                     <td className="px-3 py-2 text-ink/50">{r.tn_ved || '—'}</td>
+                    <td className="px-3 py-2">
+                      {r.status === 'ok' ? (
+                        <select
+                          value={recipeByRow[i] || ''}
+                          onChange={(e) => setRecipeByRow((prev) => ({ ...prev, [i]: e.target.value }))}
+                          className="w-full max-w-[10rem] rounded-lg border border-ink/10 px-2 py-1 text-xs outline-none focus:border-terracotta"
+                        >
+                          <option value="">без рецепта</option>
+                          {recipes.map((rec) => (
+                            <option key={rec.id} value={rec.id}>
+                              {rec['название']}
+                            </option>
+                          ))}
+                        </select>
+                      ) : (
+                        '—'
+                      )}
+                    </td>
                     <td className={`px-3 py-2 ${r.status === 'ok' ? 'text-emerald-600' : 'text-red-600'}`}>
                       {r.status === 'ok' ? 'ок' : r.status}
                     </td>

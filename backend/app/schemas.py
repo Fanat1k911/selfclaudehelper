@@ -124,10 +124,22 @@ class ProductImportRow(BaseModel):
     tn_ved: str = ""
     declaration: str = ""
     declaration_expires: str = ""
+    recipe_id: str = ""
 
 
 class ProductImportCommitRequest(BaseModel):
     rows: list[ProductImportRow]
+
+
+class UpdateProductRequest(BaseModel):
+    name: str | None = None
+    category: str | None = None
+    gtin: str | None = None
+    composition: str | None = None
+    recipe_id: str | None = None
+    tn_ved: str | None = None
+    declaration: str | None = None
+    declaration_expires: str | None = None
 
 
 class SaleRequest(BaseModel):
@@ -216,6 +228,7 @@ class NewCompanyRequest(BaseModel):
     fio: str
     login: str
     password: str
+    timezone: str = "Europe/Moscow"
 
 
 class RegisterCompanyRequest(BaseModel):
@@ -235,6 +248,7 @@ class RegisterCompanyRequest(BaseModel):
     login: str = Field(max_length=100)
     password: str
     phone: str
+    timezone: str = "Europe/Moscow"
 
     @field_validator("phone")
     @classmethod
@@ -264,6 +278,9 @@ class UpdateUserRequest(BaseModel):
     messenger: str | None = None
     address: str | None = None
     document: str | None = None
+    # Личное переопределение часового пояса компании (2026-07-18) — тот же паттерн, что и
+    # у phone/address выше: пустая строка очищает override (снова действует пояс компании).
+    timezone: str | None = None
 
     _check_phone = field_validator("phone")(_check_phone)
 

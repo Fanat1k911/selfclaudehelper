@@ -16,6 +16,7 @@ from app.config import JWT_ALGORITHM, JWT_EXPIRE_MINUTES, JWT_SECRET
 from app.constants import FOUNDER, USER_STATUS_ACTIVE
 from app.db import Base, get_db
 from app.models import Company, CompanyMembership, User
+from app.timezone_utils import is_valid_tz_name, next_midnight_utc
 
 _ModelT = TypeVar("_ModelT", bound=Base)
 
@@ -63,6 +64,12 @@ def _public_fields(user: User, membership: CompanyMembership, companies: list[di
     }
 
 
+def _effective_timezone(user: User, membership: CompanyMembership) -> str:
+    """Личное User.timezone (2026-07-18) переопределяет часовой пояс компании, если
+    заполнено — иначе действует Company.timezone (по умолчанию для всех её участников)."""
+    return user.timezone or membership.company.timezone
+
+
 def _mint_pending_token(user_id: str) -> str:
     payload = {
         "sub": user_id,
@@ -104,7 +111,11 @@ def authenticate(login: str, password: str, db: Session) -> dict:
     companies = [{"id": m.company_id, "name": m.company.name, "role": m.role} for m in memberships]
 
     if len(memberships) == 1:
-        return {"status": "ok", "user": _public_fields(user, memberships[0], companies)}
+        return {
+            "status": "ok",
+            "user": _public_fields(user, memberships[0], companies),
+            "tz_name": _effective_timezone(user, memberships[0]),
+        }
 
     return {"status": "choose_company", "pending_token": _mint_pending_token(user.id), "companies": companies}
 
@@ -132,7 +143,11 @@ def select_company(pending_token: str, company_id: str, db: Session) -> dict:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Нет доступа к этой компании.")
 
     companies = _memberships_payload(db, user.id)
-    return {"status": "ok", "user": _public_fields(user, membership, companies)}
+    return {
+        "status": "ok",
+        "user": _public_fields(user, membership, companies),
+        "tz_name": _effective_timezone(user, membership),
+    }
 
 
 def switch_company(current_user_id: str, company_id: str, db: Session) -> dict:
@@ -152,10 +167,12 @@ def switch_company(current_user_id: str, company_id: str, db: Session) -> dict:
         raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Доступ отозван.")
 
     companies = _memberships_payload(db, user.id)
-    return _public_fields(user, membership, companies)
+    return {"user": _public_fields(user, membership, companies), "tz_name": _effective_timezone(user, membership)}
 
 
-def register_company(company_name: str, fio: str, login: str, password: str, phone: str, db: Session) -> dict:
+def register_company(
+    company_name: str, fio: str, login: str, password: str, phone: str, tz_name: str, db: Session
+) -> dict:
     """Публичная саморегистрация (2026-07-18, см. CLAUDE.md → "Публичная self-serve
     регистрация") — создаёт компанию и сразу логинит первого Founder'а, без залогиненного
     Developer. Rate-limit — на уровне роутера (app/routers/auth.py), не здесь: security.py
@@ -174,8 +191,10 @@ def register_company(company_name: str, fio: str, login: str, password: str, pho
     company_name = company_name.strip()
     if not company_name:
         raise HTTPException(status.HTTP_400_BAD_REQUEST, "Название компании обязательно.")
+    if not is_valid_tz_name(tz_name):
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "Неизвестный часовой пояс.")
 
-    company = Company(name=company_name)
+    company = Company(name=company_name, timezone=tz_name)
     db.add(company)
     db.flush()
 
@@ -198,14 +217,20 @@ def register_company(company_name: str, fio: str, login: str, password: str, pho
         )
     )
     companies = _memberships_payload(db, user.id)
-    return {"status": "ok", "user": _public_fields(user, membership, companies)}
-
-
-def create_access_token(user: dict) -> str:
-    payload = {
-        **user,
-        "exp": datetime.now(timezone.utc) + timedelta(minutes=JWT_EXPIRE_MINUTES),
+    return {
+        "status": "ok",
+        "user": _public_fields(user, membership, companies),
+        "tz_name": _effective_timezone(user, membership),
     }
+
+
+def create_access_token(user: dict, tz_name: str | None = None) -> str:
+    """exp — разлогин ровно в полночь по tz_name (2026-07-18, решение Founder), не через
+    фиксированную длительность JWT_EXPIRE_MINUTES. tz_name не передан (напр. вызовы из
+    тестов/conftest.py напрямую) — фоллбек на старое поведение, не ломаем существующие
+    места, где эффективный пояс ещё не резолвился по цепочке вызовов."""
+    exp = next_midnight_utc(tz_name) if tz_name else datetime.now(timezone.utc) + timedelta(minutes=JWT_EXPIRE_MINUTES)
+    payload = {**user, "exp": exp}
     return jwt.encode(payload, JWT_SECRET, algorithm=JWT_ALGORITHM)
 
 

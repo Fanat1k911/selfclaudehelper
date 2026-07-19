@@ -26,12 +26,14 @@ _REGISTER_WINDOW_SECONDS = 3600
 
 
 def _finalize(result: dict, db: Session) -> dict:
-    """authenticate()/select_company() уже отдали публичные поля юзера — минтим токен
-    и пишем LoginLog. Общий хвост для однокомпанийного входа и второго шага выбора."""
+    """authenticate()/select_company()/register_company() уже отдали публичные поля юзера
+    и эффективный часовой пояс (tz_name) — минтим токен (exp = следующая полночь по нему,
+    см. app/timezone_utils.py) и пишем LoginLog. Общий хвост для однокомпанийного входа,
+    второго шага выбора и саморегистрации."""
     user = result["user"]
     db.add(LoginLog(company_id=user["company_id"], user_id=user["id"]))
     db.commit()
-    token = create_access_token(user)
+    token = create_access_token(user, tz_name=result.get("tz_name"))
     return {"access_token": token, "token_type": "bearer", "user": user}
 
 
@@ -48,7 +50,7 @@ def login(body: LoginRequest, db: Session = Depends(get_db)) -> dict:
 @router.post("/register")
 def register(body: RegisterCompanyRequest, request: Request, db: Session = Depends(get_db)) -> dict:
     check_rate_limit(f"register:{client_ip(request)}", _REGISTER_MAX_PER_HOUR, _REGISTER_WINDOW_SECONDS)
-    result = register_company(body.company_name, body.fio, body.login, body.password, body.phone, db)
+    result = register_company(body.company_name, body.fio, body.login, body.password, body.phone, body.timezone, db)
     return _finalize(result, db)
 
 
@@ -67,10 +69,11 @@ def switch_company_route(
     Тоже пишет LoginLog (той компании, куда переключились) — иначе Founder/Developer той
     компании не видел бы в истории входов доступ через переключалку, только через прямой
     логин (нашёл code-review 2026-07-18)."""
-    new_user = switch_company(user["id"], body.company_id, db)
+    result = switch_company(user["id"], body.company_id, db)
+    new_user = result["user"]
     db.add(LoginLog(company_id=new_user["company_id"], user_id=new_user["id"]))
     db.commit()
-    token = create_access_token(new_user)
+    token = create_access_token(new_user, tz_name=result.get("tz_name"))
     return {"access_token": token, "token_type": "bearer", "user": new_user}
 
 

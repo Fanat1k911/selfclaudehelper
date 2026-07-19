@@ -20,6 +20,7 @@ from app.db import get_db
 from app.models import Company, CompanyMembership
 from app.schemas import NewCompanyRequest
 from app.security import attach_or_create_membership, require_roles
+from app.timezone_utils import is_valid_tz_name
 
 router = APIRouter(prefix="/api/companies", tags=["companies"], dependencies=[Depends(require_roles(DEVELOPER))])
 
@@ -29,6 +30,7 @@ def _company_dict(company: Company) -> dict:
         "id": company.id,
         "name": company.name,
         "created_at": company.created_at.isoformat(),
+        "timezone": company.timezone,
     }
 
 
@@ -71,8 +73,10 @@ def get_company(company_id: str, db: Session = Depends(get_db)) -> dict:
 def create_company(body: NewCompanyRequest, db: Session = Depends(get_db)) -> dict:
     if not body.company_name.strip():
         raise HTTPException(400, "Название компании обязательно.")
+    if not is_valid_tz_name(body.timezone):
+        raise HTTPException(400, "Неизвестный часовой пояс.")
 
-    company = Company(name=body.company_name.strip())
+    company = Company(name=body.company_name.strip(), timezone=body.timezone)
     db.add(company)
     db.flush()
 

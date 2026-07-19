@@ -106,6 +106,18 @@ def test_create_user_rejects_bad_phone(client, db_session):
     assert resp.status_code == 422
 
 
+def test_update_user_rejects_bad_phone(client, db_session):
+    """Регрессия: UpdateUserRequest потерял _check_phone при добавлении поля timezone
+    (2026-07-18) — PATCH принимал любую строку в phone, обходя валидацию, что есть
+    на создании. Поймано code-review 2026-07-19."""
+    founder = make_user(db_session, login="uf5", role=FOUNDER)
+    target = make_user(db_session, login="ivan4", role=WORKER)
+    resp = client.patch(
+        f"/api/users/{target.id}", json={"phone": "abc"}, headers=auth_headers(founder)
+    )
+    assert resp.status_code == 422
+
+
 def test_fire_user_revokes_access_immediately(client, db_session):
     founder = make_user(db_session, login="uf5", role=FOUNDER)
     worker = make_user(db_session, login="uf5w", role=WORKER)
@@ -157,3 +169,32 @@ def test_user_companies_rejects_probing_unrelated_user(client, db_session):
 
     resp = client.get(f"/api/users/{stranger.id}/companies", headers=auth_headers(dev))
     assert resp.status_code == 404
+
+
+def test_update_user_sets_personal_timezone_override(client, db_session):
+    founder = make_user(db_session, login="tzf1", role=FOUNDER)
+    worker = make_user(db_session, login="tzw1", role=WORKER)
+
+    resp = client.patch(
+        f"/api/users/{worker.id}", json={"timezone": "Asia/Yekaterinburg"}, headers=auth_headers(founder)
+    )
+    assert resp.status_code == 200
+    assert resp.json()["timezone"] == "Asia/Yekaterinburg"
+
+
+def test_update_user_invalid_timezone_rejected(client, db_session):
+    founder = make_user(db_session, login="tzf2", role=FOUNDER)
+    worker = make_user(db_session, login="tzw2", role=WORKER)
+
+    resp = client.patch(f"/api/users/{worker.id}", json={"timezone": "Not/Real"}, headers=auth_headers(founder))
+    assert resp.status_code == 400
+
+
+def test_update_user_clears_timezone_override_with_empty_string(client, db_session):
+    founder = make_user(db_session, login="tzf3", role=FOUNDER)
+    worker = make_user(db_session, login="tzw3", role=WORKER)
+    client.patch(f"/api/users/{worker.id}", json={"timezone": "Asia/Yekaterinburg"}, headers=auth_headers(founder))
+
+    resp = client.patch(f"/api/users/{worker.id}", json={"timezone": ""}, headers=auth_headers(founder))
+    assert resp.status_code == 200
+    assert resp.json()["timezone"] == ""

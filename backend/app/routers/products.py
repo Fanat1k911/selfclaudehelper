@@ -19,7 +19,7 @@ from app.constants import DEVELOPER, FOUNDER, PRODUCT_REQUIRED_FIELDS
 
 from app.db import get_db
 from app.models import Product, ProductionLog, Recipe, Sale
-from app.schemas import NewProductRequest, ProductImportCommitRequest
+from app.schemas import NewProductRequest, ProductImportCommitRequest, UpdateProductRequest
 from app.security import get_current_user, get_owned_or_404, require_roles
 
 router = APIRouter(prefix="/api/products", tags=["products"], dependencies=[Depends(require_roles(FOUNDER, DEVELOPER))])
@@ -105,6 +105,52 @@ def create_product(body: NewProductRequest, user: dict = Depends(get_current_use
         declaration_expires=date.fromisoformat(body.declaration_expires) if body.declaration_expires else None,
     )
     db.add(product)
+    db.commit()
+    return {"id": product.id}
+
+
+@router.patch("/{product_id}")
+def update_product(
+    product_id: str, body: UpdateProductRequest, user: dict = Depends(get_current_user), db: Session = Depends(get_db)
+) -> dict:
+    """Единственный способ прикрепить recipe_id к продукту, созданному без него (ручной
+    ввод без рецепта или Excel-импорт) — без этого эндпоинта «готово к отгрузке» навсегда
+    остаётся невозможным для такого продукта (see CLAUDE.md, найдено на живых данных
+    2026-07-19: у всех 28 импортированных продуктов recipe_id был пуст, и продажа не
+    проверяла остаток вообще)."""
+    product = get_owned_or_404(db, Product, product_id, user["company_id"], "Продукт не найден.")
+
+    fields = {
+        "название": body.name if body.name is not None else product.name,
+        "категория": body.category if body.category is not None else product.category,
+        "GTIN": body.gtin if body.gtin is not None else product.gtin,
+    }
+    missing = _missing_required_fields(fields)
+    if missing:
+        raise HTTPException(400, f"Не заполнены обязательные поля: {', '.join(missing)}.")
+
+    if body.recipe_id:
+        recipe = get_owned_or_404(db, Recipe, body.recipe_id, user["company_id"], "Рецепт не найден.")
+        if recipe.archived:
+            raise HTTPException(400, "Рецепт в архиве, привязать к продукту нельзя.")
+
+    if body.name is not None:
+        product.name = body.name
+    if body.category is not None:
+        product.category = body.category
+    if body.gtin is not None:
+        product.gtin = body.gtin
+    if body.composition is not None:
+        product.composition = body.composition or None
+    if body.recipe_id is not None:
+        product.recipe_id = body.recipe_id or None
+    if body.tn_ved is not None:
+        product.tn_ved = body.tn_ved or None
+    if body.declaration is not None:
+        product.declaration = body.declaration or None
+    if body.declaration_expires is not None:
+        product.declaration_expires = date.fromisoformat(body.declaration_expires) if body.declaration_expires else None
+
     db.commit()
     return {"id": product.id}
 
@@ -228,8 +274,16 @@ def import_commit(
 ) -> dict:
     """Строки прилетают уже подтверждённые фронтом после превью — здесь без
     повторного парсинга файла, только создание карточек продукта (импорт только
-    создаёт новые продукты, обновление существующих по GTIN не поддерживается)."""
+    создаёт новые продукты, обновление существующих по GTIN не поддерживается).
+
+    recipe_id (2026-07-19) — опциональный выбор рецепта на строку с фронта (не
+    авто-сопоставление по тексту из Excel — ненадёжно, могло бы молча привязать не тот
+    рецепт). Без recipe_id продукт создаётся как раньше, «готово к отгрузке» для него не
+    считается (см. update_product выше — можно прикрепить рецепт позже)."""
     existing_gtins = {p.gtin for p in db.scalars(select(Product).where(Product.company_id == user["company_id"]))}
+    valid_recipe_ids = {
+        r.id for r in db.scalars(select(Recipe).where(Recipe.company_id == user["company_id"], Recipe.archived.is_(False)))
+    }
     applied = 0
     for row in body.rows:
         if row.gtin in existing_gtins:
@@ -239,6 +293,7 @@ def import_commit(
             name=row.name,
             category=row.category,
             gtin=row.gtin,
+            recipe_id=row.recipe_id if row.recipe_id in valid_recipe_ids else None,
             tn_ved=row.tn_ved or None,
             declaration=row.declaration or None,
             declaration_expires=date.fromisoformat(row.declaration_expires) if row.declaration_expires else None,

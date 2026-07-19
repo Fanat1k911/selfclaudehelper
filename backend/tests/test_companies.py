@@ -21,6 +21,7 @@ def test_developer_creates_company_and_first_developer_user(client, db_session):
     company = db_session.get(Company, body["company_id"])
     assert company is not None
     assert company.name == "3D-мастерская"
+    assert company.timezone == "Europe/Moscow"  # дефолт, не передан в payload
 
     membership = db_session.scalar(
         select(CompanyMembership).where(
@@ -33,6 +34,34 @@ def test_developer_creates_company_and_first_developer_user(client, db_session):
     new_user = db_session.get(User, body["user_id"])
     assert new_user is not None
     assert new_user.login == "3dboss"
+
+
+def test_create_company_with_explicit_timezone(client, db_session):
+    dev = make_user(db_session, login="cdev_tz1", role=DEVELOPER)
+    resp = client.post(
+        "/api/companies",
+        headers=auth_headers(dev),
+        json={
+            "company_name": "Владивостокская мастерская", "fio": "Иван Иванов",
+            "login": "vlad_boss", "password": "pass1234", "timezone": "Asia/Vladivostok",
+        },
+    )
+    assert resp.status_code == 200
+    company = db_session.get(Company, resp.json()["company_id"])
+    assert company.timezone == "Asia/Vladivostok"
+
+
+def test_create_company_invalid_timezone_rejected(client, db_session):
+    dev = make_user(db_session, login="cdev_tz2", role=DEVELOPER)
+    resp = client.post(
+        "/api/companies",
+        headers=auth_headers(dev),
+        json={
+            "company_name": "Мастерская", "fio": "Иван Иванов",
+            "login": "badtz_boss", "password": "pass1234", "timezone": "Not/Real",
+        },
+    )
+    assert resp.status_code == 400
 
 
 def test_founder_and_worker_forbidden(client, db_session):

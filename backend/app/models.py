@@ -32,6 +32,10 @@ class Company(Base):
     id: Mapped[str] = mapped_column(String(8), primary_key=True, default=_short_id)
     name: Mapped[str] = mapped_column(String(255))
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    # IANA-имя (2026-07-18, "разлогин ровно в полночь по часовому поясу") — компания,
+    # не пользователь: все founder/worker этой компании по умолчанию на одном поясе
+    # (физическая мастерская в одном месте). См. User.timezone для личного переопределения.
+    timezone: Mapped[str] = mapped_column(String(64), default="Europe/Moscow")
 
 
 class User(Base):
@@ -56,6 +60,10 @@ class User(Base):
     messenger: Mapped[str | None] = mapped_column(String(100))
     address: Mapped[str | None] = mapped_column(Text)
     document: Mapped[str | None] = mapped_column(Text)
+    # Личное переопределение часового пояса компании (2026-07-18) — пусто по умолчанию,
+    # тогда действует Company.timezone; заполняется, если у конкретного человека
+    # физически другой пояс (не как у остальной компании).
+    timezone: Mapped[str | None] = mapped_column(String(64))
 
     memberships: Mapped[list["CompanyMembership"]] = relationship()
 

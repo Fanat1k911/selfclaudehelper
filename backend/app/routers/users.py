@@ -26,6 +26,7 @@ from app.db import get_db
 from app.models import CompanyMembership, User
 from app.schemas import NewUserRequest, ResetPasswordRequest, UpdateUserRequest
 from app.security import attach_or_create_membership, get_current_user, require_roles
+from app.timezone_utils import is_valid_tz_name
 
 router = APIRouter(prefix="/api/users", tags=["users"], dependencies=[Depends(require_roles(FOUNDER, DEVELOPER))])
 
@@ -42,6 +43,7 @@ def _user_dict(user: User, role: str) -> dict:
         "messenger": user.messenger or "",
         "address": user.address or "",
         "document": user.document or "",
+        "timezone": user.timezone or "",
     }
 
 
@@ -117,6 +119,10 @@ def update_user(
         target.address = body.address or None
     if body.document is not None:
         target.document = body.document or None
+    if body.timezone is not None:
+        if body.timezone and not is_valid_tz_name(body.timezone):
+            raise HTTPException(400, "Неизвестный часовой пояс.")
+        target.timezone = body.timezone or None
 
     db.commit()
     return _user_dict(target, membership.role)

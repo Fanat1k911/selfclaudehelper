@@ -1,6 +1,11 @@
+from datetime import datetime, timezone
+
+import jwt
 import pytest
 
+from app.config import JWT_ALGORITHM, JWT_SECRET
 from app.rate_limit import _hits
+from app.timezone_utils import next_midnight_utc
 from tests.conftest import make_user
 
 REGISTER_URL = "/api/auth/register"
@@ -168,3 +173,42 @@ def test_registered_company_data_isolated_from_other_companies(client):
 
     direct_b = client.get(f"/api/ingredients/{material_id}/transactions", headers={"Authorization": f"Bearer {token_b}"})
     assert direct_b.status_code == 404
+
+
+def test_register_stores_submitted_timezone(client, db_session):
+    resp = client.post(REGISTER_URL, json=_payload(timezone="Asia/Vladivostok"))
+    assert resp.status_code == 200
+    from app.models import Company
+
+    company = db_session.query(Company).filter_by(name="Новая мастерская").one()
+    assert company.timezone == "Asia/Vladivostok"
+
+
+def test_register_invalid_timezone_rejected(client):
+    resp = client.post(REGISTER_URL, json=_payload(timezone="Not/A_Real_Zone"))
+    assert resp.status_code == 400
+
+
+def test_register_defaults_to_moscow_timezone_when_omitted(client, db_session):
+    resp = client.post(REGISTER_URL, json=_payload())
+    assert resp.status_code == 200
+    from app.models import Company
+
+    company = db_session.query(Company).filter_by(name="Новая мастерская").one()
+    assert company.timezone == "Europe/Moscow"
+
+
+def test_register_jwt_exp_matches_next_midnight_in_company_timezone(client):
+    """Разлогин ровно в полночь (2026-07-18, решение Founder) — JWT exp должен быть
+    следующей полночью в часовом поясе КОМПАНИИ, не фиксированной длительностью."""
+    resp = client.post(REGISTER_URL, json=_payload(timezone="Asia/Vladivostok"))
+    assert resp.status_code == 200
+    token = resp.json()["access_token"]
+
+    decoded = jwt.decode(token, JWT_SECRET, algorithms=[JWT_ALGORITHM])
+    actual_exp = datetime.fromtimestamp(decoded["exp"], tz=timezone.utc)
+
+    # next_midnight_utc(now=None) внутри create_access_token берёт "текущий момент
+    # выполнения" — сверяем с допуском в несколько секунд (сеть/тест не мгновенны).
+    expected_exp = next_midnight_utc("Asia/Vladivostok")
+    assert abs((actual_exp - expected_exp).total_seconds()) < 10
