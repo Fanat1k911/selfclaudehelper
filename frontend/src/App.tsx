@@ -2,6 +2,7 @@ import { Navigate, Route, Routes } from 'react-router-dom'
 import { LoginPage } from './pages/LoginPage'
 import { RegisterPage } from './pages/RegisterPage'
 import { IngredientsPage } from './pages/IngredientsPage'
+import { EquipmentPage } from './pages/EquipmentPage'
 import { DashboardPage } from './pages/DashboardPage'
 import { ProductionPage } from './pages/ProductionPage'
 import { PackagingPage } from './pages/PackagingPage'
@@ -93,6 +94,14 @@ function App() {
             element={
               <RequireRole roles={['developer']}>
                 <CompaniesPage />
+              </RequireRole>
+            }
+          />
+          <Route
+            path="/equipment"
+            element={
+              <RequireRole roles={['founder', 'developer']}>
+                <EquipmentPage />
               </RequireRole>
             }
           />

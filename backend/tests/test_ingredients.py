@@ -1,4 +1,4 @@
-from app.constants import WORKER
+from app.constants import FOUNDER, WORKER
 from tests.conftest import auth_headers, make_user
 
 
@@ -19,8 +19,8 @@ def test_balance_reflects_income_expense_adjustment(client, db_session):
 
 
 def test_patch_updates_purchase_attrs_partially(client, db_session):
-    worker = make_user(db_session, login="iw3", role=WORKER)
-    headers = auth_headers(worker)
+    founder = make_user(db_session, login="iw3", role=FOUNDER)
+    headers = auth_headers(founder)
     resp = client.post("/api/ingredients", json={"name": "Глицерин", "category": "жидкое", "unit": "г"}, headers=headers)
     material_id = resp.json()["id"]
 
@@ -48,14 +48,26 @@ def test_patch_updates_purchase_attrs_partially(client, db_session):
 def test_patch_rejects_foreign_material(client, db_session):
     from tests.conftest import make_company
 
-    w1 = make_user(db_session, login="iw4", role=WORKER)
-    resp = client.post("/api/ingredients", json={"name": "Сода2", "category": "сыпучее", "unit": "кг"}, headers=auth_headers(w1))
+    founder1 = make_user(db_session, login="iw4", role=FOUNDER)
+    resp = client.post(
+        "/api/ingredients", json={"name": "Сода2", "category": "сыпучее", "unit": "кг"}, headers=auth_headers(founder1)
+    )
     material_id = resp.json()["id"]
 
     other_company = make_company(db_session, name="Другая мастерская")
-    w2 = make_user(db_session, login="iw5", role=WORKER, company_id=other_company.id)
-    resp = client.patch(f"/api/ingredients/{material_id}", json={"unit_cost": 1}, headers=auth_headers(w2))
+    founder2 = make_user(db_session, login="iw5", role=FOUNDER, company_id=other_company.id)
+    resp = client.patch(f"/api/ingredients/{material_id}", json={"unit_cost": 1}, headers=auth_headers(founder2))
     assert resp.status_code == 404
+
+
+def test_patch_forbidden_for_worker(client, db_session):
+    worker = make_user(db_session, login="iw6", role=WORKER)
+    headers = auth_headers(worker)
+    resp = client.post("/api/ingredients", json={"name": "Сода3", "category": "сыпучее", "unit": "кг"}, headers=headers)
+    material_id = resp.json()["id"]
+
+    resp = client.patch(f"/api/ingredients/{material_id}", json={"unit_cost": 1}, headers=headers)
+    assert resp.status_code == 403
 
 
 def test_expense_rejects_non_positive_qty(client, db_session):

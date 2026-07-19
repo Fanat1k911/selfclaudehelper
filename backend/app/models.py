@@ -167,6 +167,42 @@ class Transaction(Base):
     material: Mapped["Material"] = relationship(back_populates="transactions")
 
 
+class EquipmentItem(Base):
+    """Рабочий инвентарь (2026-07-19, запрос Александра) — многоразовое оборудование
+    мастерской (миксеры, мерные стаканы и т.п.), не сырьё. Тот же остаток-на-лету
+    паттерн, что у Material/Transaction, но отдельная пара таблиц: EquipmentItem
+    списывается по поломке/пропаже с фиксацией траты, Material — по рецептам.
+    Раздел виден только Founder/Developer (см. app/routers/equipment.py)."""
+
+    __tablename__ = "equipment_items"
+
+    id: Mapped[str] = mapped_column(String(8), primary_key=True, default=_short_id)
+    company_id: Mapped[str] = mapped_column(ForeignKey("companies.id"))
+    name: Mapped[str] = mapped_column(String(255))
+    unit: Mapped[str] = mapped_column(String(20), default="шт")
+    min_stock: Mapped[float] = mapped_column(Numeric(12, 3), default=0)
+
+    transactions: Mapped[list["EquipmentTransaction"]] = relationship(back_populates="item")
+
+
+class EquipmentTransaction(Base):
+    __tablename__ = "equipment_transactions"
+
+    id: Mapped[str] = mapped_column(String(8), primary_key=True, default=_short_id)
+    company_id: Mapped[str] = mapped_column(ForeignKey("companies.id"))
+    date: Mapped[date_] = mapped_column(Date, default=date_.today)
+    item_id: Mapped[str] = mapped_column(ForeignKey("equipment_items.id"))
+    type: Mapped[str] = mapped_column(String(20))
+    qty: Mapped[float] = mapped_column(Numeric(12, 3))
+    # cost — трата по этому движению (закупка при приходе, ремонт при поломке,
+    # замена при пропаже). Опционально — не всегда известна/применима.
+    cost: Mapped[float | None] = mapped_column(Numeric(12, 2))
+    comment: Mapped[str | None] = mapped_column(Text)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+
+    item: Mapped["EquipmentItem"] = relationship(back_populates="transactions")
+
+
 class Product(Base):
     __tablename__ = "products"
 

@@ -76,6 +76,24 @@ class AdjustmentRequest(BaseModel):
     comment: str = ""
 
 
+class NewEquipmentRequest(BaseModel):
+    name: str
+    unit: str = "шт"
+    initial_qty: float = 0.0
+    min_stock: float = 0.0
+
+
+class EquipmentTransactionRequest(BaseModel):
+    qty: float
+    cost: float | None = None
+    comment: str = ""
+
+
+class EquipmentAdjustmentRequest(BaseModel):
+    actual_qty: float
+    comment: str = ""
+
+
 class ProductionRequest(BaseModel):
     """qty — кол-во ГОТОВОГО ПРОДУКТА, не партий (2026-07-18, решение Founder: "Количество
     партий" → "Количество продукта" — рабочим проще считать штуками/кг продукта, чем

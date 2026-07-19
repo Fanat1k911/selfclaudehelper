@@ -15,7 +15,7 @@ from openpyxl import Workbook, load_workbook
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from app.constants import TRANSACTION_ADJUSTMENT, TRANSACTION_EXPENSE, TRANSACTION_INCOME
+from app.constants import FOUNDER, DEVELOPER, TRANSACTION_ADJUSTMENT, TRANSACTION_EXPENSE, TRANSACTION_INCOME
 
 from app.db import get_db
 from app.models import Material, Transaction
@@ -26,7 +26,7 @@ from app.schemas import (
     NewMaterialRequest,
     TransactionRequest,
 )
-from app.security import get_current_user, get_owned_or_404
+from app.security import get_current_user, get_owned_or_404, require_roles
 
 router = APIRouter(prefix="/api/ingredients", tags=["ingredients"], dependencies=[Depends(get_current_user)])
 
@@ -138,7 +138,7 @@ def create_ingredient(
     return {"id": material.id}
 
 
-@router.patch("/{material_id}")
+@router.patch("/{material_id}", dependencies=[Depends(require_roles(FOUNDER, DEVELOPER))])
 def update_ingredient_attrs(
     material_id: str, body: MaterialAttrsUpdate, user: dict = Depends(get_current_user), db: Session = Depends(get_db)
 ) -> dict:

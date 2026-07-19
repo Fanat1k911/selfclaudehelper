@@ -1,6 +1,7 @@
 import { useEffect, useState, type FormEvent } from 'react'
 import { ArrowDownCircle, ArrowUpCircle, Pencil, SlidersHorizontal } from 'lucide-react'
 import { apiFetch, ApiError } from '../lib/api'
+import { useAuth } from '../lib/auth'
 import type { Ingredient, Transaction } from '../types'
 
 type ActionKind = 'приход' | 'расход' | 'корректировка' | null
@@ -33,6 +34,8 @@ export function IngredientDetailPanel({
   onClose: () => void
   onChanged: () => void
 }) {
+  const { user } = useAuth()
+  const canEditAttrs = user?.role === 'founder' || user?.role === 'developer'
   const [action, setAction] = useState<ActionKind>(null)
   const [qty, setQty] = useState('')
   const [price, setPrice] = useState('')
@@ -152,6 +155,7 @@ export function IngredientDetailPanel({
           </button>
         </div>
 
+        <div className="flex-1 overflow-y-auto">
         <div className="px-6 py-5 border-b border-ink/10 space-y-2">
           <div className="flex items-center justify-between text-sm">
             <span className="text-ink/60">Остаток на складе</span>
@@ -173,7 +177,7 @@ export function IngredientDetailPanel({
         <div className="px-6 py-4 border-b border-ink/10">
           <div className="mb-3 flex items-center justify-between">
             <div className="text-sm font-medium text-ink/70">Закупка</div>
-            {!editingAttrs && (
+            {!editingAttrs && canEditAttrs && (
               <button
                 onClick={() => setEditingAttrs(true)}
                 className="flex items-center gap-1 text-xs text-ink/50 hover:text-terracotta"
@@ -183,7 +187,7 @@ export function IngredientDetailPanel({
             )}
           </div>
 
-          {!editingAttrs ? (
+          {!editingAttrs || !canEditAttrs ? (
             <div className="space-y-1.5 text-sm">
               <div className="flex items-center justify-between">
                 <span className="text-ink/60">Себестоимость 1 {ingredient['ед.измерения']}</span>
@@ -354,7 +358,7 @@ export function IngredientDetailPanel({
           )}
         </div>
 
-        <div className="flex-1 overflow-y-auto px-6 py-4">
+        <div className="px-6 py-4">
           <div className="text-sm font-medium text-ink/70 mb-3">Движение товара</div>
           {loadingHistory && <div className="text-sm text-ink/40">Загрузка…</div>}
           {!loadingHistory && transactions?.length === 0 && (
@@ -375,6 +379,7 @@ export function IngredientDetailPanel({
               </div>
             ))}
           </div>
+        </div>
         </div>
       </div>
     </div>

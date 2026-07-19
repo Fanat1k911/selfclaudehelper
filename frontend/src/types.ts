@@ -64,6 +64,27 @@ export interface Transaction {
   'комментарий': string
 }
 
+export interface EquipmentItem {
+  id: string
+  'название': string
+  'ед.измерения': string
+  'мин.остаток': number
+  'остаток': number
+  'ниже минимума': boolean
+  'цвет': 'зелёный' | 'жёлтый' | 'красный'
+  'последнее движение': string | null
+}
+
+export interface EquipmentTransaction {
+  id: string
+  'дата': string
+  item_id: string
+  'тип': 'приход' | 'поломка' | 'пропажа' | 'корректировка'
+  'кол-во': number
+  'трата': number | string
+  'комментарий': string
+}
+
 export interface DashboardTransaction extends Transaction {
   'название': string
 }
