@@ -3,10 +3,12 @@
 
 Мультитенантность: каждый запрос фильтруется по user["company_id"]."""
 
+import httpx
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from app.config import DADATA_API_KEY
 from app.constants import DEVELOPER, FOUNDER
 
 from app.db import get_db
@@ -17,6 +19,44 @@ from app.security import get_current_user, get_owned_or_404, require_roles
 router = APIRouter(
     prefix="/api/counterparties", tags=["counterparties"], dependencies=[Depends(require_roles(FOUNDER, DEVELOPER))]
 )
+
+_DADATA_URL = "https://suggestions.dadata.ru/suggestions/api/4_1/rs/findById/party"
+
+
+@router.get("/lookup")
+def lookup_by_inn(inn: str, user: dict = Depends(get_current_user)) -> dict:
+    """Автоподстановка реквизитов по ИНН (см. app/config.py::DADATA_API_KEY). ИП — 12
+    цифр, юрлицо — 10, иначе DaData всё равно вернёт пусто, но проверяем сами — не тратим
+    запрос из бесплатного лимита на заведомо некорректный ввод."""
+    if not DADATA_API_KEY:
+        raise HTTPException(501, "Поиск по ИНН не настроен.")
+    if not inn.isdigit() or len(inn) not in (10, 12):
+        raise HTTPException(400, "ИНН должен содержать 10 или 12 цифр.")
+
+    try:
+        resp = httpx.post(
+            _DADATA_URL,
+            json={"query": inn},
+            headers={"Authorization": f"Token {DADATA_API_KEY}", "Content-Type": "application/json"},
+            timeout=5.0,
+        )
+        resp.raise_for_status()
+    except httpx.HTTPError:
+        raise HTTPException(502, "Не удалось выполнить поиск по ИНН, попробуйте позже.")
+
+    suggestions = resp.json().get("suggestions") or []
+    if not suggestions:
+        raise HTTPException(404, "Компания с таким ИНН не найдена.")
+
+    data = suggestions[0]["data"]
+    address = data.get("address") or {}
+    return {
+        "название": (data.get("name") or {}).get("short_with_opf") or suggestions[0].get("value") or "",
+        "ИНН": data.get("inn") or inn,
+        "КПП": data.get("kpp") or "",
+        "ОГРН": data.get("ogrn") or "",
+        "юр.адрес": address.get("value") or "",
+    }
 
 
 def _counterparty_dict(cp: Counterparty) -> dict:

@@ -26,6 +26,11 @@ APP_VERSION = os.environ.get("RENDER_GIT_COMMIT", uuid.uuid4().hex[:12])
 
 CORS_ORIGINS = os.environ.get("CORS_ORIGINS", "http://localhost:5173,http://localhost:3000").split(",")
 
+# Автоподстановка реквизитов контрагента по ИНН (2026-07-19) — suggestions.dadata.ru,
+# бесплатный тариф. Пусто по умолчанию — /api/counterparties/lookup отдаёт 501, не 500,
+# фронт показывает "поиск не настроен" и оставляет поля обычным ручным вводом.
+DADATA_API_KEY = os.environ.get("DADATA_API_KEY", "")
+
 
 def _normalize_db_url(url: str) -> str:
     """Render/Neon отдают DATABASE_URL как postgres:// или postgresql:// (без драйвера) —
