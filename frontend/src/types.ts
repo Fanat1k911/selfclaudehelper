@@ -257,6 +257,13 @@ export interface DefectRateRow {
   'брак_процент': number
 }
 
+export interface DashboardEvent {
+  'время': string
+  'тип': string
+  'текст': string
+  'страница': string
+}
+
 export interface StockByCategoryRow {
   'категория': string
   'остаток': number

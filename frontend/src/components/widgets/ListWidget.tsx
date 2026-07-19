@@ -1,4 +1,6 @@
+import { Link } from 'react-router-dom'
 import type {
+  DashboardEvent,
   DashboardLowStockItem,
   DashboardTransaction,
   LeaderboardRow,
@@ -9,6 +11,12 @@ function formatDate(value: string) {
   const d = new Date(value)
   if (Number.isNaN(d.getTime())) return '—'
   return d.toLocaleDateString('ru-RU')
+}
+
+function formatDateTime(value: string) {
+  const d = new Date(value)
+  if (Number.isNaN(d.getTime())) return '—'
+  return `${d.toLocaleDateString('ru-RU')} ${d.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })}`
 }
 
 function LowStockRows({ rows }: { rows: DashboardLowStockItem[] }) {
@@ -78,6 +86,25 @@ function LeaderboardRows({ rows }: { rows: LeaderboardRow[] }) {
   )
 }
 
+function RecentEventRows({ rows }: { rows: DashboardEvent[] }) {
+  if (rows.length === 0) return <Empty text="Событий пока нет." />
+  return (
+    <ul className="space-y-1.5">
+      {rows.map((r, i) => (
+        <li key={i}>
+          <Link
+            to={r['страница']}
+            className="flex items-center justify-between gap-2 text-sm hover:text-premium-gold"
+          >
+            <span className="min-w-0 truncate text-premium-text">{r['текст']}</span>
+            <span className="shrink-0 text-premium-text-muted">{formatDateTime(r['время'])}</span>
+          </Link>
+        </li>
+      ))}
+    </ul>
+  )
+}
+
 function Empty({ text }: { text: string }) {
   return <div className="py-4 text-center text-sm text-premium-text-muted">{text}</div>
 }
@@ -92,6 +119,8 @@ export function ListWidget({ widgetKey, data }: { widgetKey: string; data: unkno
       return <TopProductRows rows={data as TopProduct[]} />
     case 'production_leaderboard':
       return <LeaderboardRows rows={data as LeaderboardRow[]} />
+    case 'recent_events':
+      return <RecentEventRows rows={data as DashboardEvent[]} />
     default:
       return <Empty text="Нет отрисовки для этого виджета." />
   }

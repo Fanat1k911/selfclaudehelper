@@ -12,7 +12,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.constants import TRANSACTION_ADJUSTMENT, TRANSACTION_EXPENSE, TRANSACTION_INCOME
-from app.models import Material, ProductionLog, Sale, Transaction
+from app.models import Material, PackagingLog, ProductionLog, Sale, Transaction
 
 _SIGN_BY_TYPE = {TRANSACTION_INCOME: 1, TRANSACTION_EXPENSE: -1, TRANSACTION_ADJUSTMENT: 1}
 
@@ -180,6 +180,83 @@ def _stock_by_category(db: Session, company_id: str) -> list[dict]:
     return [{"категория": cat, "остаток": round(v, 2)} for cat, v in sorted(by_category.items())]
 
 
+def _recent_events(db: Session, company_id: str, limit: int = 5) -> list[dict]:
+    """5 последних событий по всей системе (2026-07-19, запрос Founder) — движения
+    компонентов, производство, упаковка, продажи, смёрженные по времени. Каждый
+    источник запрошен уже отсортированным и обрезанным до `limit` — топ-5 общий
+    не может содержать строку, не попавшую в топ-5 своего источника, так что дальше
+    смёрживать нужно не более 4×limit кандидатов, а не сканировать всё целиком."""
+    name_by_material = {m.id: m.name for m in db.scalars(select(Material).where(Material.company_id == company_id))}
+    events: list[dict] = []
+
+    tx_stmt = (
+        select(Transaction)
+        .where(Transaction.company_id == company_id)
+        .order_by(Transaction.created_at.desc())
+        .limit(limit)
+    )
+    for tx in db.scalars(tx_stmt):
+        events.append(
+            {
+                "время": tx.created_at,
+                "тип": tx.type,
+                "текст": f"{tx.type.capitalize()}: {name_by_material.get(tx.material_id, tx.material_id)}, {float(tx.qty)}",
+                "страница": "/ingredients",
+            }
+        )
+
+    prod_stmt = (
+        select(ProductionLog)
+        .where(ProductionLog.company_id == company_id)
+        .order_by(ProductionLog.finished_at.desc())
+        .limit(limit)
+    )
+    for entry in db.scalars(prod_stmt):
+        events.append(
+            {
+                "время": entry.finished_at,
+                "тип": "производство",
+                "текст": f"Производство: {entry.recipe.name} — {entry.worker.fio}",
+                "страница": "/production",
+            }
+        )
+
+    pack_stmt = (
+        select(PackagingLog)
+        .where(PackagingLog.company_id == company_id)
+        .order_by(PackagingLog.created_at.desc())
+        .limit(limit)
+    )
+    for entry in db.scalars(pack_stmt):
+        events.append(
+            {
+                "время": entry.created_at,
+                "тип": "упаковка",
+                "текст": f"Упаковка: {entry.product.name} — {entry.worker.fio}",
+                "страница": "/packaging",
+            }
+        )
+
+    sale_stmt = (
+        select(Sale).where(Sale.company_id == company_id).order_by(Sale.created_at.desc()).limit(limit)
+    )
+    for s in db.scalars(sale_stmt):
+        events.append(
+            {
+                "время": s.created_at,
+                "тип": "продажа",
+                "текст": f"Продажа: {s.product.name} × {float(s.qty)}",
+                "страница": "/sales",
+            }
+        )
+
+    events.sort(key=lambda e: e["время"], reverse=True)
+    top = events[:limit]
+    for e in top:
+        e["время"] = e["время"].isoformat()
+    return top
+
+
 WIDGET_CATALOG: list[dict] = [
     {"key": "low_stock", "title": "Остатки ниже минимума", "kind": "list",
      "w": 4, "h": 5, "min_w": 3, "min_h": 4, "compute": _low_stock},
@@ -203,6 +280,8 @@ WIDGET_CATALOG: list[dict] = [
      "w": 4, "h": 4, "min_w": 3, "min_h": 3, "compute": _defect_rate},
     {"key": "stock_by_category", "title": "Остатки по категориям компонентов", "kind": "donut",
      "w": 6, "h": 6, "min_w": 4, "min_h": 4, "compute": _stock_by_category},
+    {"key": "recent_events", "title": "5 последних событий", "kind": "list",
+     "w": 6, "h": 6, "min_w": 4, "min_h": 4, "compute": _recent_events},
 ]
 
 WIDGET_BY_KEY = {w["key"]: w for w in WIDGET_CATALOG}

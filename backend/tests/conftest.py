@@ -5,6 +5,7 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import StaticPool
 
+from app import techlog
 from app.constants import USER_STATUS_ACTIVE
 from app.db import Base, get_db
 from app.main import app
@@ -18,9 +19,15 @@ def db_session():
     Base.metadata.create_all(engine)
     session_factory = sessionmaker(bind=engine, autoflush=False, expire_on_commit=False)
     session = session_factory()
+    # techlog.py открывает свои собственные сессии (пишет из логов вне HTTP-запроса,
+    # get_db-переопределение его не касается) — без этого запись логов в тестах била
+    # бы в настоящий Postgres из DATABASE_URL, а не в тестовую SQLite.
+    original_session_local = techlog.SessionLocal
+    techlog.SessionLocal = session_factory
     try:
         yield session
     finally:
+        techlog.SessionLocal = original_session_local
         session.close()
         engine.dispose()
 

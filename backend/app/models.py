@@ -151,6 +151,9 @@ class Transaction(Base):
     price: Mapped[float | None] = mapped_column(Numeric(12, 2))
     recipe_id: Mapped[str | None] = mapped_column(ForeignKey("recipes.id"))
     comment: Mapped[str | None] = mapped_column(Text)
+    # created_at (2026-07-19) — отдельно от date (день без времени, вводится руками):
+    # нужен для сортировки "последние события" на дашборде с точностью до секунды.
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
 
     material: Mapped["Material"] = relationship(back_populates="transactions")
 
@@ -198,6 +201,7 @@ class Sale(Base):
     qty: Mapped[float] = mapped_column(Numeric(12, 3))
     price: Mapped[float | None] = mapped_column(Numeric(12, 2))
     comment: Mapped[str | None] = mapped_column(Text)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
 
     product: Mapped["Product"] = relationship()
     counterparty: Mapped["Counterparty | None"] = relationship()
@@ -238,6 +242,7 @@ class PackagingLog(Base):
     qty: Mapped[float] = mapped_column(Numeric(12, 3))
     defects: Mapped[float] = mapped_column(Numeric(12, 3), default=0)
     comment: Mapped[str | None] = mapped_column(Text)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
 
     worker: Mapped["User"] = relationship()
     product: Mapped["Product"] = relationship()
@@ -259,6 +264,22 @@ class DashboardWidgetLayout(Base):
     y: Mapped[int] = mapped_column(Integer)
     w: Mapped[int] = mapped_column(Integer)
     h: Mapped[int] = mapped_column(Integer)
+
+
+class TechLog(Base):
+    """Персистентный буфер логов техпанели (2026-07-19, замена in-memory deque в
+    app/techlog.py) — глобальная, НЕ company-scoped: это серверные логи для
+    разработчика, не бизнес-данные компании (тот же класс исключения, что и
+    POST /api/companies, см. "Архитектурные принципы" п.5 в CLAUDE.md). Ретеншн 30
+    дней, самоочистка — см. app/techlog.py, без cron."""
+
+    __tablename__ = "tech_log"
+
+    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    time: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, index=True)
+    level: Mapped[str] = mapped_column(String(20))
+    logger: Mapped[str] = mapped_column(String(255))
+    message: Mapped[str] = mapped_column(Text)
 
 
 class Feedback(Base):

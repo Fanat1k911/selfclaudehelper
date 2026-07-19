@@ -1,7 +1,7 @@
 from datetime import date, datetime
 
-from app.constants import FOUNDER, WORKER
-from app.models import Counterparty, Material, Product, ProductionLog, Recipe, Sale
+from app.constants import FOUNDER, TRANSACTION_INCOME, WORKER
+from app.models import Counterparty, Material, PackagingLog, Product, ProductionLog, Recipe, Sale, Transaction
 from tests.conftest import auth_headers, default_company_id, make_user
 
 
@@ -13,7 +13,7 @@ def test_widget_catalog_lists_all_keys(client, db_session):
     assert keys == {
         "low_stock", "recent_transactions", "top_expense_materials", "monthly_spend",
         "kpi_by_worker", "top_products", "production_leaderboard", "monthly_revenue",
-        "top_counterparties", "defect_rate", "stock_by_category",
+        "top_counterparties", "defect_rate", "stock_by_category", "recent_events",
     }
 
 
@@ -151,6 +151,51 @@ def test_stock_by_category_widget(client, db_session):
     resp = client.get("/api/dashboard/widgets/stock_by_category/data", headers=auth_headers(founder))
     by_cat = {row["категория"]: row["остаток"] for row in resp.json()}
     assert by_cat == {"жидкое": 5.0, "сыпучее": 3.0}
+
+
+def test_recent_events_widget_merges_sources_and_limits_to_5(client, db_session):
+    company_id = default_company_id(db_session)
+    worker = make_user(db_session, login="wd7", role=WORKER, company_id=company_id)
+    material = Material(company_id=company_id, name="Масло", category="жидкое", unit="кг")
+    product = Product(company_id=company_id, name="Мыло", category="мыло", gtin="1")
+    recipe = Recipe(company_id=company_id, name="Рецепт мыла", category="мыло", produces="мыло", batch_yield=10.0)
+    db_session.add_all([material, product, recipe])
+    db_session.flush()
+
+    # 3 транзакции + производство + упаковка + продажа = 6 кандидатов, ждём топ-5 (без самой старой).
+    db_session.add_all(
+        [
+            Transaction(
+                company_id=company_id, material_id=material.id, type=TRANSACTION_INCOME, qty=1,
+                created_at=datetime(2026, 7, 1, 8),
+            ),
+            Transaction(
+                company_id=company_id, material_id=material.id, type=TRANSACTION_INCOME, qty=2,
+                created_at=datetime(2026, 7, 1, 9),
+            ),
+            Transaction(
+                company_id=company_id, material_id=material.id, type=TRANSACTION_INCOME, qty=3,
+                created_at=datetime(2026, 7, 1, 10),
+            ),
+            ProductionLog(
+                company_id=company_id, worker_id=worker.id, recipe_id=recipe.id, qty=10, batches=1,
+                date=date(2026, 7, 1), started_at=datetime(2026, 7, 1, 11), finished_at=datetime(2026, 7, 1, 11),
+            ),
+            PackagingLog(
+                company_id=company_id, worker_id=worker.id, product_id=product.id, qty=5,
+                created_at=datetime(2026, 7, 1, 12),
+            ),
+            Sale(company_id=company_id, product_id=product.id, qty=1, created_at=datetime(2026, 7, 1, 13)),
+        ]
+    )
+    db_session.commit()
+
+    founder = make_user(db_session, login="wd8", role=FOUNDER, company_id=company_id)
+    resp = client.get("/api/dashboard/widgets/recent_events/data", headers=auth_headers(founder))
+    rows = resp.json()
+    assert len(rows) == 5
+    assert [r["страница"] for r in rows] == ["/sales", "/packaging", "/production", "/ingredients", "/ingredients"]
+    assert rows[0]["текст"].startswith("Продажа:")
 
 
 def test_worker_cannot_access_widgets(client, db_session):
