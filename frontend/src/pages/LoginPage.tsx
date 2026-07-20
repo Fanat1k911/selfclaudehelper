@@ -256,6 +256,15 @@ export function LoginPage() {
               onAnimationStart={(e) => handleAutofillAnimation(e, setLoginValue)}
               readOnly={loginLocked}
               onFocus={() => setLoginLocked(false)}
+              // pointerdown, не только focus (2026-07-20) — iOS не показывает системную
+              // клавиатуру при тапе на readOnly-поле, а к моменту focus (после которого
+              // React снял бы readOnly) решение "клавиатуру не показывать" уже принято.
+              // pointerdown идёт раньше focus в цепочке событий, так что снимаем readOnly
+              // здесь синхронно через DOM — второй тап для клавиатуры больше не нужен.
+              onPointerDown={(e) => {
+                e.currentTarget.readOnly = false
+                setLoginLocked(false)
+              }}
               className={inputClassName}
               style={inputStyle}
               autoComplete="username"
@@ -288,6 +297,10 @@ export function LoginPage() {
                 onAnimationStart={(e) => handleAutofillAnimation(e, setPassword)}
                 readOnly={passwordLocked}
                 onFocus={() => setPasswordLocked(false)}
+                onPointerDown={(e) => {
+                  e.currentTarget.readOnly = false
+                  setPasswordLocked(false)
+                }}
                 className={`${inputClassName} pr-11`}
                 style={inputStyle}
                 autoComplete="current-password"

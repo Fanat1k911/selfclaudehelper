@@ -2,20 +2,44 @@ import { Bar, BarChart, CartesianGrid, Legend, ResponsiveContainer, Tooltip, XAx
 import { CATEGORICAL_DARK as CATEGORICAL, CHROME_DARK as CHROME } from '../../lib/vizColors'
 import type { DashboardSpendTopMaterial, TopCounterpartyRow, WidgetKpiRow } from '../../types'
 
+const Y_AXIS_LABEL_MAX_CHARS = 13
+
+// Recharts не переносит и не обрезает длинные category-подписи сами по себе —
+// без этого длинные названия материалов из номенклатуры (2026-07-19) стопкой
+// наезжают друг на друга по вертикали. Полное имя всё ещё видно в tooltip при
+// наведении (Recharts подставляет его туда как label автоматически).
+function TruncatedYAxisTick({
+  x,
+  y,
+  payload,
+}: {
+  x: string | number
+  y: string | number
+  payload: { value: string }
+}) {
+  const label = payload.value
+  const truncated = label.length > Y_AXIS_LABEL_MAX_CHARS ? `${label.slice(0, Y_AXIS_LABEL_MAX_CHARS - 1)}…` : label
+  return (
+    <text x={x} y={y} dy={4} textAnchor="end" fontSize={12} fill={CHROME.textSecondary}>
+      {truncated}
+    </text>
+  )
+}
+
 function SingleSeriesBar({ rows, valueKey }: { rows: { name: string; value: number }[]; valueKey: string }) {
   if (rows.length === 0) {
     return <div className="flex h-full items-center justify-center text-sm text-premium-text-muted">Данных пока нет.</div>
   }
   return (
     <ResponsiveContainer width="100%" height="100%">
-      <BarChart data={rows} layout="vertical" margin={{ top: 4, right: 24, bottom: 4, left: 4 }}>
+      <BarChart data={rows} layout="vertical" margin={{ top: 4, right: 24, bottom: 4, left: 10 }}>
         <CartesianGrid strokeDasharray="3 3" stroke={CHROME.gridline} horizontal={false} />
         <XAxis type="number" tick={{ fontSize: 12, fill: CHROME.muted }} axisLine={{ stroke: CHROME.baseline }} />
         <YAxis
           type="category"
           dataKey="name"
           width={110}
-          tick={{ fontSize: 12, fill: CHROME.textSecondary }}
+          tick={TruncatedYAxisTick}
           axisLine={{ stroke: CHROME.baseline }}
         />
         <Tooltip
