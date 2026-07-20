@@ -69,6 +69,28 @@ function WrappedYAxisTick({
   )
 }
 
+// Только цена, без названия компонента (2026-07-20, повторный репорт Александра —
+// длинное название в тултипе раздувало его вширь настолько, что у карточки виджета
+// на дашборде появлялся горизонтальный скролл при наведении). Строка и так
+// подсвечивается родным курсором Recharts — имя тут не нужно, только цена.
+function ValueOnlyTooltip({ active, payload, valueKey }: { active?: boolean; payload?: { value: number }[]; valueKey: string }) {
+  if (!active || !payload || payload.length === 0) return null
+  return (
+    <div
+      style={{
+        fontSize: 12,
+        background: CHROME.surface,
+        border: `1px solid ${CHROME.gridline}`,
+        color: CHROME.textPrimary,
+        padding: '4px 8px',
+        borderRadius: 4,
+      }}
+    >
+      {payload[0].value} {valueKey}
+    </div>
+  )
+}
+
 function SingleSeriesBar({ rows, valueKey }: { rows: { name: string; value: number }[]; valueKey: string }) {
   const containerRef = useRef<HTMLDivElement>(null)
   const [containerWidth, setContainerWidth] = useState(400)
@@ -117,11 +139,7 @@ function SingleSeriesBar({ rows, valueKey }: { rows: { name: string; value: numb
             tick={(props) => <WrappedYAxisTick {...props} axisWidth={axisWidth} />}
             axisLine={{ stroke: CHROME.baseline }}
           />
-          <Tooltip
-            formatter={(v) => [v, valueKey]}
-            contentStyle={{ fontSize: 12, background: CHROME.surface, borderColor: CHROME.gridline, color: CHROME.textPrimary }}
-            labelStyle={{ color: CHROME.textPrimary }}
-          />
+          <Tooltip content={<ValueOnlyTooltip valueKey={valueKey} />} />
           <Bar dataKey="value" fill={CATEGORICAL[0]} radius={[0, 4, 4, 0]} maxBarSize={24} />
         </BarChart>
       </ResponsiveContainer>
