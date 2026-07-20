@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type AnimationEvent, type FormEvent } from 'react'
 import { Link, Navigate, useNavigate } from 'react-router-dom'
-import { ArrowLeft, ArrowRight, Eye, EyeOff } from 'lucide-react'
+import { ArrowLeft, ArrowRight, Check, Eye, EyeOff } from 'lucide-react'
 import { defaultPathForRole, useAuth } from '../lib/auth'
 import { ApiError } from '../lib/api'
 import { useLoginTheme } from '../lib/useLoginTheme'
@@ -44,6 +44,9 @@ export function LoginPage() {
   // компаний, вместо навигации показываем выбор; pendingChoice=null — обычный однокомпанийный
   // вход, ничего не меняется для 99% пользователей.
   const [pendingChoice, setPendingChoice] = useState<{ token: string; companies: CompanyMembership[] } | null>(null)
+  // Акцент на конкретно кликнутой компании (2026-07-20, ask Александра) — отдельно от
+  // общего `loading`, чтобы подсветить именно ЭТУ кнопку, а не просто затемнить все разом.
+  const [selectingId, setSelectingId] = useState<string | null>(null)
   const passwordRef = useRef<HTMLInputElement>(null)
   // WebKit/Brave автозаполнение иногда проставляет DOM value без синтетического input-события
   // React — состояние (loginValue/password) остаётся '' даже когда поле визуально уже
@@ -126,6 +129,7 @@ export function LoginPage() {
   async function handleSelectCompany(companyId: string) {
     if (!pendingChoice) return
     setError(null)
+    setSelectingId(companyId)
     setLoading(true)
     try {
       const loggedInUser = await selectCompany(pendingChoice.token, companyId)
@@ -133,6 +137,7 @@ export function LoginPage() {
     } catch (err) {
       setError(err instanceof ApiError ? err.message : 'Не удалось войти.')
       setPendingChoice(null)
+      setSelectingId(null)
     } finally {
       setLoading(false)
     }
@@ -176,21 +181,36 @@ export function LoginPage() {
           </div>
 
           <div className="space-y-2">
-            {pendingChoice.companies.map((c) => (
-              <button
-                key={c.id}
-                type="button"
-                disabled={loading}
-                onClick={() => handleSelectCompany(c.id)}
-                className="flex w-full items-center justify-between rounded-lg border px-4 py-3 text-left text-sm transition-colors disabled:opacity-50"
-                style={{ background: 'var(--login-input-bg)', borderColor: 'var(--login-input-border)', color: 'var(--login-text)' }}
-              >
-                <span className="font-medium">{c.name}</span>
-                <span className="text-xs" style={{ color: 'var(--login-text-muted)' }}>
-                  {ROLE_LABEL[c.role]}
-                </span>
-              </button>
-            ))}
+            {pendingChoice.companies.map((c) => {
+              const selected = c.id === selectingId
+              return (
+                <button
+                  key={c.id}
+                  type="button"
+                  disabled={loading}
+                  onClick={() => handleSelectCompany(c.id)}
+                  className={`flex w-full items-center justify-between rounded-lg border px-4 py-3 text-left text-sm transition-all duration-300 ${
+                    selected
+                      ? 'scale-[1.02] border-terracotta shadow-md shadow-terracotta/20'
+                      : 'disabled:opacity-40'
+                  }`}
+                  style={{
+                    background: selected ? 'var(--login-input-bg-focus)' : 'var(--login-input-bg)',
+                    borderColor: selected ? undefined : 'var(--login-input-border)',
+                    color: 'var(--login-text)',
+                  }}
+                >
+                  <span className="font-medium">{c.name}</span>
+                  <span
+                    className="flex items-center gap-1.5 text-xs transition-colors duration-300"
+                    style={{ color: selected ? 'var(--login-text)' : 'var(--login-text-muted)' }}
+                  >
+                    {selected && <Check className="h-3.5 w-3.5 text-terracotta" strokeWidth={2.5} />}
+                    {ROLE_LABEL[c.role]}
+                  </span>
+                </button>
+              )
+            })}
           </div>
 
           {error && (
