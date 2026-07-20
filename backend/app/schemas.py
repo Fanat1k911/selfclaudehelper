@@ -179,6 +179,27 @@ class SaleRequest(BaseModel):
     qty: float
     price: float | None = None
     comment: str = ""
+    box_count: float | None = None
+    tape_cm: float | None = None
+    sticker_count: float | None = None
+    courier_cost: float | None = None
+    logist_cost: float | None = None
+
+
+class SaleUpdateRequest(BaseModel):
+    """Редактирование уже созданной отгрузки (2026-07-20) — Founder/Developer,
+    любое поле, частично через model_dump(exclude_unset=True) в роутере."""
+
+    product_id: str | None = None
+    counterparty_id: str | None = None
+    qty: float | None = None
+    price: float | None = None
+    comment: str | None = None
+    box_count: float | None = None
+    tape_cm: float | None = None
+    sticker_count: float | None = None
+    courier_cost: float | None = None
+    logist_cost: float | None = None
 
 
 class NewCounterpartyRequest(BaseModel):

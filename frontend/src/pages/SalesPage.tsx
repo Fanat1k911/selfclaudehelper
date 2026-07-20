@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { apiFetch } from '../lib/api'
 import type { Sale } from '../types'
-import { NewSaleModal } from '../components/NewSaleModal'
+import { SaleModal } from '../components/SaleModal'
 
 function formatDate(value: string | null) {
   if (!value) return '—'
@@ -14,6 +14,7 @@ export function SalesPage() {
   const [sales, setSales] = useState<Sale[]>([])
   const [loading, setLoading] = useState(true)
   const [showCreate, setShowCreate] = useState(false)
+  const [editingSale, setEditingSale] = useState<Sale | null>(null)
 
   async function load() {
     setLoading(true)
@@ -53,7 +54,11 @@ export function SalesPage() {
           </div>
         )}
         {sales.map((s) => (
-          <div key={s.id} className="rounded-xl border border-ink/10 bg-white p-4 shadow-sm">
+          <button
+            key={s.id}
+            onClick={() => setEditingSale(s)}
+            className="w-full rounded-xl border border-ink/10 bg-white p-4 text-left shadow-sm active:bg-cream/60"
+          >
             <div className="flex items-start justify-between gap-2">
               <span className="truncate text-sm font-medium text-ink">{s['название']}</span>
               <span className="shrink-0 text-sm font-semibold text-ink">{s['кол-во']} шт</span>
@@ -64,7 +69,7 @@ export function SalesPage() {
             </div>
             {s['контрагент'] && <div className="mt-1.5 truncate text-xs text-ink/50">{s['контрагент']}</div>}
             {s['комментарий'] && <div className="mt-1.5 truncate text-xs text-ink/50">{s['комментарий']}</div>}
-          </div>
+          </button>
         ))}
       </div>
 
@@ -96,7 +101,11 @@ export function SalesPage() {
               </tr>
             )}
             {sales.map((s) => (
-              <tr key={s.id} className="border-b border-ink/5 last:border-0">
+              <tr
+                key={s.id}
+                onClick={() => setEditingSale(s)}
+                className="cursor-pointer border-b border-ink/5 last:border-0 hover:bg-cream/60"
+              >
                 <td className="px-4 py-3 text-ink/50">{formatDate(s['дата'])}</td>
                 <td className="px-4 py-3">{s['название']}</td>
                 <td className="px-4 py-3 text-ink/50">{s['контрагент'] || '—'}</td>
@@ -110,10 +119,21 @@ export function SalesPage() {
       </div>
 
       {showCreate && (
-        <NewSaleModal
+        <SaleModal
           onClose={() => setShowCreate(false)}
-          onCreated={() => {
+          onSaved={() => {
             setShowCreate(false)
+            load()
+          }}
+        />
+      )}
+
+      {editingSale && (
+        <SaleModal
+          sale={editingSale}
+          onClose={() => setEditingSale(null)}
+          onSaved={() => {
+            setEditingSale(null)
             load()
           }}
         />

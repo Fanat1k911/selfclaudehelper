@@ -15,7 +15,7 @@ from app.constants import DEVELOPER, FOUNDER
 from app.db import get_db
 from app.models import Counterparty, Product, Sale
 from app.routers.products import _ready_to_ship_by_recipe, _sold_by_product
-from app.schemas import SaleRequest
+from app.schemas import SaleRequest, SaleUpdateRequest
 from app.security import get_current_user, get_owned_or_404, require_roles
 
 router = APIRouter(prefix="/api/sales", tags=["sales"], dependencies=[Depends(require_roles(FOUNDER, DEVELOPER))])
@@ -32,6 +32,11 @@ def _sale_dict(sale: Sale) -> dict:
         "кол-во": float(sale.qty),
         "цена": float(sale.price) if sale.price is not None else "",
         "комментарий": sale.comment or "",
+        "коробки": float(sale.box_count) if sale.box_count is not None else None,
+        "скотч_см": float(sale.tape_cm) if sale.tape_cm is not None else None,
+        "наклейки": float(sale.sticker_count) if sale.sticker_count is not None else None,
+        "трата_курьер": float(sale.courier_cost) if sale.courier_cost is not None else None,
+        "трата_логист": float(sale.logist_cost) if sale.logist_cost is not None else None,
     }
 
 
@@ -75,7 +80,45 @@ def create_sale(body: SaleRequest, user: dict = Depends(get_current_user), db: S
         qty=body.qty,
         price=body.price,
         comment=body.comment,
+        box_count=body.box_count,
+        tape_cm=body.tape_cm,
+        sticker_count=body.sticker_count,
+        courier_cost=body.courier_cost,
+        logist_cost=body.logist_cost,
     )
     db.add(sale)
     db.commit()
     return {"id": sale.id}
+
+
+@router.patch("/{sale_id}")
+def update_sale(
+    sale_id: str, body: SaleUpdateRequest, user: dict = Depends(get_current_user), db: Session = Depends(get_db)
+) -> dict:
+    sale = get_owned_or_404(db, Sale, sale_id, user["company_id"], "Отгрузка не найдена.")
+    updates = body.model_dump(exclude_unset=True)
+
+    target_product_id = updates.get("product_id", sale.product_id)
+    target_qty = updates.get("qty", float(sale.qty))
+    if target_qty <= 0:
+        raise HTTPException(400, "Количество должно быть больше нуля.")
+
+    product = get_owned_or_404(db, Product, target_product_id, user["company_id"], "Продукт не найден.")
+    if "counterparty_id" in updates and updates["counterparty_id"]:
+        get_owned_or_404(db, Counterparty, updates["counterparty_id"], user["company_id"], "Контрагент не найден.")
+
+    if product.recipe_id and (target_product_id != sale.product_id or target_qty != float(sale.qty)):
+        # "Готово к отгрузке" минус уже проданное ДРУГИМИ отгрузками (не этой — эту сейчас правим).
+        sold_excluding_self: dict[str, float] = defaultdict(float)
+        for s in db.scalars(select(Sale).where(Sale.company_id == user["company_id"], Sale.id != sale_id)):
+            sold_excluding_self[s.product_id] += float(s.qty)
+        ready = _ready_to_ship_by_recipe(db, user["company_id"]).get(product.recipe_id, 0.0) - sold_excluding_self.get(
+            target_product_id, 0.0
+        )
+        if target_qty > ready:
+            raise HTTPException(400, f"Недостаточно готового товара: доступно {ready:g}, запрошено {target_qty:g}.")
+
+    for field, value in updates.items():
+        setattr(sale, field, value if field != "counterparty_id" else (value or None))
+    db.commit()
+    return {"ok": True}

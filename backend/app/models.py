@@ -247,6 +247,15 @@ class Sale(Base):
     price: Mapped[float | None] = mapped_column(Numeric(12, 2))
     comment: Mapped[str | None] = mapped_column(Text)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    # Упаковочные поля отгрузки (2026-07-20, запрос Александра) — коробки/наклейки
+    # считаются в штуках (размеры за смену бывают разные, единого физического "короба"
+    # нет — считаем количество, не привязываясь к размеру), скотч в сантиметрах.
+    # Курьер и логист — оба сразу могут быть на одной отгрузке, отдельные траты.
+    box_count: Mapped[float | None] = mapped_column(Numeric(12, 3))
+    tape_cm: Mapped[float | None] = mapped_column(Numeric(12, 3))
+    sticker_count: Mapped[float | None] = mapped_column(Numeric(12, 3))
+    courier_cost: Mapped[float | None] = mapped_column(Numeric(12, 2))
+    logist_cost: Mapped[float | None] = mapped_column(Numeric(12, 2))
 
     product: Mapped["Product"] = relationship()
     counterparty: Mapped["Counterparty | None"] = relationship()

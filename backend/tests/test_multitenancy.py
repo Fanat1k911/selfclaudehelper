@@ -101,6 +101,21 @@ def test_sales_rejects_other_companys_product(client, db_session):
     assert resp.status_code == 404
 
 
+def test_sales_patch_rejects_other_companys_sale(client, db_session):
+    from app.models import Sale
+
+    company_a, company_b, founder_a, founder_b = _two_companies(db_session)
+    product_a = Product(company_id=company_a.id, name="Продукт А2", category="мыло", gtin="223")
+    db_session.add(product_a)
+    db_session.flush()
+    sale_a = Sale(company_id=company_a.id, product_id=product_a.id, qty=1)
+    db_session.add(sale_a)
+    db_session.commit()
+
+    resp = client.patch(f"/api/sales/{sale_a.id}", json={"box_count": 1}, headers=auth_headers(founder_b))
+    assert resp.status_code == 404
+
+
 def test_counterparties_isolated_between_companies(client, db_session):
     company_a, company_b, founder_a, founder_b = _two_companies(db_session)
     cp_a = Counterparty(company_id=company_a.id, name="Контрагент А")

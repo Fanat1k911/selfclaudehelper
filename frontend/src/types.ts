@@ -204,6 +204,11 @@ export interface Sale {
   'кол-во': number
   'цена': number | string
   'комментарий': string
+  'коробки': number | null
+  'скотч_см': number | null
+  'наклейки': number | null
+  'трата_курьер': number | null
+  'трата_логист': number | null
 }
 
 export interface Counterparty {
