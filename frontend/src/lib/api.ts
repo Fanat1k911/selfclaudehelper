@@ -49,7 +49,13 @@ export async function apiFetch<T>(path: string, options: RequestInit = {}): Prom
 
   const res = await fetch(`/api${path}`, { ...options, headers })
 
-  if (res.status === 401) {
+  // "Сессия истекла" применимо только когда токен реально был отправлен и
+  // отклонён — иначе, например, обычный неверный пароль на /auth/login (там
+  // токена ещё нет, залогиниться только пытаемся) тоже ловился этим блоком:
+  // несуществующую сессию сбрасывало, кидало обратно на /login с чужим
+  // сообщением поверх формы вместо настоящего "Неверный логин или пароль"
+  // (2026-07-20, репорт Александра — "со 2 раза заходит").
+  if (token && res.status === 401) {
     clearSession()
     window.location.href = '/login'
     throw new ApiError(401, 'Сессия истекла, войдите снова.')
@@ -84,7 +90,7 @@ export async function apiUpload<T>(path: string, file: File, extra?: Record<stri
     body: form,
   })
 
-  if (res.status === 401) {
+  if (token && res.status === 401) {
     clearSession()
     window.location.href = '/login'
     throw new ApiError(401, 'Сессия истекла, войдите снова.')
