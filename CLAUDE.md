@@ -171,9 +171,9 @@ production/leaderboard (см. ProductionLog выше): осознанно отк
 - **Логин глобально уникален** (не per-company) — экран входа не спрашивает "какая компания", она
   определяется автоматически по аккаунту. `company_id` живёт в JWT-payload наравне с ролью (см.
   "Архитектурные принципы" п.4) — не перечитывается из БД на каждый запрос.
-- **Раскладка дашборда** (`DashboardWidgetLayout`) теперь тоже per-company (была общая на всю
-  систему до мультитенантности) — уникальность `(company_id, widget_key)`, не глобальная по
-  `widget_key`.
+- **Раскладка дашборда** (`DashboardWidgetLayout`) — per-user с 2026-07-20 (была общая на всю
+  систему до мультитенантности, затем per-company; см. п.7 роадмапа ниже) — уникальность
+  `(company_id, user_id, widget_key)`.
 - **Изоляция проверяется явно** — `backend/tests/test_multitenancy.py`, отдельный файл, не
   разбросано по остальным тестам. Кросс-компанийный доступ по чужому id всегда 404 (не 403) —
   не подтверждаем даже факт существования чужой записи.
@@ -359,8 +359,11 @@ Render сам прописывает эту переменную при депл
    количеству, без взвешивания скорости/брака.
    ✅ Виджет-конструктор (2026-07-16): `app/dashboard_widgets.py` — реестр из 11 виджетов (ключ,
    заголовок, тип отрисовки list/bar/line/donut/stat, размер сетки по умолчанию/минимальный,
-   функция расчёта данных). Раскладка — `DashboardWidgetLayout` (widget_key, x, y, w, h), общая на
-   всю мастерскую (founder и developer видят одно и то же — не per-user, так решила Founder).
+   функция расчёта данных). Раскладка — `DashboardWidgetLayout` (company_id, user_id, widget_key,
+   x, y, w, h) — **per-user с 2026-07-20** (решение Александра, до этого была общая на всю
+   мастерскую — founder/developer видели одно и то же, так изначально решила Founder; миграция
+   `c7d8e9f0a1b2` сбросила старые общие раскладки, каждый настраивает заново). Изоляция теперь
+   `(company_id, user_id, widget_key)`, не только `company_id`.
    Эндпоинты: `GET /dashboard/widgets/catalog`, `GET/PUT /dashboard/widgets/layout`,
    `GET /dashboard/widgets/{key}/data`. Фронт — `DashboardPage.tsx` на `react-grid-layout` (drag/resize
    мышью в стиле iOS-виджетов, `/legacy` — v1 flat-props API, вторая версия либы 2026 переписана на

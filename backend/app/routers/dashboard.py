@@ -173,7 +173,9 @@ def get_widget_catalog() -> list[dict]:
 
 @router.get("/widgets/layout")
 def get_widget_layout(user: dict = Depends(get_current_user), db: Session = Depends(get_db)) -> list[dict]:
-    stmt = select(DashboardWidgetLayout).where(DashboardWidgetLayout.company_id == user["company_id"])
+    stmt = select(DashboardWidgetLayout).where(
+        DashboardWidgetLayout.company_id == user["company_id"], DashboardWidgetLayout.user_id == user["id"]
+    )
     rows = db.scalars(stmt).all()
     return [{"widget_key": r.widget_key, "x": r.x, "y": r.y, "w": r.w, "h": r.h} for r in rows]
 
@@ -182,17 +184,18 @@ def get_widget_layout(user: dict = Depends(get_current_user), db: Session = Depe
 def save_widget_layout(
     items: list[DashboardLayoutItem], user: dict = Depends(get_current_user), db: Session = Depends(get_db)
 ) -> dict:
-    """Раскладка общая на всю компанию — сохраняет одна роль, видят обе (founder и
-    developer), поэтому это полная замена, а не per-user upsert."""
+    """Раскладка per-user (2026-07-20) — полная замена раскладки только текущего юзера,
+    остальных в компании не трогает."""
     unknown = [i.widget_key for i in items if i.widget_key not in WIDGET_BY_KEY]
     if unknown:
         raise HTTPException(400, f"Неизвестные виджеты: {', '.join(unknown)}")
 
-    db.query(DashboardWidgetLayout).filter_by(company_id=user["company_id"]).delete()
+    db.query(DashboardWidgetLayout).filter_by(company_id=user["company_id"], user_id=user["id"]).delete()
     for i in items:
         db.add(
             DashboardWidgetLayout(
-                company_id=user["company_id"], widget_key=i.widget_key, x=i.x, y=i.y, w=i.w, h=i.h
+                company_id=user["company_id"], user_id=user["id"], widget_key=i.widget_key,
+                x=i.x, y=i.y, w=i.w, h=i.h,
             )
         )
     db.commit()

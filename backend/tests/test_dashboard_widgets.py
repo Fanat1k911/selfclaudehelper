@@ -50,6 +50,27 @@ def test_layout_save_replaces_previous(client, db_session):
     assert keys == ["monthly_spend"]
 
 
+def test_layout_is_per_user_not_shared(client, db_session):
+    founder = make_user(db_session, login="wl4", role=FOUNDER)
+    developer = make_user(db_session, login="wl5", role="developer", company_id=founder.company_id)
+
+    client.put(
+        "/api/dashboard/widgets/layout",
+        json=[{"widget_key": "low_stock", "x": 0, "y": 0, "w": 4, "h": 5}],
+        headers=auth_headers(founder),
+    )
+    client.put(
+        "/api/dashboard/widgets/layout",
+        json=[{"widget_key": "monthly_spend", "x": 2, "y": 2, "w": 6, "h": 6}],
+        headers=auth_headers(developer),
+    )
+
+    founder_layout = [r["widget_key"] for r in client.get("/api/dashboard/widgets/layout", headers=auth_headers(founder)).json()]
+    developer_layout = [r["widget_key"] for r in client.get("/api/dashboard/widgets/layout", headers=auth_headers(developer)).json()]
+    assert founder_layout == ["low_stock"]
+    assert developer_layout == ["monthly_spend"]
+
+
 def test_layout_rejects_unknown_widget_key(client, db_session):
     founder = make_user(db_session, login="wl3", role=FOUNDER)
     resp = client.put(

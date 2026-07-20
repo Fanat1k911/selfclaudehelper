@@ -303,16 +303,18 @@ class PackagingLog(Base):
 
 
 class DashboardWidgetLayout(Base):
-    """Раскладка виджетов дашборда — общая на всю компанию (founder и developer одной
-    мастерской видят одно и то же), не per-user, но своя у каждой компании. Одна строка
-    на активный виджет; удаление виджета с дашборда — просто DELETE строки, добавление —
-    INSERT с позицией по умолчанию."""
+    """Раскладка виджетов дашборда — per-user (2026-07-20, было общей на компанию до этого,
+    см. историю в CLAUDE.md): каждый настраивает себе сам, независимо от роли. user_id — кто
+    настроил; company_id остаётся для мультитенантной изоляции (юзер с несколькими членствами
+    может иметь разную раскладку в разных компаниях). Одна строка на активный виджет; удаление
+    виджета с дашборда — просто DELETE строки, добавление — INSERT с позицией по умолчанию."""
 
     __tablename__ = "dashboard_widget_layout"
-    __table_args__ = (UniqueConstraint("company_id", "widget_key", name="uq_company_widget"),)
+    __table_args__ = (UniqueConstraint("company_id", "user_id", "widget_key", name="uq_company_user_widget"),)
 
     id: Mapped[str] = mapped_column(String(8), primary_key=True, default=_short_id)
     company_id: Mapped[str] = mapped_column(ForeignKey("companies.id"))
+    user_id: Mapped[str] = mapped_column(ForeignKey("users.id"))
     widget_key: Mapped[str] = mapped_column(String(50))
     x: Mapped[int] = mapped_column(Integer)
     y: Mapped[int] = mapped_column(Integer)
