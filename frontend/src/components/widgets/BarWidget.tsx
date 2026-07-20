@@ -76,11 +76,25 @@ function SingleSeriesBar({ rows, valueKey }: { rows: { name: string; value: numb
   useEffect(() => {
     const el = containerRef.current
     if (!el) return
-    const update = () => setContainerWidth(el.clientWidth)
-    update()
+    // Дебаунс (2026-07-20, репорт Александра — "появляется какой-то скролл, не могу
+    // остановиться") — react-grid-layout на дашборде делает несколько проходов
+    // раскладки сразу после монтирования, каждый чуть меняет ширину контейнера
+    // виджета. Без дебаунса каждый проход тут же перерендеривал график с новой
+    // axisWidth, а это ЕЩЁ немного меняло геометрию — несколько дребезжащих
+    // реframe подряд выглядели как самопроизвольный скролл/дёрганье страницы.
+    // Ждём, пока размер не перестанет меняться 150мс, и коммитим один раз.
+    let timeoutId: ReturnType<typeof setTimeout> | null = null
+    const update = () => {
+      if (timeoutId) clearTimeout(timeoutId)
+      timeoutId = setTimeout(() => setContainerWidth(el.clientWidth), 600)
+    }
+    setContainerWidth(el.clientWidth)
     const ro = new ResizeObserver(update)
     ro.observe(el)
-    return () => ro.disconnect()
+    return () => {
+      if (timeoutId) clearTimeout(timeoutId)
+      ro.disconnect()
+    }
   }, [])
 
   if (rows.length === 0) {
