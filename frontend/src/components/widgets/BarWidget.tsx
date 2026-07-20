@@ -163,7 +163,10 @@ function SingleSeriesBar({ rows, valueKey }: { rows: { name: string; value: numb
             tick={(props) => <WrappedYAxisTick {...props} axisWidth={axisWidth} />}
             axisLine={{ stroke: CHROME.baseline }}
           />
-          <Tooltip content={<ValueOnlyTooltip valueKey={valueKey} />} />
+          <Tooltip
+            content={<ValueOnlyTooltip valueKey={valueKey} />}
+            cursor={{ fill: CATEGORICAL[0], fillOpacity: 0.12 }}
+          />
           <Bar dataKey="value" fill={CATEGORICAL[0]} radius={[0, 4, 4, 0]} maxBarSize={24} />
         </BarChart>
       </ResponsiveContainer>
@@ -195,6 +198,7 @@ function KpiByWorkerBar({ rows }: { rows: WidgetKpiRow[] }) {
         <Tooltip
           contentStyle={{ fontSize: 12, background: CHROME.surface, borderColor: CHROME.gridline, color: CHROME.textPrimary }}
           labelStyle={{ color: CHROME.textPrimary }}
+          cursor={{ fill: CHROME.baseline, fillOpacity: 0.15 }}
         />
         {workers.length > 1 && <Legend wrapperStyle={{ fontSize: 12, color: CHROME.textSecondary }} />}
         {workers.map((worker, i) => (
