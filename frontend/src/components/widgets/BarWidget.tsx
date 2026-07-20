@@ -38,6 +38,13 @@ function wrapLabel(text: string, maxCharsPerLine: number): [string, string] {
   return [line1, line2]
 }
 
+// Ниже этой ширины колонки под подпись — 2 строки уже не помещаются по высоте
+// строки графика на тесных мобильных виджетах (2026-07-20, повторный репорт
+// Александра со скриншотом мобильной версии — строки наезжали друг на друга).
+// На узких экранах уходим на 1 строку помельче шрифтом — влезает, и по тексту
+// всё ещё понятно, что за компонент, а не 2 строки покрупнее, которые не влезают.
+const NARROW_AXIS_WIDTH_PX = 90
+
 // Recharts не переносит и не обрезает длинные category-подписи сами по себе —
 // без этого длинные названия материалов из номенклатуры (2026-07-19) стопкой
 // наезжают друг на друга по вертикали. Полное имя всё ещё видно в tooltip при
@@ -53,10 +60,23 @@ function WrappedYAxisTick({
   payload: { value: string }
   axisWidth: number
 }) {
-  const maxChars = Math.max(1, Math.floor((axisWidth - AXIS_LABEL_PADDING_PX) / AVG_CHAR_WIDTH_PX))
+  const narrow = axisWidth < NARROW_AXIS_WIDTH_PX
+  const fontSize = narrow ? 9 : 11
+  const avgCharWidth = narrow ? 5 : AVG_CHAR_WIDTH_PX
+  const maxChars = Math.max(1, Math.floor((axisWidth - AXIS_LABEL_PADDING_PX) / avgCharWidth))
+
+  if (narrow) {
+    const oneLine = payload.value.length > maxChars ? `${payload.value.slice(0, maxChars - 1)}…` : payload.value
+    return (
+      <text x={x} y={y} dy={3} textAnchor="end" fontSize={fontSize} fill={CHROME.textSecondary}>
+        {oneLine}
+      </text>
+    )
+  }
+
   const [line1, line2] = wrapLabel(payload.value, maxChars)
   return (
-    <text x={x} y={y} textAnchor="end" fontSize={11} fill={CHROME.textSecondary}>
+    <text x={x} y={y} textAnchor="end" fontSize={fontSize} fill={CHROME.textSecondary}>
       <tspan x={x} dy={line2 ? -3 : 4}>
         {line1}
       </tspan>
@@ -124,7 +144,11 @@ function SingleSeriesBar({ rows, valueKey }: { rows: { name: string; value: numb
   }
 
   // Запись компонента (название) — четверть ширины виджета, как просил Александр.
-  const axisWidth = Math.round(containerWidth / 4)
+  // На тесных мобильных карточках четверти не хватает даже на однострочную
+  // читаемую обрезку ("Флак…" ни о чём не говорит) — там отдаём под подпись
+  // больше места (40%), бары всё равно вторичны при таком узком виджете.
+  const isMobileNarrow = containerWidth < 260
+  const axisWidth = Math.round(containerWidth * (isMobileNarrow ? 0.4 : 0.25))
 
   return (
     <div ref={containerRef} className="h-full w-full">
