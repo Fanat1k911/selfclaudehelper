@@ -177,6 +177,8 @@ def add_adjustment(
     balances, _ = _balances_and_last_movement(db, user["company_id"])
     current = balances.get(item_id, 0.0)
     delta = body.actual_qty - current
+    if delta == 0:
+        return {"ok": True, "delta": 0}
     db.add(
         EquipmentTransaction(
             company_id=user["company_id"], item_id=item_id, type=TRANSACTION_ADJUSTMENT,

@@ -5,7 +5,7 @@
 from datetime import datetime
 
 from app.constants import FOUNDER, WORKER
-from app.models import Counterparty, Material, PackagingLog, Product, ProductionLog, Recipe
+from app.models import Counterparty, EquipmentItem, Material, PackagingLog, Product, ProductionLog, Recipe
 from tests.conftest import auth_headers, make_company, make_user
 
 
@@ -33,6 +33,33 @@ def test_materials_isolated_between_companies(client, db_session):
     resp = client.post(
         f"/api/ingredients/{material_a.id}/income", json={"qty": 5}, headers=auth_headers(founder_b)
     )
+    assert resp.status_code == 404
+
+
+def test_equipment_isolated_between_companies(client, db_session):
+    company_a, company_b, founder_a, founder_b = _two_companies(db_session)
+    item_a = EquipmentItem(company_id=company_a.id, name="Миксер А", unit="шт")
+    db_session.add(item_a)
+    db_session.commit()
+
+    resp_b = client.get("/api/equipment", headers=auth_headers(founder_b))
+    assert all(i["id"] != item_a.id for i in resp_b.json())
+
+    resp_a = client.get("/api/equipment", headers=auth_headers(founder_a))
+    assert any(i["id"] == item_a.id for i in resp_a.json())
+
+    # Прямой доступ по id чужого инвентаря — 404, не 403.
+    resp = client.post(f"/api/equipment/{item_a.id}/income", json={"qty": 1}, headers=auth_headers(founder_b))
+    assert resp.status_code == 404
+    resp = client.post(f"/api/equipment/{item_a.id}/broken", json={"qty": 1}, headers=auth_headers(founder_b))
+    assert resp.status_code == 404
+    resp = client.post(f"/api/equipment/{item_a.id}/lost", json={"qty": 1}, headers=auth_headers(founder_b))
+    assert resp.status_code == 404
+    resp = client.post(
+        f"/api/equipment/{item_a.id}/adjustment", json={"actual_qty": 5}, headers=auth_headers(founder_b)
+    )
+    assert resp.status_code == 404
+    resp = client.get(f"/api/equipment/{item_a.id}/transactions", headers=auth_headers(founder_b))
     assert resp.status_code == 404
 
 
