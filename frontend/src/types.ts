@@ -293,7 +293,6 @@ export interface DashboardEvent {
   'время': string
   'тип': string
   'текст': string
-  'страница': string
 }
 
 export interface StockByCategoryRow {

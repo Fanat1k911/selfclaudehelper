@@ -194,7 +194,7 @@ def test_recent_events_widget_merges_sources_and_limits_to_5(client, db_session)
     resp = client.get("/api/dashboard/widgets/recent_events/data", headers=auth_headers(founder))
     rows = resp.json()
     assert len(rows) == 5
-    assert [r["страница"] for r in rows] == ["/sales", "/packaging", "/production", "/ingredients", "/ingredients"]
+    assert [r["тип"] for r in rows] == ["продажа", "упаковка", "производство", "приход", "приход"]
     assert rows[0]["текст"].startswith("Продажа:")
 
 

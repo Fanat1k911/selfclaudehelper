@@ -201,7 +201,6 @@ def _recent_events(db: Session, company_id: str, limit: int = 5) -> list[dict]:
                 "время": tx.created_at,
                 "тип": tx.type,
                 "текст": f"{tx.type.capitalize()}: {name_by_material.get(tx.material_id, tx.material_id)}, {float(tx.qty)}",
-                "страница": "/ingredients",
             }
         )
 
@@ -217,7 +216,6 @@ def _recent_events(db: Session, company_id: str, limit: int = 5) -> list[dict]:
                 "время": entry.finished_at,
                 "тип": "производство",
                 "текст": f"Производство: {entry.recipe.name} — {entry.worker.fio}",
-                "страница": "/production",
             }
         )
 
@@ -233,7 +231,6 @@ def _recent_events(db: Session, company_id: str, limit: int = 5) -> list[dict]:
                 "время": entry.created_at,
                 "тип": "упаковка",
                 "текст": f"Упаковка: {entry.product.name} — {entry.worker.fio}",
-                "страница": "/packaging",
             }
         )
 
@@ -246,7 +243,6 @@ def _recent_events(db: Session, company_id: str, limit: int = 5) -> list[dict]:
                 "время": s.created_at,
                 "тип": "продажа",
                 "текст": f"Продажа: {s.product.name} × {float(s.qty)}",
-                "страница": "/sales",
             }
         )
 

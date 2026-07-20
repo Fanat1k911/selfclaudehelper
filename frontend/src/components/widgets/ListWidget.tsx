@@ -1,4 +1,3 @@
-import { Link } from 'react-router-dom'
 import type {
   DashboardEvent,
   DashboardLowStockItem,
@@ -91,14 +90,9 @@ function RecentEventRows({ rows }: { rows: DashboardEvent[] }) {
   return (
     <ul className="space-y-1.5">
       {rows.map((r, i) => (
-        <li key={i}>
-          <Link
-            to={r['страница']}
-            className="flex items-center justify-between gap-2 text-sm hover:text-premium-gold"
-          >
-            <span className="min-w-0 truncate text-premium-text">{r['текст']}</span>
-            <span className="shrink-0 text-premium-text-muted">{formatDateTime(r['время'])}</span>
-          </Link>
+        <li key={i} className="flex items-center justify-between gap-2 text-sm">
+          <span className="min-w-0 truncate text-premium-text">{r['текст']}</span>
+          <span className="shrink-0 text-premium-text-muted">{formatDateTime(r['время'])}</span>
         </li>
       ))}
     </ul>
