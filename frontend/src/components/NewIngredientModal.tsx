@@ -76,12 +76,12 @@ function CategoryPicker({ value, onChange }: { value: string; onChange: (v: stri
                 onClick={() => setCreatingNew(true)}
                 className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm font-medium text-terracotta hover:bg-cream"
               >
-                <Plus size={14} /> Новая категория
+                <Plus size={14} /> Добавить категорию
               </button>
             </>
           ) : (
             <div className="p-3 space-y-2">
-              <div className="text-xs font-medium text-ink/60">Новая категория</div>
+              <div className="text-xs font-medium text-ink/60">Добавить категорию</div>
               <input
                 autoFocus
                 value={newCategory}
