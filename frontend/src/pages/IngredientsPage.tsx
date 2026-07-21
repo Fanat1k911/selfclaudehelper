@@ -86,7 +86,7 @@ export function IngredientsPage() {
             disabled={ingredients.length === 0}
             className="w-full whitespace-nowrap rounded-lg border border-ink/15 bg-cream px-3 py-2 text-sm font-medium text-ink hover:bg-ink/5 disabled:opacity-40 sm:w-auto sm:px-4"
           >
-            Приход поставкой
+            Поставка
           </button>
           <button
             onClick={() => setShowCreate(true)}
