@@ -79,6 +79,17 @@ def test_batch_income_rejects_empty_items(client, db_session):
     assert resp.status_code == 400
 
 
+def test_categories_returns_defaults_and_custom(client, db_session):
+    worker = make_user(db_session, login="iw15", role=WORKER)
+    headers = auth_headers(worker)
+    client.post("/api/ingredients", json={"name": "Штука", "category": "воск", "unit": "кг"}, headers=headers)
+
+    resp = client.get("/api/ingredients/categories", headers=headers)
+    assert resp.status_code == 200
+    cats = resp.json()
+    assert set(cats) == {"тара", "косм", "свеч", "воск"}
+
+
 def test_recalc_min_stock_sets_half_of_batch_qty(client, db_session):
     founder = make_user(db_session, login="iw13", role=FOUNDER)
     headers = auth_headers(founder)

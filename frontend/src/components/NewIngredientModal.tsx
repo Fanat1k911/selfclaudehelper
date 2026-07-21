@@ -1,11 +1,127 @@
-import { useState, type FormEvent } from 'react'
+import { useEffect, useRef, useState, type FormEvent } from 'react'
+import { Check, ChevronsUpDown, Plus } from 'lucide-react'
 import { apiFetch, ApiError } from '../lib/api'
 import { materialCategoryLabel } from '../lib/labels'
 
-// Реальные категории из живых данных (см. lib/labels.ts) — сыпучее/жидкое тут не
-// использовались вообще (0 материалов), так что новые компоненты заводим сразу в
-// действующую таксономию, не в старую (Александр, 2026-07-21: "было на новые").
-const CATEGORIES = ['тара', 'косм', 'свеч'] as const
+// Базовый набор всегда доступен, даже пока /ingredients/categories не загрузился —
+// см. app.constants.DEFAULT_MATERIAL_CATEGORIES на бэке, держим синхронно.
+const DEFAULT_CATEGORIES = ['тара', 'косм', 'свеч']
+
+function CategoryPicker({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+  const [categories, setCategories] = useState<string[]>(DEFAULT_CATEGORIES)
+  const [open, setOpen] = useState(false)
+  const [creatingNew, setCreatingNew] = useState(false)
+  const [newCategory, setNewCategory] = useState('')
+  const rootRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    apiFetch<string[]>('/ingredients/categories')
+      .then(setCategories)
+      .catch(() => {})
+  }, [])
+
+  useEffect(() => {
+    function onClickOutside(e: MouseEvent) {
+      if (rootRef.current && !rootRef.current.contains(e.target as Node)) {
+        setOpen(false)
+        setCreatingNew(false)
+      }
+    }
+    document.addEventListener('mousedown', onClickOutside)
+    return () => document.removeEventListener('mousedown', onClickOutside)
+  }, [])
+
+  function confirmNewCategory() {
+    const trimmed = newCategory.trim()
+    if (!trimmed) return
+    if (!categories.includes(trimmed)) setCategories((prev) => [...prev, trimmed])
+    onChange(trimmed)
+    setNewCategory('')
+    setCreatingNew(false)
+    setOpen(false)
+  }
+
+  return (
+    <div ref={rootRef} className="relative">
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        className="flex w-full items-center justify-between rounded-lg border border-ink/10 bg-white px-3 py-2 text-sm outline-none focus:border-terracotta"
+      >
+        {materialCategoryLabel(value)}
+        <ChevronsUpDown size={14} className="text-ink/40" />
+      </button>
+
+      {open && (
+        <div className="absolute z-10 mt-1 w-full overflow-hidden rounded-lg border border-ink/10 bg-white shadow-lg">
+          {!creatingNew ? (
+            <>
+              {categories.map((c) => (
+                <button
+                  type="button"
+                  key={c}
+                  onClick={() => {
+                    onChange(c)
+                    setOpen(false)
+                  }}
+                  className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-ink hover:bg-cream"
+                >
+                  <Check size={14} className={c === value ? 'text-terracotta' : 'text-transparent'} />
+                  {materialCategoryLabel(c)}
+                </button>
+              ))}
+              <div className="mx-3 border-t border-dashed border-ink/15" />
+              <button
+                type="button"
+                onClick={() => setCreatingNew(true)}
+                className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm font-medium text-terracotta hover:bg-cream"
+              >
+                <Plus size={14} /> Новая категория
+              </button>
+            </>
+          ) : (
+            <div className="p-3 space-y-2">
+              <div className="text-xs font-medium text-ink/60">Новая категория</div>
+              <input
+                autoFocus
+                value={newCategory}
+                onChange={(e) => setNewCategory(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault()
+                    confirmNewCategory()
+                  }
+                }}
+                placeholder="Название категории"
+                className="w-full rounded-lg border border-ink/10 px-3 py-2 text-sm outline-none focus:border-terracotta"
+              />
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setCreatingNew(false)
+                    setNewCategory('')
+                  }}
+                  className="flex-1 rounded-lg bg-cream py-1.5 text-xs font-medium text-ink hover:bg-ink/5"
+                >
+                  Назад
+                </button>
+                <button
+                  type="button"
+                  onClick={confirmNewCategory}
+                  disabled={!newCategory.trim()}
+                  className="flex-1 rounded-lg bg-accent-add py-1.5 text-xs font-medium text-white hover:bg-accent-add-dark disabled:opacity-40"
+                >
+                  Добавить
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  )
+}
 
 export function NewIngredientModal({
   onClose,
@@ -15,7 +131,7 @@ export function NewIngredientModal({
   onCreated: () => void
 }) {
   const [name, setName] = useState('')
-  const [category, setCategory] = useState<(typeof CATEGORIES)[number]>('тара')
+  const [category, setCategory] = useState('тара')
   const [minStock, setMinStock] = useState('')
   const [initialQty, setInitialQty] = useState('')
   const [error, setError] = useState<string | null>(null)
@@ -65,17 +181,7 @@ export function NewIngredientModal({
 
         <div>
           <label className="block text-xs text-ink/60 mb-1">Категория</label>
-          <select
-            value={category}
-            onChange={(e) => setCategory(e.target.value as (typeof CATEGORIES)[number])}
-            className="w-full rounded-lg border border-ink/10 px-3 py-2 text-sm outline-none focus:border-terracotta"
-          >
-            {CATEGORIES.map((c) => (
-              <option key={c} value={c}>
-                {materialCategoryLabel(c)}
-              </option>
-            ))}
-          </select>
+          <CategoryPicker value={category} onChange={setCategory} />
         </div>
 
         <div className="grid grid-cols-2 gap-3">

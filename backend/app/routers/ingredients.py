@@ -15,7 +15,14 @@ from openpyxl import Workbook, load_workbook
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from app.constants import FOUNDER, DEVELOPER, TRANSACTION_ADJUSTMENT, TRANSACTION_EXPENSE, TRANSACTION_INCOME
+from app.constants import (
+    DEFAULT_MATERIAL_CATEGORIES,
+    DEVELOPER,
+    FOUNDER,
+    TRANSACTION_ADJUSTMENT,
+    TRANSACTION_EXPENSE,
+    TRANSACTION_INCOME,
+)
 
 from app.db import get_db
 from app.models import Material, Transaction
@@ -105,6 +112,20 @@ def list_ingredients(user: dict = Depends(get_current_user), db: Session = Depen
     materials = db.scalars(select(Material).where(Material.company_id == user["company_id"])).all()
     balances, last_movement = _balances_and_last_movement(db, user["company_id"])
     return [_material_dict(m, balances.get(m.id, 0.0), last_movement.get(m.id)) for m in materials]
+
+
+@router.get("/categories")
+def list_categories(user: dict = Depends(get_current_user), db: Session = Depends(get_db)) -> list[str]:
+    """Базовая тройка категорий + любые кастомные, реально использующиеся в этой компании
+    (см. NewIngredientModal.tsx "+ новая категория") — категория остаётся свободной строкой,
+    отдельного справочника в БД нет."""
+    used = {
+        c for (c,) in db.execute(
+            select(Material.category).where(Material.company_id == user["company_id"]).distinct()
+        ).all()
+        if c
+    }
+    return sorted(used | set(DEFAULT_MATERIAL_CATEGORIES))
 
 
 @router.get("/{material_id}/transactions")
