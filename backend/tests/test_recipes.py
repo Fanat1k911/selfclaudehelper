@@ -45,7 +45,7 @@ def test_recipe_create_rejects_out_of_range_loss_percent(client, db_session):
     resp = client.post("/api/recipes", json={**base, "loss_percent": -1}, headers=auth_headers(founder))
     assert resp.status_code == 422
 
-    resp = client.post("/api/recipes", json={**base, "loss_percent": 101}, headers=auth_headers(founder))
+    resp = client.post("/api/recipes", json={**base, "loss_percent": 51}, headers=auth_headers(founder))
     assert resp.status_code == 422
 
 
