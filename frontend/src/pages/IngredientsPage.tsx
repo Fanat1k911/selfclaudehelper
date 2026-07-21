@@ -63,12 +63,11 @@ export function IngredientsPage() {
     <div className="px-4 py-4 sm:px-8 sm:py-6">
       <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <h1 className="text-xl font-semibold text-ink sm:text-2xl">Компоненты</h1>
-        <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center sm:justify-end">
-          {/* Три второстепенных действия — ровная сетка 2x2 на мобильном (Поставка занимает
-              вторую строку целиком, т.к. действий нечётное число), в один ряд одинаковых
-              кнопок на десктопе. Раньше были вперемешку то в паре, то на всю ширину — читалось
-              кашей (Александр, 2026-07-21). "+Добавить компонент" — единственный акцентный
-              CTA, остаётся визуально отдельным. */}
+        <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-end">
+          {/* Два явных блока (Александр, 2026-07-21): служебное (Экспорт/Импорт) отдельно
+              от действий над остатком (Поставка/Добавить) — разделены собственным gap-3 и,
+              на десктопе, вертикальной чертой между блоками. Внутри каждого блока — ровная
+              пара 2x2 на мобильном, в ряд на десктопе. */}
           <div className="grid grid-cols-2 gap-2 sm:flex sm:gap-2">
             <button
               onClick={() => apiDownload('/ingredients/export', 'компоненты.xlsx')}
@@ -82,20 +81,25 @@ export function IngredientsPage() {
             >
               <Upload size={15} /> Импорт
             </button>
+          </div>
+
+          <div className="hidden h-8 w-px bg-ink/10 sm:block" />
+
+          <div className="grid grid-cols-2 gap-2 sm:flex sm:gap-2">
             <button
               onClick={() => setShowBatchIncome(true)}
               disabled={ingredients.length === 0}
-              className="col-span-2 flex items-center justify-center gap-1.5 whitespace-nowrap rounded-lg bg-terracotta px-3 py-2 text-sm font-medium text-white shadow-sm hover:bg-terracotta-dark disabled:opacity-40 sm:col-span-1 sm:w-auto sm:px-4"
+              className="flex items-center justify-center gap-1.5 whitespace-nowrap rounded-lg bg-terracotta px-3 py-2 text-sm font-medium text-white shadow-sm hover:bg-terracotta-dark disabled:opacity-40 sm:w-auto sm:px-4"
             >
               <Truck size={15} /> Поставка
             </button>
+            <button
+              onClick={() => setShowCreate(true)}
+              className="flex items-center justify-center gap-1.5 whitespace-nowrap rounded-lg bg-accent-add px-3 py-2 text-sm font-medium text-white hover:bg-accent-add-dark sm:w-auto sm:px-4"
+            >
+              <Plus size={15} /> Добавить компонент
+            </button>
           </div>
-          <button
-            onClick={() => setShowCreate(true)}
-            className="flex w-full items-center justify-center gap-1.5 whitespace-nowrap rounded-lg bg-accent-add px-3 py-2 text-sm font-medium text-white hover:bg-accent-add-dark sm:w-auto sm:px-4"
-          >
-            <Plus size={15} /> Добавить компонент
-          </button>
         </div>
       </div>
 
