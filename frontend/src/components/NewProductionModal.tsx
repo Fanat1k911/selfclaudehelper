@@ -9,7 +9,7 @@ export function NewProductionModal({
   onClose: () => void
   onCreated: () => void
 }) {
-  const [products, setProducts] = useState<ProducibleProduct[]>([])
+  const [products, setProducts] = useState<ProducibleProduct[] | null>(null)
   const [productId, setProductId] = useState('')
   const [qty, setQty] = useState('1')
   const [defects, setDefects] = useState('0')
@@ -24,10 +24,34 @@ export function NewProductionModal({
     })
   }, [])
 
+  if (products !== null && products.length === 0) {
+    return (
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30" onClick={onClose}>
+        <div
+          className="w-full max-w-sm rounded-2xl bg-white p-6 shadow-2xl space-y-3"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <div className="text-lg font-semibold text-ink">Нечего производить</div>
+          <p className="text-sm text-ink/70">
+            Ни один продукт не привязан к рецепту (или рецепт в архиве). Зайди в раздел
+            «Продукт», открой нужную карточку и выбери рецепт в поле «Рецепт» — после
+            этого он появится здесь.
+          </p>
+          <button
+            onClick={onClose}
+            className="w-full rounded-lg bg-cream py-2 text-sm font-medium text-ink hover:bg-ink/5"
+          >
+            Понятно
+          </button>
+        </div>
+      </div>
+    )
+  }
+
   async function handleSubmit(e: FormEvent) {
     e.preventDefault()
     setError(null)
-    const product = products.find((p) => p.id === productId)
+    const product = (products ?? []).find((p) => p.id === productId)
     if (!product) return
     setSubmitting(true)
     try {
@@ -65,7 +89,7 @@ export function NewProductionModal({
             className="w-full rounded-lg border border-ink/10 px-3 py-2 text-sm outline-none focus:border-terracotta"
             required
           >
-            {products.map((p) => (
+            {(products ?? []).map((p) => (
               <option key={p.id} value={p.id}>
                 {p['название']}
               </option>
