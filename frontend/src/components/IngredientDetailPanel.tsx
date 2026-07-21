@@ -2,6 +2,7 @@ import { useEffect, useState, type FormEvent } from 'react'
 import { ArrowDownCircle, ArrowUpCircle, Pencil, SlidersHorizontal } from 'lucide-react'
 import { apiFetch, ApiError } from '../lib/api'
 import { useAuth } from '../lib/auth'
+import { materialCategoryLabel } from '../lib/labels'
 import type { Ingredient, Transaction } from '../types'
 
 type ActionKind = 'приход' | 'расход' | 'корректировка' | null
@@ -148,7 +149,7 @@ export function IngredientDetailPanel({
         <div className="flex items-start justify-between border-b border-ink/10 px-6 py-5">
           <div>
             <div className="text-lg font-semibold text-ink">{ingredient['название']}</div>
-            <div className="text-sm text-ink/50">{ingredient['категория']}</div>
+            <div className="text-sm text-ink/50">{materialCategoryLabel(ingredient['категория'])}</div>
           </div>
           <button onClick={onClose} className="text-ink/40 hover:text-ink text-xl leading-none">
             ×
