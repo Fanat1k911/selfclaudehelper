@@ -1,7 +1,11 @@
 import { useState, type FormEvent } from 'react'
 import { apiFetch, ApiError } from '../lib/api'
+import { materialCategoryLabel } from '../lib/labels'
 
-const CATEGORIES = ['сыпучее', 'жидкое', 'тара'] as const
+// Реальные категории из живых данных (см. lib/labels.ts) — сыпучее/жидкое тут не
+// использовались вообще (0 материалов), так что новые компоненты заводим сразу в
+// действующую таксономию, не в старую (Александр, 2026-07-21: "было на новые").
+const CATEGORIES = ['тара', 'косм', 'свеч'] as const
 
 export function NewIngredientModal({
   onClose,
@@ -11,7 +15,7 @@ export function NewIngredientModal({
   onCreated: () => void
 }) {
   const [name, setName] = useState('')
-  const [category, setCategory] = useState<(typeof CATEGORIES)[number]>('сыпучее')
+  const [category, setCategory] = useState<(typeof CATEGORIES)[number]>('тара')
   const [minStock, setMinStock] = useState('')
   const [initialQty, setInitialQty] = useState('')
   const [error, setError] = useState<string | null>(null)
@@ -68,7 +72,7 @@ export function NewIngredientModal({
           >
             {CATEGORIES.map((c) => (
               <option key={c} value={c}>
-                {c}
+                {materialCategoryLabel(c)}
               </option>
             ))}
           </select>
