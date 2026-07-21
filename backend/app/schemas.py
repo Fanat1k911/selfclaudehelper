@@ -76,6 +76,18 @@ class AdjustmentRequest(BaseModel):
     comment: str = ""
 
 
+class BatchIncomeItem(BaseModel):
+    material_id: str
+    qty: float
+    price: float | None = None
+
+
+class BatchIncomeRequest(BaseModel):
+    items: list[BatchIncomeItem]
+    transport_cost: float = 0
+    comment: str = ""
+
+
 class NewEquipmentRequest(BaseModel):
     name: str
     unit: str = "шт"

@@ -60,6 +60,7 @@ export interface Transaction {
   'тип': 'приход' | 'расход' | 'корректировка'
   'кол-во': number
   'цена': number | string
+  'транспортные расходы': number | string
   recipe_id: string
   'комментарий': string
 }
@@ -192,6 +193,8 @@ export interface Product {
   'декларация соответствия': string
   'срок действия РД': string
   'готово к отгрузке': number | null
+  'себестоимость партии': number | null
+  'себестоимость единицы': number | null
 }
 
 export interface Sale {

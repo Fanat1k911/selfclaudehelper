@@ -4,6 +4,7 @@ import type { Ingredient } from '../types'
 import { IngredientDetailPanel } from '../components/IngredientDetailPanel'
 import { NewIngredientModal } from '../components/NewIngredientModal'
 import { ImportIngredientsModal } from '../components/ImportIngredientsModal'
+import { BatchIncomeModal } from '../components/BatchIncomeModal'
 
 const COLOR_DOT: Record<Ingredient['цвет'], string> = {
   'зелёный': 'bg-emerald-500',
@@ -25,6 +26,7 @@ export function IngredientsPage() {
   const [selected, setSelected] = useState<Ingredient | null>(null)
   const [showCreate, setShowCreate] = useState(false)
   const [showImport, setShowImport] = useState(false)
+  const [showBatchIncome, setShowBatchIncome] = useState(false)
 
   async function load() {
     setLoading(true)
@@ -79,6 +81,13 @@ export function IngredientsPage() {
               Импорт из файла
             </button>
           </div>
+          <button
+            onClick={() => setShowBatchIncome(true)}
+            disabled={ingredients.length === 0}
+            className="w-full whitespace-nowrap rounded-lg border border-ink/15 bg-cream px-3 py-2 text-sm font-medium text-ink hover:bg-ink/5 disabled:opacity-40 sm:w-auto sm:px-4"
+          >
+            Приход поставкой
+          </button>
           <button
             onClick={() => setShowCreate(true)}
             className="w-full whitespace-nowrap rounded-lg bg-accent-add px-3 py-2 text-sm font-medium text-white hover:bg-accent-add-dark sm:w-auto sm:px-4"
@@ -204,6 +213,17 @@ export function IngredientsPage() {
           onClose={() => setShowImport(false)}
           onImported={() => {
             setShowImport(false)
+            load()
+          }}
+        />
+      )}
+
+      {showBatchIncome && (
+        <BatchIncomeModal
+          ingredients={ingredients}
+          onClose={() => setShowBatchIncome(false)}
+          onCreated={() => {
+            setShowBatchIncome(false)
             load()
           }}
         />

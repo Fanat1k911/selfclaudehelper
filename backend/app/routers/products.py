@@ -16,6 +16,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.constants import DEVELOPER, FOUNDER, PRODUCT_REQUIRED_FIELDS
+from app.costing import compute_active_lot_unit_costs, compute_product_costs
 
 from app.db import get_db
 from app.models import Product, ProductionLog, Recipe, Sale
@@ -45,7 +46,10 @@ def _sold_by_product(db: Session, company_id: str) -> dict[str, float]:
     return sold
 
 
-def _product_dict(product: Product, produced_by_recipe: dict[str, float], sold_by_product: dict[str, float]) -> dict:
+def _product_dict(
+    product: Product, produced_by_recipe: dict[str, float], sold_by_product: dict[str, float],
+    cost_per_batch: float | None, cost_per_unit: float | None,
+) -> dict:
     ready = None
     if product.recipe_id:
         ready = produced_by_recipe.get(product.recipe_id, 0.0) - sold_by_product.get(product.id, 0.0)
@@ -61,6 +65,8 @@ def _product_dict(product: Product, produced_by_recipe: dict[str, float], sold_b
         "декларация соответствия": product.declaration or "",
         "срок действия РД": product.declaration_expires.isoformat() if product.declaration_expires else "",
         "готово к отгрузке": ready,
+        "себестоимость партии": cost_per_batch,
+        "себестоимость единицы": cost_per_unit,
     }
 
 
@@ -68,8 +74,13 @@ def _product_dict(product: Product, produced_by_recipe: dict[str, float], sold_b
 def list_products(user: dict = Depends(get_current_user), db: Session = Depends(get_db)) -> list[dict]:
     produced_by_recipe = _ready_to_ship_by_recipe(db, user["company_id"])
     sold_by_product = _sold_by_product(db, user["company_id"])
+    lot_unit_costs = compute_active_lot_unit_costs(db, user["company_id"])
     stmt = select(Product).where(Product.company_id == user["company_id"])
-    return [_product_dict(p, produced_by_recipe, sold_by_product) for p in db.scalars(stmt)]
+    result = []
+    for p in db.scalars(stmt):
+        cost_per_batch, cost_per_unit = compute_product_costs(db, user["company_id"], p, lot_unit_costs)
+        result.append(_product_dict(p, produced_by_recipe, sold_by_product, cost_per_batch, cost_per_unit))
+    return result
 
 
 @router.post("")

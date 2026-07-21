@@ -35,6 +35,14 @@ def test_materials_isolated_between_companies(client, db_session):
     )
     assert resp.status_code == 404
 
+    # Групповой приход — та же проверка на каждую строку, чужой материал в списке тоже 404.
+    resp = client.post(
+        "/api/ingredients/income/batch",
+        json={"items": [{"material_id": material_a.id, "qty": 5}], "transport_cost": 10},
+        headers=auth_headers(founder_b),
+    )
+    assert resp.status_code == 404
+
 
 def test_equipment_isolated_between_companies(client, db_session):
     company_a, company_b, founder_a, founder_b = _two_companies(db_session)

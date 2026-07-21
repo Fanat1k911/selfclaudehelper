@@ -18,6 +18,67 @@ def test_balance_reflects_income_expense_adjustment(client, db_session):
     assert row["остаток"] == 8.0
 
 
+def test_batch_income_splits_freight_by_weight(client, db_session):
+    worker = make_user(db_session, login="iw10", role=WORKER)
+    headers = auth_headers(worker)
+
+    # Флакон: мин.партия 100 шт весом 5 кг -> 0.05 кг/шт. Масло: мин.партия 10 кг весом 10 кг -> 1 кг/кг.
+    r1 = client.post("/api/ingredients", json={"name": "Флакон", "category": "тара", "unit": "шт"}, headers=headers)
+    material_a = r1.json()["id"]
+    client.patch(
+        f"/api/ingredients/{material_a}",
+        json={"min_purchase_batch_qty": 100, "min_purchase_batch_weight": 5},
+        headers=auth_headers(make_user(db_session, login="iw10f", role=FOUNDER, company_id=worker.company_id)),
+    )
+    r2 = client.post("/api/ingredients", json={"name": "Масло", "category": "жидкое", "unit": "кг"}, headers=headers)
+    material_b = r2.json()["id"]
+    client.patch(
+        f"/api/ingredients/{material_b}",
+        json={"min_purchase_batch_qty": 10, "min_purchase_batch_weight": 10},
+        headers=auth_headers(make_user(db_session, login="iw10f2", role=FOUNDER, company_id=worker.company_id)),
+    )
+
+    # Поставка: 100 флаконов (100*0.05=5кг) + 5кг масла (5*1=5кг) -> вес поровну -> доставка 100 делится 50/50.
+    resp = client.post(
+        "/api/ingredients/income/batch",
+        json={
+            "items": [
+                {"material_id": material_a, "qty": 100, "price": 2},
+                {"material_id": material_b, "qty": 5, "price": 20},
+            ],
+            "transport_cost": 100,
+        },
+        headers=headers,
+    )
+    assert resp.status_code == 200
+    assert resp.json() == {"ok": True, "created": 2}
+
+    txs_a = client.get(f"/api/ingredients/{material_a}/transactions", headers=headers).json()
+    txs_b = client.get(f"/api/ingredients/{material_b}/transactions", headers=headers).json()
+    assert txs_a[0]["транспортные расходы"] == 50.0
+    assert txs_b[0]["транспортные расходы"] == 50.0
+
+
+def test_batch_income_rejects_duplicate_material(client, db_session):
+    worker = make_user(db_session, login="iw11", role=WORKER)
+    headers = auth_headers(worker)
+    resp = client.post("/api/ingredients", json={"name": "Сода", "category": "сыпучее", "unit": "кг"}, headers=headers)
+    material_id = resp.json()["id"]
+
+    resp = client.post(
+        "/api/ingredients/income/batch",
+        json={"items": [{"material_id": material_id, "qty": 1}, {"material_id": material_id, "qty": 2}]},
+        headers=headers,
+    )
+    assert resp.status_code == 400
+
+
+def test_batch_income_rejects_empty_items(client, db_session):
+    worker = make_user(db_session, login="iw12", role=WORKER)
+    resp = client.post("/api/ingredients/income/batch", json={"items": []}, headers=auth_headers(worker))
+    assert resp.status_code == 400
+
+
 def test_patch_updates_purchase_attrs_partially(client, db_session):
     founder = make_user(db_session, login="iw3", role=FOUNDER)
     headers = auth_headers(founder)

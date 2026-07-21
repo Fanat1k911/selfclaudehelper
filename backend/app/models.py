@@ -158,6 +158,10 @@ class Transaction(Base):
     type: Mapped[str] = mapped_column(String(20))
     qty: Mapped[float] = mapped_column(Numeric(12, 3))
     price: Mapped[float | None] = mapped_column(Numeric(12, 2))
+    # Доля транспортных расходов поставки, отнесённая на эту строку (2026-07-21, групповой
+    # приход с разбивкой по весу, см. app/costing.py) — total ₽ на всю строку, не за единицу;
+    # price остаётся закупочной ценой поставщика без искажений.
+    freight_cost: Mapped[float | None] = mapped_column(Numeric(12, 2))
     recipe_id: Mapped[str | None] = mapped_column(ForeignKey("recipes.id"))
     comment: Mapped[str | None] = mapped_column(Text)
     # created_at (2026-07-19) — отдельно от date (день без времени, вводится руками):

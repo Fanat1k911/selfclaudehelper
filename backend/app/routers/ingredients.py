@@ -21,6 +21,7 @@ from app.db import get_db
 from app.models import Material, Transaction
 from app.schemas import (
     AdjustmentRequest,
+    BatchIncomeRequest,
     ImportCommitRequest,
     MaterialAttrsUpdate,
     NewMaterialRequest,
@@ -78,6 +79,7 @@ def _transaction_dict(tx: Transaction) -> dict:
         "тип": tx.type,
         "кол-во": float(tx.qty),
         "цена": float(tx.price) if tx.price is not None else "",
+        "транспортные расходы": float(tx.freight_cost) if tx.freight_cost is not None else "",
         "recipe_id": tx.recipe_id or "",
         "комментарий": tx.comment or "",
     }
@@ -170,6 +172,54 @@ def add_income(
     )
     db.commit()
     return {"ok": True}
+
+
+@router.post("/income/batch")
+def add_income_batch(
+    body: BatchIncomeRequest, user: dict = Depends(get_current_user), db: Session = Depends(get_db)
+) -> dict:
+    """Групповой приход одной поставки — несколько материалов сразу + одна общая сумма
+    транспортных расходов, которая делится между материалами пропорционально весу
+    (2026-07-21, запрос Александра). Вес берётся из "мин.партия"/"вес мин.партии" на
+    карточке компонента (unit_weight = вес/кол-во минимальной партии); если хотя бы
+    одно из двух не заполнено — fallback на кол-во из этой поставки (пропорция по
+    штукам/кг вместо реального веса, документированное упрощение, не ошибка)."""
+    if not body.items:
+        raise HTTPException(400, "Список материалов пуст.")
+
+    material_ids = [i.material_id for i in body.items]
+    if len(set(material_ids)) != len(material_ids):
+        raise HTTPException(400, "Один материал указан в поставке дважды.")
+
+    if body.transport_cost < 0:
+        raise HTTPException(400, "Транспортные расходы не могут быть отрицательными.")
+
+    materials: dict[str, Material] = {}
+    for item in body.items:
+        _require_positive(item.qty)
+        materials[item.material_id] = _get_own_material(db, item.material_id, user["company_id"])
+
+    weights: dict[str, float] = {}
+    for item in body.items:
+        material = materials[item.material_id]
+        if material.min_purchase_batch_weight and material.min_purchase_batch_qty:
+            unit_weight = float(material.min_purchase_batch_weight) / float(material.min_purchase_batch_qty)
+        else:
+            unit_weight = 1.0  # fallback: пропорция по кол-ву, не по весу
+        weights[item.material_id] = unit_weight * item.qty
+    total_weight = sum(weights.values())
+
+    for item in body.items:
+        freight_share = (weights[item.material_id] / total_weight) * body.transport_cost if total_weight > 0 else 0.0
+        db.add(
+            Transaction(
+                company_id=user["company_id"], material_id=item.material_id, type=TRANSACTION_INCOME,
+                qty=item.qty, price=item.price, freight_cost=round(freight_share, 2) if body.transport_cost else None,
+                comment=body.comment,
+            )
+        )
+    db.commit()
+    return {"ok": True, "created": len(body.items)}
 
 
 @router.post("/{material_id}/expense")

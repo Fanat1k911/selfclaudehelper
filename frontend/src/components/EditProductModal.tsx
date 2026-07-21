@@ -113,6 +113,28 @@ export function EditProductModal({
           )}
         </div>
 
+        {product.recipe_id && (
+          <div className="rounded-lg bg-cream px-3 py-2 text-sm">
+            <div className="flex items-center justify-between">
+              <span className="text-ink/60">Себестоимость партии</span>
+              <span className="font-medium text-ink">
+                {product['себестоимость партии'] === null ? '—' : `${product['себестоимость партии']?.toFixed(2)} ₽`}
+              </span>
+            </div>
+            <div className="mt-1 flex items-center justify-between">
+              <span className="text-ink/60">Себестоимость единицы</span>
+              <span className="font-medium text-ink">
+                {product['себестоимость единицы'] === null ? '—' : `${product['себестоимость единицы']?.toFixed(2)} ₽`}
+              </span>
+            </div>
+            {product['себестоимость партии'] === null && (
+              <p className="mt-1 text-xs text-ink/40">
+                По части сырья в рецепте нет ни цены прихода, ни ручной себестоимости на карточке компонента.
+              </p>
+            )}
+          </div>
+        )}
+
         <div>
           <label className="block text-xs text-ink/60 mb-1">Состав (необязательно)</label>
           <input
