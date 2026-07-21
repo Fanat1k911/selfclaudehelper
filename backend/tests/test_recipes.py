@@ -32,6 +32,38 @@ def test_recipe_with_items_created(client, db_session):
     assert resp.status_code == 200
 
 
+def test_recipe_create_rejects_out_of_range_loss_percent(client, db_session):
+    founder = make_user(db_session, login="rf_loss1", role=FOUNDER)
+    material = Material(company_id=founder.company_id, name="Глицерин", category="жидкое", unit="кг")
+    db_session.add(material)
+    db_session.commit()
+    base = {
+        "name": "Рецепт", "category": "мыло", "produces": "мыло", "batch_yield": 10,
+        "items": [{"material_id": material.id, "qty_per_batch": 2}],
+    }
+
+    resp = client.post("/api/recipes", json={**base, "loss_percent": -1}, headers=auth_headers(founder))
+    assert resp.status_code == 422
+
+    resp = client.post("/api/recipes", json={**base, "loss_percent": 101}, headers=auth_headers(founder))
+    assert resp.status_code == 422
+
+
+def test_recipe_patch_rejects_out_of_range_loss_percent(client, db_session):
+    founder = make_user(db_session, login="rf_loss2", role=FOUNDER)
+    recipe = Recipe(company_id=founder.company_id, name="Рецепт", category="мыло", produces="мыло", batch_yield=10.0)
+    db_session.add(recipe)
+    db_session.commit()
+
+    resp = client.patch(f"/api/recipes/{recipe.id}", json={"loss_percent": -50}, headers=auth_headers(founder))
+    assert resp.status_code == 422
+
+    # Отрицательный процент делает партию "бесплатной" и может даже произвести сырьё из
+    # ничего (loss_factor < 0) — регрессия, которую эта валидация закрывает.
+    resp = client.patch(f"/api/recipes/{recipe.id}", json={"loss_percent": -150}, headers=auth_headers(founder))
+    assert resp.status_code == 422
+
+
 def test_recipe_with_duplicate_material_rows_dedupes_to_last(client, db_session):
     founder = make_user(db_session, login="rf6", role=FOUNDER)
     material = Material(company_id=founder.company_id, name="Глицерин", category="жидкое", unit="кг")

@@ -57,10 +57,10 @@ class MaterialAttrsUpdate(BaseModel):
     через model_dump(exclude_unset=True) в роутере: пропущенное в запросе поле не
     трогается, явно присланный null — очищает."""
 
-    unit_cost: float | None = None
-    min_purchase_batch_qty: float | None = None
-    min_purchase_batch_cost: float | None = None
-    min_purchase_batch_weight: float | None = None
+    unit_cost: float | None = Field(default=None, ge=0)
+    min_purchase_batch_qty: float | None = Field(default=None, ge=0)
+    min_purchase_batch_cost: float | None = Field(default=None, ge=0)
+    min_purchase_batch_weight: float | None = Field(default=None, ge=0)
     supplier: str | None = None
     inci: str | None = None
     archived: bool | None = None
@@ -68,7 +68,7 @@ class MaterialAttrsUpdate(BaseModel):
 
 class TransactionRequest(BaseModel):
     qty: float
-    price: float | None = None
+    price: float | None = Field(default=None, ge=0)
     comment: str = ""
 
 
@@ -80,12 +80,12 @@ class AdjustmentRequest(BaseModel):
 class BatchIncomeItem(BaseModel):
     material_id: str
     qty: float
-    price: float | None = None
+    price: float | None = Field(default=None, ge=0)
 
 
 class BatchIncomeRequest(BaseModel):
     items: list[BatchIncomeItem]
-    transport_cost: float = 0
+    transport_cost: float = Field(default=0, ge=0)
     comment: str = ""
 
 
@@ -136,7 +136,7 @@ class NewRecipeRequest(BaseModel):
     produces: str
     batch_yield: float
     technology: str = ""
-    loss_percent: float = 3.0
+    loss_percent: float = Field(default=3.0, ge=0, le=100)
     items: list[NewRecipeItemRequest] = []
 
 
@@ -144,7 +144,7 @@ class UpdateRecipeRequest(BaseModel):
     """Частичное обновление через model_dump(exclude_unset=True) — как MaterialAttrsUpdate."""
 
     archived: bool | None = None
-    loss_percent: float | None = None
+    loss_percent: float | None = Field(default=None, ge=0, le=100)
 
 
 class PackagingRequest(BaseModel):

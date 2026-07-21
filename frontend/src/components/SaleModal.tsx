@@ -46,13 +46,13 @@ export function SaleModal({
         product_id: productId,
         counterparty_id: counterpartyId,
         qty: Number(qty),
-        price: price ? Number(price) : undefined,
+        price: price ? Number(price) : null,
         comment,
-        box_count: boxCount ? Number(boxCount) : undefined,
-        tape_cm: tapeCm ? Number(tapeCm) : undefined,
-        sticker_count: stickerCount ? Number(stickerCount) : undefined,
-        courier_cost: courierCost ? Number(courierCost) : undefined,
-        logist_cost: logistCost ? Number(logistCost) : undefined,
+        box_count: boxCount ? Number(boxCount) : null,
+        tape_cm: tapeCm ? Number(tapeCm) : null,
+        sticker_count: stickerCount ? Number(stickerCount) : null,
+        courier_cost: courierCost ? Number(courierCost) : null,
+        logist_cost: logistCost ? Number(logistCost) : null,
       }
       if (editing) {
         await apiFetch(`/sales/${sale!.id}`, { method: 'PATCH', body: JSON.stringify(body) })

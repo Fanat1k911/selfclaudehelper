@@ -30,25 +30,34 @@ def compute_active_lot_unit_costs(db: Session, company_id: str) -> dict[str, flo
 
     result: dict[str, float] = {}
     for material_id, txs in txs_by_material.items():
-        lots: list[list[float]] = []  # [remaining_qty, unit_cost], порядок вставки = FIFO при равной цене
+        # [remaining_qty, unit_cost] — unit_cost is None когда у прихода нет цены (не 0.0:
+        # "не знаем цену" ≠ "бесплатно", иначе съедает ручную "себестоимость 1 шт" ниже и
+        # красит остаток нулевой ценой). Порядок вставки = FIFO при равной цене.
+        lots: list[list] = []
         for tx in txs:
             if tx.type == TRANSACTION_INCOME:
-                price = float(tx.price) if tx.price is not None else 0.0
                 qty = float(tx.qty)
-                freight_per_unit = float(tx.freight_cost) / qty if tx.freight_cost and qty > 0 else 0.0
-                lots.append([qty, price + freight_per_unit])
-            else:  # расход — съедаем дешёвые лоты первыми
+                if tx.price is None:
+                    unit_cost = None
+                else:
+                    freight_per_unit = float(tx.freight_cost) / qty if tx.freight_cost and qty > 0 else 0.0
+                    unit_cost = float(tx.price) + freight_per_unit
+                lots.append([qty, unit_cost])
+            else:  # расход — съедаем дешёвые ЦЕНОВАННЫЕ лоты первыми, безценовые — в последнюю очередь
                 to_consume = float(tx.qty)
-                for lot in sorted((l for l in lots if l[0] > 0), key=lambda l: l[1]):
+                ordered = sorted(
+                    (l for l in lots if l[0] > 0), key=lambda l: (l[1] is None, l[1] if l[1] is not None else 0.0)
+                )
+                for lot in ordered:
                     if to_consume <= 0:
                         break
                     draw = min(lot[0], to_consume)
                     lot[0] -= draw
                     to_consume -= draw
 
-        active = [l for l in lots if l[0] > 1e-9]
-        if active:
-            result[material_id] = min(active, key=lambda l: l[1])[1]
+        priced_active = [l for l in lots if l[0] > 1e-9 and l[1] is not None]
+        if priced_active:
+            result[material_id] = min(priced_active, key=lambda l: l[1])[1]
     return result
 
 
@@ -81,4 +90,4 @@ def compute_product_costs(
 
     batch_yield = float(product.recipe.batch_yield) if product.recipe.batch_yield else None
     per_unit = total / batch_yield if batch_yield else None
-    return total, per_unit
+    return round(total, 2), round(per_unit, 2) if per_unit is not None else None
