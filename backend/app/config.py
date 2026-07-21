@@ -12,7 +12,16 @@ from pathlib import Path
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 SECRETS_PATH = PROJECT_ROOT / ".streamlit" / "secrets.toml"
 
-JWT_SECRET = os.environ.get("JWT_SECRET", "dev-insecure-secret-change-me")
+_JWT_SECRET_ENV = os.environ.get("JWT_SECRET")
+if _JWT_SECRET_ENV is None and os.environ.get("RENDER"):
+    # На Render JWT_SECRET обязателен — Render сам прописывает RENDER=true в env каждого
+    # сервиса, так что это надёжный признак "не локалка". Без этой проверки отсутствие
+    # переменной (снятая/забытая при редеплое) молча откатывалось бы на публично известную
+    # строку — любой мог бы подделать токен с любой ролью/company_id (найдено на
+    # code-review 2026-07-21, см. CLAUDE.md "Архитектурные принципы" п.4).
+    print("JWT_SECRET не задан в env — обязателен на Render.", file=sys.stderr)
+    raise SystemExit(1)
+JWT_SECRET = _JWT_SECRET_ENV or "dev-insecure-secret-change-me"
 JWT_ALGORITHM = "HS256"
 JWT_EXPIRE_MINUTES = int(os.environ.get("JWT_EXPIRE_MINUTES", str(24 * 60)))
 

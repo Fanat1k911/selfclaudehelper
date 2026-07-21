@@ -86,6 +86,35 @@ def test_create_user_existing_fired_account_rejected(client, db_session):
     assert resp.status_code == 400
 
 
+def test_founder_cannot_create_developer_account(client, db_session):
+    founder = make_user(db_session, login="uf_priv1", role=FOUNDER)
+    resp = client.post(
+        "/api/users",
+        json={"fio": "Новый Девелопер", "login": "sneaky_dev", "password": "pass1234", "role": DEVELOPER},
+        headers=auth_headers(founder),
+    )
+    assert resp.status_code == 403
+
+
+def test_founder_cannot_promote_worker_to_developer(client, db_session):
+    founder = make_user(db_session, login="uf_priv2", role=FOUNDER)
+    worker = make_user(db_session, login="uf_priv2_w", role=WORKER, company_id=founder.company_id)
+    resp = client.patch(
+        f"/api/users/{worker.id}", json={"role": DEVELOPER}, headers=auth_headers(founder)
+    )
+    assert resp.status_code == 403
+
+
+def test_developer_can_create_developer_account(client, db_session):
+    developer = make_user(db_session, login="uf_priv3", role=DEVELOPER)
+    resp = client.post(
+        "/api/users",
+        json={"fio": "Второй Девелопер", "login": "dev2", "password": "pass1234", "role": DEVELOPER},
+        headers=auth_headers(developer),
+    )
+    assert resp.status_code == 200
+
+
 def test_create_user_rejects_invalid_role(client, db_session):
     founder = make_user(db_session, login="uf3", role=FOUNDER)
     resp = client.post(

@@ -9,7 +9,7 @@ import bcrypt
 import jwt
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session, selectinload
 
 from app.config import JWT_ALGORITHM, JWT_EXPIRE_MINUTES, JWT_SECRET
@@ -21,6 +21,14 @@ from app.timezone_utils import is_valid_tz_name, next_midnight_utc
 _ModelT = TypeVar("_ModelT", bound=Base)
 
 _bearer = HTTPBearer(auto_error=False)
+
+# Фиктивный bcrypt-хэш (просто gensalt() + hashpw случайного значения один раз при
+# импорте) — сверяем пароль против него, когда логина не существует/аккаунт неактивен,
+# чтобы этот путь занимал столько же времени, сколько реальная проверка пароля. Без
+# этого несуществующий логин отвечает за миллисекунды (короткий SELECT), а существующий
+# всегда прогоняет bcrypt (~100-300мс) — измеримый по времени ответа оракул для перебора
+# логинов, даже с одинаковым текстом ошибки (найдено на code-review 2026-07-21).
+_DUMMY_PASSWORD_HASH = bcrypt.hashpw(b"dummy-password-for-timing", bcrypt.gensalt()).decode()
 
 # Та же логика троттлинга, что была в core/auth.py, но по ключу логина (процесс общий
 # на всех клиентов, in-memory session_state здесь нет).
@@ -36,8 +44,11 @@ _PENDING_TOKEN_EXPIRE_MINUTES = 5
 
 
 def _find_user(db: Session, login: str) -> User | None:
+    # Точное сравнение регистронезависимо через lower(), не ilike() — ilike трактует
+    # "%"/"_" как wildcard-символы в самом логине пользователя, что превращает поиск
+    # в паттерн-матчинг вместо поиска по идентичности (найдено на code-review 2026-07-21).
     login_norm = login.strip().casefold()
-    return db.scalar(select(User).where(User.login.ilike(login_norm)))
+    return db.scalar(select(User).where(func.lower(User.login) == login_norm))
 
 
 def _company_memberships(db: Session, user_id: str) -> list[CompanyMembership]:
@@ -90,12 +101,17 @@ def authenticate(login: str, password: str, db: Session) -> dict:
         time.sleep(min(attempts, _MAX_DELAY_SECONDS))
 
     user = _find_user(db, login)
-    ok = user is not None and user.status == USER_STATUS_ACTIVE
-    if ok:
-        try:
+    exists_and_active = user is not None and user.status == USER_STATUS_ACTIVE
+    try:
+        if exists_and_active:
             ok = bcrypt.checkpw(password.encode("utf-8"), user.password_hash.encode("utf-8"))
-        except ValueError:
+        else:
+            # Тот же bcrypt.checkpw, что и в реальной ветке — чтобы этот путь занимал
+            # сопоставимое время (см. комментарий у _DUMMY_PASSWORD_HASH выше).
+            bcrypt.checkpw(password.encode("utf-8"), _DUMMY_PASSWORD_HASH.encode("utf-8"))
             ok = False
+    except ValueError:
+        ok = False
 
     key = login.strip().casefold()
     if not ok:
@@ -320,7 +336,7 @@ def attach_or_create_membership(
     Коммитит транзакцию сам (все три вызывающих места делали то же самое сразу после).
     Возвращает (user, attached_existing)."""
     login = login.strip()
-    existing = db.scalar(select(User).where(User.login.ilike(login)))
+    existing = db.scalar(select(User).where(func.lower(User.login) == login.casefold()))
 
     if existing:
         if not password or not bcrypt.checkpw(password.encode("utf-8"), existing.password_hash.encode("utf-8")):

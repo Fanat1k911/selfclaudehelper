@@ -44,6 +44,14 @@ def test_stale_token_missing_company_name_forces_relogin(client, db_session):
     assert resp.status_code == 401
 
 
+def test_login_rejects_wildcard_pattern_login(client, db_session):
+    """Регрессия: ilike() трактовал "%"/"_" в логине как SQL-wildcard, а не буквальные
+    символы — "worker4%" мог найти "worker4x" по паттерну вместо точного совпадения."""
+    make_user(db_session, login="worker4x", role=WORKER, password="pass1234")
+    resp = client.post("/api/auth/login", json={"login": "worker4%", "password": "pass1234"})
+    assert resp.status_code == 401
+
+
 def test_login_wrong_password(client, db_session):
     make_user(db_session, login="worker2", role=WORKER, password="pass1234")
     resp = client.post("/api/auth/login", json={"login": "worker2", "password": "wrong"})

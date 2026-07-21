@@ -58,6 +58,15 @@ def test_register_empty_phone_rejected(client):
     assert resp.status_code == 422
 
 
+def test_register_wildcard_login_does_not_match_existing_account(client, db_session):
+    """Регрессия: ilike() трактовал "%" как SQL-wildcard — "existing_worker%" ловил
+    "existing_worker_real" как существующий аккаунт вместо буквального поиска, открывая
+    оракул для перебора логинов через разницу в коде ответа (200 создан/400 занято)."""
+    make_user(db_session, login="existing_worker_real", role="worker")
+    resp = client.post(REGISTER_URL, json=_payload(login="existing_worker%"))
+    assert resp.status_code == 200  # новый аккаунт, а не "приглашение" в чужой
+
+
 def test_register_existing_login_wrong_password_rejected(client, db_session):
     make_user(db_session, login="existing_person", role="worker", password="realpass")
     resp = client.post(REGISTER_URL, json=_payload(login="existing_person", password="wrongpass"))

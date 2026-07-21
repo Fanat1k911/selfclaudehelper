@@ -78,6 +78,11 @@ def list_users(user: dict = Depends(get_current_user), db: Session = Depends(get
 def create_user(body: NewUserRequest, user: dict = Depends(get_current_user), db: Session = Depends(get_db)) -> dict:
     if body.role not in USER_ROLES:
         raise HTTPException(400, f"Недопустимая роль. Разрешены: {', '.join(USER_ROLES)}.")
+    if body.role == DEVELOPER and user["role"] != DEVELOPER:
+        # Founder не должен уметь выдавать себе/кому-либо роль Developer (техпанель,
+        # управление компаниями) — иначе роль в UI была бы декоративной проверкой, не
+        # реальной (найдено на code-review 2026-07-21, см. CLAUDE.md "Архитектурные принципы" п.2).
+        raise HTTPException(403, "Только Developer может назначать роль Developer.")
     if not body.login.strip():
         raise HTTPException(400, "Логин обязателен.")
 
@@ -106,6 +111,8 @@ def update_user(
     if body.role is not None:
         if body.role not in USER_ROLES:
             raise HTTPException(400, f"Недопустимая роль. Разрешены: {', '.join(USER_ROLES)}.")
+        if body.role == DEVELOPER and user["role"] != DEVELOPER:
+            raise HTTPException(403, "Только Developer может назначать роль Developer.")
         membership.role = body.role
     if body.status is not None:
         target.status = body.status
