@@ -75,7 +75,7 @@ export function IngredientsPage() {
               (Поставка/Добавить) — разделены собственным gap-3 и, на десктопе, вертикальной
               чертой между блоками. Внутри каждого блока — ровная сетка на мобильном, в ряд
               на десктопе. Архив — нечётный третий в первом блоке, спан на всю ширину строки. */}
-          <div className="grid grid-cols-2 gap-2 sm:flex sm:gap-2">
+          <div className="grid grid-cols-3 gap-2 sm:flex sm:gap-2">
             <button
               onClick={() => apiDownload('/ingredients/export', 'компоненты.xlsx')}
               className="flex items-center justify-center gap-1.5 whitespace-nowrap rounded-lg border border-ink/15 bg-cream px-3 py-2 text-sm font-medium text-ink hover:bg-ink/5 sm:w-auto sm:px-4"
@@ -91,7 +91,7 @@ export function IngredientsPage() {
             {canManage && (
               <button
                 onClick={() => setShowArchived((v) => !v)}
-                className={`col-span-2 whitespace-nowrap rounded-lg px-3 py-2 text-sm font-medium sm:col-span-1 sm:w-auto sm:px-4 ${
+                className={`whitespace-nowrap rounded-lg px-3 py-2 text-sm font-medium sm:w-auto sm:px-4 ${
                   showArchived
                     ? 'bg-ink text-white'
                     : 'border border-ink/10 text-ink hover:bg-ink hover:text-white'
