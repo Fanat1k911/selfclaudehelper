@@ -70,10 +70,11 @@ export function IngredientsPage() {
       <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <h1 className="text-xl font-semibold text-ink sm:text-2xl">Компоненты</h1>
         <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-end">
-          {/* Два явных блока (Александр, 2026-07-21): служебное (Экспорт/Импорт) отдельно
-              от действий над остатком (Поставка/Добавить) — разделены собственным gap-3 и,
-              на десктопе, вертикальной чертой между блоками. Внутри каждого блока — ровная
-              пара 2x2 на мобильном, в ряд на десктопе. */}
+          {/* Два явных блока (Александр, 2026-07-21): служебное (Экспорт/Импорт/Архив —
+              все "про просмотр", не мутируют остаток) отдельно от действий над остатком
+              (Поставка/Добавить) — разделены собственным gap-3 и, на десктопе, вертикальной
+              чертой между блоками. Внутри каждого блока — ровная сетка на мобильном, в ряд
+              на десктопе. Архив — нечётный третий в первом блоке, спан на всю ширину строки. */}
           <div className="grid grid-cols-2 gap-2 sm:flex sm:gap-2">
             <button
               onClick={() => apiDownload('/ingredients/export', 'компоненты.xlsx')}
@@ -87,6 +88,18 @@ export function IngredientsPage() {
             >
               <Upload size={15} /> Импорт
             </button>
+            {canManage && (
+              <button
+                onClick={() => setShowArchived((v) => !v)}
+                className={`col-span-2 whitespace-nowrap rounded-lg px-3 py-2 text-sm font-medium sm:col-span-1 sm:w-auto sm:px-4 ${
+                  showArchived
+                    ? 'bg-ink text-white'
+                    : 'border border-ink/10 text-ink hover:bg-ink hover:text-white'
+                }`}
+              >
+                {showArchived ? 'Активные' : 'Архив'}
+              </button>
+            )}
           </div>
 
           <div className="hidden h-8 w-px bg-ink/10 sm:block" />
@@ -107,19 +120,6 @@ export function IngredientsPage() {
                 <Plus size={15} /> Добавить компонент
               </button>
             </div>
-          )}
-
-          {canManage && (
-            <button
-              onClick={() => setShowArchived((v) => !v)}
-              className={`whitespace-nowrap rounded-lg px-3 py-2 text-sm font-medium sm:px-4 ${
-                showArchived
-                  ? 'bg-ink text-white'
-                  : 'border border-ink/10 text-ink hover:bg-ink hover:text-white'
-              }`}
-            >
-              {showArchived ? 'Активные' : 'Архив'}
-            </button>
           )}
         </div>
       </div>
