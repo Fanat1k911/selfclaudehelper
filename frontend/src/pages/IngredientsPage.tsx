@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Download, Plus, Truck, Upload } from 'lucide-react'
+import { Download, Plus, RefreshCw, Truck, Upload } from 'lucide-react'
 import { apiFetch, apiDownload } from '../lib/api'
+import { useAuth } from '../lib/auth'
 import { materialCategoryLabel } from '../lib/labels'
 import type { Ingredient } from '../types'
 import { IngredientDetailPanel } from '../components/IngredientDetailPanel'
@@ -22,6 +23,8 @@ function formatDate(value: string | null) {
 }
 
 export function IngredientsPage() {
+  const { user } = useAuth()
+  const canRecalcMinStock = user?.role === 'founder' || user?.role === 'developer'
   const [ingredients, setIngredients] = useState<Ingredient[]>([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
@@ -29,6 +32,7 @@ export function IngredientsPage() {
   const [showCreate, setShowCreate] = useState(false)
   const [showImport, setShowImport] = useState(false)
   const [showBatchIncome, setShowBatchIncome] = useState(false)
+  const [recalculating, setRecalculating] = useState(false)
 
   async function load() {
     setLoading(true)
@@ -52,6 +56,20 @@ export function IngredientsPage() {
 
   function handleRowClick(ingredient: Ingredient) {
     setSelected(ingredient)
+  }
+
+  async function handleRecalcMinStock() {
+    if (!window.confirm('Пересчитать мин. остаток = 1/2 от мин. партии для закупки у всех компонентов, где партия заполнена? Текущие значения мин. остатка будут перезаписаны.')) {
+      return
+    }
+    setRecalculating(true)
+    try {
+      const { updated } = await apiFetch<{ updated: number }>('/ingredients/recalc-min-stock', { method: 'POST' })
+      await load()
+      window.alert(`Готово, пересчитано у ${updated} компонентов.`)
+    } finally {
+      setRecalculating(false)
+    }
   }
 
   function handleChanged() {
@@ -103,12 +121,24 @@ export function IngredientsPage() {
         </div>
       </div>
 
-      <input
-        value={search}
-        onChange={(e) => setSearch(e.target.value)}
-        placeholder="Поиск по названию…"
-        className="mb-4 w-full max-w-sm rounded-lg border border-ink/10 bg-white px-3 py-2 text-sm outline-none focus:border-terracotta"
-      />
+      <div className="mb-4 flex flex-wrap items-center gap-3">
+        <input
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          placeholder="Поиск по названию…"
+          className="w-full max-w-sm rounded-lg border border-ink/10 bg-white px-3 py-2 text-sm outline-none focus:border-terracotta"
+        />
+        {canRecalcMinStock && (
+          <button
+            onClick={handleRecalcMinStock}
+            disabled={recalculating}
+            className="flex items-center gap-1.5 whitespace-nowrap text-sm font-medium text-ink/50 hover:text-terracotta disabled:opacity-40"
+          >
+            <RefreshCw size={14} className={recalculating ? 'animate-spin' : ''} />
+            Пересчитать мин. остаток по мин. партии
+          </button>
+        )}
+      </div>
 
       <div className="space-y-2 md:hidden">
         {loading && (

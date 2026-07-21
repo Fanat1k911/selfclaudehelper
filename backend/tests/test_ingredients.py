@@ -79,6 +79,31 @@ def test_batch_income_rejects_empty_items(client, db_session):
     assert resp.status_code == 400
 
 
+def test_recalc_min_stock_sets_half_of_batch_qty(client, db_session):
+    founder = make_user(db_session, login="iw13", role=FOUNDER)
+    headers = auth_headers(founder)
+    resp = client.post("/api/ingredients", json={"name": "Флакон", "category": "тара", "unit": "шт"}, headers=headers)
+    material_id = resp.json()["id"]
+    client.patch(f"/api/ingredients/{material_id}", json={"min_purchase_batch_qty": 100}, headers=headers)
+    # Без мин.партии — не трогаем, остаётся как было.
+    resp2 = client.post("/api/ingredients", json={"name": "Без партии", "category": "тара", "unit": "шт"}, headers=headers)
+    other_id = resp2.json()["id"]
+
+    resp = client.post("/api/ingredients/recalc-min-stock", headers=headers)
+    assert resp.status_code == 200
+    assert resp.json() == {"updated": 1}
+
+    rows = {r["id"]: r for r in client.get("/api/ingredients", headers=headers).json()}
+    assert rows[material_id]["мин.остаток"] == 50.0
+    assert rows[other_id]["мин.остаток"] == 0.0
+
+
+def test_recalc_min_stock_forbidden_for_worker(client, db_session):
+    worker = make_user(db_session, login="iw14", role=WORKER)
+    resp = client.post("/api/ingredients/recalc-min-stock", headers=auth_headers(worker))
+    assert resp.status_code == 403
+
+
 def test_patch_updates_purchase_attrs_partially(client, db_session):
     founder = make_user(db_session, login="iw3", role=FOUNDER)
     headers = auth_headers(founder)

@@ -153,6 +153,21 @@ def update_ingredient_attrs(
     return {"ok": True}
 
 
+@router.post("/recalc-min-stock", dependencies=[Depends(require_roles(FOUNDER, DEVELOPER))])
+def recalc_min_stock(user: dict = Depends(get_current_user), db: Session = Depends(get_db)) -> dict:
+    """Массовый пересчёт мин.остатка = 1/2 от мин.партии для закупки, по всем компонентам
+    компании, у которых мин.партия заполнена (2026-07-21, запрос Александра). Перезаписывает
+    текущий мин.остаток безусловно — сознательно, это разовая синхронизация с закупочной
+    политикой, не аккуратный merge."""
+    materials = db.scalars(
+        select(Material).where(Material.company_id == user["company_id"], Material.min_purchase_batch_qty.is_not(None))
+    ).all()
+    for material in materials:
+        material.min_stock = float(material.min_purchase_batch_qty) / 2
+    db.commit()
+    return {"updated": len(materials)}
+
+
 def _require_positive(qty: float) -> None:
     if qty <= 0:
         raise HTTPException(400, "Количество должно быть больше нуля.")

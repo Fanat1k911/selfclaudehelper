@@ -44,6 +44,21 @@ def test_materials_isolated_between_companies(client, db_session):
     assert resp.status_code == 404
 
 
+def test_recalc_min_stock_only_touches_own_company(client, db_session):
+    company_a, company_b, founder_a, founder_b = _two_companies(db_session)
+    material_a = Material(
+        company_id=company_a.id, name="Сырьё А", category="жидкое", unit="кг", min_purchase_batch_qty=10
+    )
+    db_session.add(material_a)
+    db_session.commit()
+
+    resp = client.post("/api/ingredients/recalc-min-stock", headers=auth_headers(founder_b))
+    assert resp.json() == {"updated": 0}
+
+    db_session.refresh(material_a)
+    assert float(material_a.min_stock) == 0  # компания B не должна была задеть чужой материал
+
+
 def test_equipment_isolated_between_companies(client, db_session):
     company_a, company_b, founder_a, founder_b = _two_companies(db_session)
     item_a = EquipmentItem(company_id=company_a.id, name="Миксер А", unit="шт")
