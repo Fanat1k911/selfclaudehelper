@@ -1,5 +1,5 @@
 import { useMemo, useState, type FormEvent } from 'react'
-import { Truck, X } from 'lucide-react'
+import { Search, Truck, X } from 'lucide-react'
 import { apiFetch, ApiError } from '../lib/api'
 import type { Ingredient } from '../types'
 
@@ -14,6 +14,63 @@ function unitWeight(ing: Ingredient | undefined): number {
   const qty = ing?.['минимальная партия для закупки']
   if (weight && qty) return weight / qty
   return 1 // fallback: делим по количеству, не по весу — как на бэке
+}
+
+function MaterialCombobox({
+  ingredients,
+  value,
+  onChange,
+}: {
+  ingredients: Ingredient[]
+  value: string
+  onChange: (id: string) => void
+}) {
+  const [open, setOpen] = useState(false)
+  const [query, setQuery] = useState('')
+  const selected = ingredients.find((i) => i.id === value)
+  const filtered = query.trim()
+    ? ingredients.filter((i) => i['название'].toLowerCase().includes(query.trim().toLowerCase()))
+    : ingredients
+
+  return (
+    <div className="relative min-w-0 flex-1">
+      <div className="relative">
+        <Search size={14} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-ink/30" />
+        <input
+          value={open ? query : (selected?.['название'] ?? '')}
+          onFocus={() => {
+            setOpen(true)
+            setQuery('')
+          }}
+          onChange={(e) => setQuery(e.target.value)}
+          onBlur={() => setTimeout(() => setOpen(false), 150)}
+          placeholder="Введите название материала…"
+          className="w-full rounded-lg border border-ink/10 bg-white py-2 pl-8 pr-3 text-sm font-medium text-ink outline-none focus:border-terracotta"
+        />
+      </div>
+      {open && (
+        <div className="absolute z-10 mt-1 max-h-48 w-full overflow-y-auto rounded-lg border border-ink/10 bg-white shadow-lg">
+          {filtered.length === 0 && <div className="px-3 py-2 text-sm text-ink/40">Ничего не найдено</div>}
+          {filtered.map((ing) => (
+            <button
+              type="button"
+              key={ing.id}
+              onMouseDown={(e) => e.preventDefault()}
+              onClick={() => {
+                onChange(ing.id)
+                setOpen(false)
+              }}
+              className={`block w-full px-3 py-2 text-left text-sm hover:bg-cream ${
+                ing.id === value ? 'bg-terracotta/10 font-medium text-terracotta' : 'text-ink'
+              }`}
+            >
+              {ing['название']}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  )
 }
 
 export function BatchIncomeModal({
@@ -108,19 +165,12 @@ export function BatchIncomeModal({
         <div className="flex-1 overflow-y-auto px-6 py-4 space-y-3">
           {rows.map((row, i) => (
             <div key={i} className="rounded-xl border border-ink/10 bg-cream/40 p-3">
-              <div className="flex items-center justify-between gap-2">
-                <select
+              <div className="flex items-center gap-2">
+                <MaterialCombobox
+                  ingredients={ingredients}
                   value={row.materialId}
-                  onChange={(e) => updateRow(i, { materialId: e.target.value })}
-                  className="min-w-0 flex-1 rounded-lg border border-ink/10 bg-white px-3 py-2 text-sm font-medium text-ink outline-none focus:border-terracotta"
-                  required
-                >
-                  {ingredients.map((ing) => (
-                    <option key={ing.id} value={ing.id}>
-                      {ing['название']}
-                    </option>
-                  ))}
-                </select>
+                  onChange={(id) => updateRow(i, { materialId: id })}
+                />
                 <button
                   type="button"
                   onClick={() => removeRow(i)}

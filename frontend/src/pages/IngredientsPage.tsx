@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
+import { Download, Plus, Truck, Upload } from 'lucide-react'
 import { apiFetch, apiDownload } from '../lib/api'
 import type { Ingredient } from '../types'
 import { IngredientDetailPanel } from '../components/IngredientDetailPanel'
@@ -61,38 +62,38 @@ export function IngredientsPage() {
     <div className="px-4 py-4 sm:px-8 sm:py-6">
       <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <h1 className="text-xl font-semibold text-ink sm:text-2xl">Компоненты</h1>
-        <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:justify-end">
-          {/* Экспорт+Импорт в одной строке на мобильном, Добавить — отдельной строкой ниже
-              (2026-07-18, уточнение Founder: "экспорт/импорт в 1 строку, кнопку на другую,
-              без расстояния между ними"). sm:contents на мобильной паре — только группировка
-              для grid-cols-2, на sm+ она "исчезает" и оба button становятся обычными flex-item
-              родителя, как раньше (десктоп без изменений). */}
-          <div className="grid grid-cols-2 gap-2 sm:contents">
+        <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center sm:justify-end">
+          {/* Три второстепенных действия — ровная сетка 2x2 на мобильном (Поставка занимает
+              вторую строку целиком, т.к. действий нечётное число), в один ряд одинаковых
+              кнопок на десктопе. Раньше были вперемешку то в паре, то на всю ширину — читалось
+              кашей (Александр, 2026-07-21). "+Добавить компонент" — единственный акцентный
+              CTA, остаётся визуально отдельным. */}
+          <div className="grid grid-cols-2 gap-2 sm:flex sm:gap-2">
             <button
               onClick={() => apiDownload('/ingredients/export', 'компоненты.xlsx')}
-              className="whitespace-nowrap rounded-lg border border-ink/15 bg-cream px-3 py-2 text-sm font-medium text-ink hover:bg-ink/5 sm:w-auto sm:px-4"
+              className="flex items-center justify-center gap-1.5 whitespace-nowrap rounded-lg border border-ink/15 bg-cream px-3 py-2 text-sm font-medium text-ink hover:bg-ink/5 sm:w-auto sm:px-4"
             >
-              Экспорт (.xlsx)
+              <Download size={15} /> Экспорт
             </button>
             <button
               onClick={() => setShowImport(true)}
-              className="whitespace-nowrap rounded-lg border border-ink/15 bg-cream px-3 py-2 text-sm font-medium text-ink hover:bg-ink/5 sm:w-auto sm:px-4"
+              className="flex items-center justify-center gap-1.5 whitespace-nowrap rounded-lg border border-ink/15 bg-cream px-3 py-2 text-sm font-medium text-ink hover:bg-ink/5 sm:w-auto sm:px-4"
             >
-              Импорт из файла
+              <Upload size={15} /> Импорт
+            </button>
+            <button
+              onClick={() => setShowBatchIncome(true)}
+              disabled={ingredients.length === 0}
+              className="col-span-2 flex items-center justify-center gap-1.5 whitespace-nowrap rounded-lg border border-ink/15 bg-cream px-3 py-2 text-sm font-medium text-ink hover:bg-ink/5 disabled:opacity-40 sm:col-span-1 sm:w-auto sm:px-4"
+            >
+              <Truck size={15} /> Поставка
             </button>
           </div>
           <button
-            onClick={() => setShowBatchIncome(true)}
-            disabled={ingredients.length === 0}
-            className="w-full whitespace-nowrap rounded-lg border border-ink/15 bg-cream px-3 py-2 text-sm font-medium text-ink hover:bg-ink/5 disabled:opacity-40 sm:w-auto sm:px-4"
-          >
-            Поставка
-          </button>
-          <button
             onClick={() => setShowCreate(true)}
-            className="w-full whitespace-nowrap rounded-lg bg-accent-add px-3 py-2 text-sm font-medium text-white hover:bg-accent-add-dark sm:w-auto sm:px-4"
+            className="flex w-full items-center justify-center gap-1.5 whitespace-nowrap rounded-lg bg-accent-add px-3 py-2 text-sm font-medium text-white hover:bg-accent-add-dark sm:w-auto sm:px-4"
           >
-            + Добавить компонент
+            <Plus size={15} /> Добавить компонент
           </button>
         </div>
       </div>
