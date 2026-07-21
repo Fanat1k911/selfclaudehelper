@@ -38,7 +38,10 @@ export function RecipesPage() {
   return (
     <div className="px-4 py-4 sm:px-8 sm:py-6">
       <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <h1 className="text-xl font-semibold text-ink sm:text-2xl">Рецепты</h1>
+        <h1 className="flex items-baseline gap-2 text-xl font-semibold text-ink sm:text-2xl">
+          Рецепты
+          {!loading && <span className="text-sm font-normal text-ink/40">{recipes.length}</span>}
+        </h1>
         <div className="flex items-center gap-6">
           {canManage && (
             <button

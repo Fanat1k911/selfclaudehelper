@@ -29,7 +29,10 @@ export function ProductsPage() {
   return (
     <div className="px-4 py-4 sm:px-8 sm:py-6">
       <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <h1 className="text-xl font-semibold text-ink sm:text-2xl">Продукт</h1>
+        <h1 className="flex items-baseline gap-2 text-xl font-semibold text-ink sm:text-2xl">
+          Продукт
+          {!loading && <span className="text-sm font-normal text-ink/40">{products.length}</span>}
+        </h1>
         <div className="flex flex-wrap gap-2">
           <button
             onClick={() => setShowImport(true)}
