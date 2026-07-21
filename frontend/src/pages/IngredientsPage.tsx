@@ -85,7 +85,7 @@ export function IngredientsPage() {
             <button
               onClick={() => setShowBatchIncome(true)}
               disabled={ingredients.length === 0}
-              className="col-span-2 flex items-center justify-center gap-1.5 whitespace-nowrap rounded-lg border border-terracotta/30 bg-terracotta/10 px-3 py-2 text-sm font-medium text-terracotta-dark hover:bg-terracotta/20 disabled:opacity-40 sm:col-span-1 sm:w-auto sm:px-4"
+              className="col-span-2 flex items-center justify-center gap-1.5 whitespace-nowrap rounded-lg bg-terracotta px-3 py-2 text-sm font-medium text-white shadow-sm hover:bg-terracotta-dark disabled:opacity-40 sm:col-span-1 sm:w-auto sm:px-4"
             >
               <Truck size={15} /> Поставка
             </button>
