@@ -20,7 +20,7 @@ from app.constants import DEVELOPER, FOUNDER
 
 from app.db import get_db
 from app.models import Material, Recipe, RecipeItem
-from app.schemas import NewRecipeItemRequest, NewRecipeRequest, UpdateRecipeArchivedRequest
+from app.schemas import NewRecipeItemRequest, NewRecipeRequest, UpdateRecipeRequest
 from app.security import get_current_user, get_owned_or_404, require_roles
 
 router = APIRouter(prefix="/api/recipes", tags=["recipes"], dependencies=[Depends(get_current_user)])
@@ -35,6 +35,7 @@ def _recipe_dict(recipe: Recipe) -> dict:
         "выход партии": float(recipe.batch_yield),
         "технология": recipe.technology or "",
         "архив": recipe.archived,
+        "процент потерь": float(recipe.loss_percent),
     }
 
 
@@ -89,6 +90,7 @@ def create_recipe(body: NewRecipeRequest, user: dict = Depends(get_current_user)
         produces=body.produces,
         batch_yield=body.batch_yield,
         technology=body.technology or None,
+        loss_percent=body.loss_percent,
     )
     db.add(recipe)
     db.flush()
@@ -120,10 +122,14 @@ def add_recipe_item(
 
 
 @router.patch("/{recipe_id}", dependencies=[Depends(require_roles(FOUNDER, DEVELOPER))])
-def set_recipe_archived(
-    recipe_id: str, body: UpdateRecipeArchivedRequest, user: dict = Depends(get_current_user), db: Session = Depends(get_db)
+def update_recipe(
+    recipe_id: str, body: UpdateRecipeRequest, user: dict = Depends(get_current_user), db: Session = Depends(get_db)
 ) -> dict:
     recipe = _get_own_recipe(db, recipe_id, user["company_id"])
-    recipe.archived = body.archived
+    updates = body.model_dump(exclude_unset=True)
+    if updates.get("loss_percent") is None and "loss_percent" in updates:
+        raise HTTPException(422, "Процент потерь не может быть пустым.")
+    for field, value in updates.items():
+        setattr(recipe, field, value)
     db.commit()
     return {"ok": True}

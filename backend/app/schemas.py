@@ -136,11 +136,15 @@ class NewRecipeRequest(BaseModel):
     produces: str
     batch_yield: float
     technology: str = ""
+    loss_percent: float = 3.0
     items: list[NewRecipeItemRequest] = []
 
 
-class UpdateRecipeArchivedRequest(BaseModel):
-    archived: bool
+class UpdateRecipeRequest(BaseModel):
+    """Частичное обновление через model_dump(exclude_unset=True) — как MaterialAttrsUpdate."""
+
+    archived: bool | None = None
+    loss_percent: float | None = None
 
 
 class PackagingRequest(BaseModel):

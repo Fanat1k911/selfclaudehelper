@@ -66,6 +66,10 @@ def compute_product_costs(
     if not items:
         return None, None
 
+    # Себестоимость учитывает потери сырья при производстве (2026-07-21) — то же loss_percent,
+    # что применяется к фактическому списанию в production.py, иначе цифра тут занижена
+    # относительно того, что реально уходит со склада на партию.
+    loss_factor = 1 + float(product.recipe.loss_percent) / 100
     total = 0.0
     for item in items:
         unit_cost = lot_unit_costs.get(item.material_id)
@@ -73,7 +77,7 @@ def compute_product_costs(
             unit_cost = float(item.material.unit_cost)
         if unit_cost is None:
             return None, None
-        total += unit_cost * float(item.qty_per_batch)
+        total += unit_cost * float(item.qty_per_batch) * loss_factor
 
     batch_yield = float(product.recipe.batch_yield) if product.recipe.batch_yield else None
     per_unit = total / batch_yield if batch_yield else None

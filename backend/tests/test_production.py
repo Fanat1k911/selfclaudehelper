@@ -5,14 +5,15 @@ from app.models import LoginLog, Material, Product, ProductionLog, Recipe, Recip
 from tests.conftest import auth_headers, default_company_id, make_user
 
 
-def _make_recipe_with_material(db_session, *, qty_per_batch=2.0, batch_yield=10.0):
+def _make_recipe_with_material(db_session, *, qty_per_batch=2.0, batch_yield=10.0, loss_percent=0.0):
     company_id = default_company_id(db_session)
     material = Material(company_id=company_id, name="Масло кокосовое", category="жидкое", unit="кг", min_stock=1.0)
     db_session.add(material)
     db_session.flush()
 
     recipe = Recipe(
-        company_id=company_id, name="Мыло базовое", category="мыло", produces="мыло", batch_yield=batch_yield
+        company_id=company_id, name="Мыло базовое", category="мыло", produces="мыло", batch_yield=batch_yield,
+        loss_percent=loss_percent,
     )
     db_session.add(recipe)
     db_session.flush()
@@ -212,6 +213,36 @@ def test_production_qty_scales_material_writeoff_by_batch_yield(client, db_sessi
 
     expense = db_session.query(Transaction).filter(Transaction.type != TRANSACTION_INCOME).one()
     assert float(expense.qty) == 6.0  # 3.0 * (20/10) = 6.0, не 3.0*20
+
+
+def test_production_writeoff_includes_recipe_loss_percent(client, db_session):
+    material, recipe = _make_recipe_with_material(
+        db_session, qty_per_batch=10.0, batch_yield=10.0, loss_percent=3.0
+    )
+    company_id = default_company_id(db_session)
+    db_session.add(Transaction(company_id=company_id, material_id=material.id, type=TRANSACTION_INCOME, qty=100.0))
+    db_session.commit()
+
+    worker = make_user(db_session, login="loss_worker", role=WORKER)
+    resp = client.post("/api/production", json={"recipe_id": recipe.id, "qty": 10}, headers=auth_headers(worker))
+    assert resp.status_code == 200
+
+    expense = db_session.query(Transaction).filter(Transaction.type != TRANSACTION_INCOME).one()
+    assert float(expense.qty) == 10.3  # 10.0 * 1 партия * 1.03
+
+
+def test_production_loss_percent_counts_toward_shortage_check(client, db_session):
+    material, recipe = _make_recipe_with_material(
+        db_session, qty_per_batch=10.0, batch_yield=10.0, loss_percent=3.0
+    )
+    company_id = default_company_id(db_session)
+    # Ровно на партию без запаса под потери — должно отклониться (10.0 нужно, а с потерями 10.3).
+    db_session.add(Transaction(company_id=company_id, material_id=material.id, type=TRANSACTION_INCOME, qty=10.0))
+    db_session.commit()
+
+    worker = make_user(db_session, login="loss_worker2", role=WORKER)
+    resp = client.post("/api/production", json={"recipe_id": recipe.id, "qty": 10}, headers=auth_headers(worker))
+    assert resp.status_code == 400
 
 
 def test_production_response_returns_product_quantity_not_batches(client, db_session):

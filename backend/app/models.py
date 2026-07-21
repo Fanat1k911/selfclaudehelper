@@ -135,6 +135,10 @@ class Recipe(Base):
     batch_yield: Mapped[float] = mapped_column(Numeric(12, 3))
     technology: Mapped[str | None] = mapped_column(Text)
     archived: Mapped[bool] = mapped_column(Boolean, default=False, server_default="false")
+    # Процент потерь сырья при производстве партии (2026-07-21, запрос Александра) — сверх
+    # точного расчёта по рецепту, накидывается при списании в production.py. 3% — глобальный
+    # дефолт на старте, редактируется per-рецепт позже (см. RecipeDetailPanel.tsx).
+    loss_percent: Mapped[float] = mapped_column(Numeric(5, 2), default=3, server_default="3")
 
     items: Mapped[list["RecipeItem"]] = relationship(back_populates="recipe", cascade="all, delete-orphan")
 

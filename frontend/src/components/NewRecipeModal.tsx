@@ -21,6 +21,7 @@ export function NewRecipeModal({
   const [category, setCategory] = useState('')
   const [produces, setProduces] = useState('')
   const [batchYield, setBatchYield] = useState('')
+  const [lossPercent, setLossPercent] = useState('3')
   const [technology, setTechnology] = useState('')
   const [ingredients, setIngredients] = useState<Ingredient[]>([])
   const [productCategories, setProductCategories] = useState<string[]>([])
@@ -79,6 +80,7 @@ export function NewRecipeModal({
           category,
           produces,
           batch_yield: batchYield ? Number(batchYield) : 0,
+          loss_percent: lossPercent ? Number(lossPercent) : 3,
           technology,
           items,
         }),
@@ -137,15 +139,27 @@ export function NewRecipeModal({
           />
         </div>
 
-        <div>
-          <label className="block text-xs text-ink/60 mb-1">Выход партии</label>
-          <input
-            type="number"
-            step="any"
-            value={batchYield}
-            onChange={(e) => setBatchYield(e.target.value)}
-            className="w-full rounded-lg border border-ink/10 px-3 py-2 text-sm outline-none focus:border-terracotta"
-          />
+        <div className="grid grid-cols-2 gap-3">
+          <div>
+            <label className="block text-xs text-ink/60 mb-1">Выход партии</label>
+            <input
+              type="number"
+              step="any"
+              value={batchYield}
+              onChange={(e) => setBatchYield(e.target.value)}
+              className="w-full rounded-lg border border-ink/10 px-3 py-2 text-sm outline-none focus:border-terracotta"
+            />
+          </div>
+          <div>
+            <label className="block text-xs text-ink/60 mb-1">Потери сырья, %</label>
+            <input
+              type="number"
+              step="any"
+              value={lossPercent}
+              onChange={(e) => setLossPercent(e.target.value)}
+              className="w-full rounded-lg border border-ink/10 px-3 py-2 text-sm outline-none focus:border-terracotta"
+            />
+          </div>
         </div>
 
         <div>

@@ -148,6 +148,7 @@ export interface Recipe {
   'выход партии': number | string
   'технология': string
   'архив': boolean
+  'процент потерь': number
 }
 
 export interface ProducibleProduct {

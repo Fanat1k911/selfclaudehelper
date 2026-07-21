@@ -21,6 +21,10 @@ export function RecipeDetailPanel({
   const [submitting, setSubmitting] = useState(false)
   const [editing, setEditing] = useState(false)
   const [archiving, setArchiving] = useState(false)
+  const [editingLoss, setEditingLoss] = useState(false)
+  const [lossPercent, setLossPercent] = useState(recipe['процент потерь'].toString())
+  const [savingLoss, setSavingLoss] = useState(false)
+  const [lossError, setLossError] = useState<string | null>(null)
 
   function loadItems() {
     apiFetch<RecipeItem[]>(`/recipes/${recipe.id}/items`).then(setItems)
@@ -48,6 +52,24 @@ export function RecipeDetailPanel({
       setError(err instanceof ApiError ? err.message : 'Не удалось изменить статус архива.')
     } finally {
       setArchiving(false)
+    }
+  }
+
+  async function saveLossPercent(e: FormEvent) {
+    e.preventDefault()
+    setLossError(null)
+    setSavingLoss(true)
+    try {
+      await apiFetch(`/recipes/${recipe.id}`, {
+        method: 'PATCH',
+        body: JSON.stringify({ loss_percent: Number(lossPercent) }),
+      })
+      setEditingLoss(false)
+      onChanged()
+    } catch (err) {
+      setLossError(err instanceof ApiError ? err.message : 'Не удалось сохранить.')
+    } finally {
+      setSavingLoss(false)
     }
   }
 
@@ -84,6 +106,53 @@ export function RecipeDetailPanel({
           <button onClick={onClose} className="text-ink/40 hover:text-ink text-xl leading-none">
             ×
           </button>
+        </div>
+
+        <div className="px-6 py-3 border-b border-ink/10 text-sm">
+          {!editingLoss ? (
+            <div className="flex items-center justify-between">
+              <span className="text-ink/60">Потери сырья при производстве</span>
+              <span className="flex items-center gap-2 font-medium">
+                {lossPercent}%
+                {canEdit && (
+                  <button onClick={() => setEditingLoss(true)} className="text-xs text-ink/40 hover:text-terracotta">
+                    изменить
+                  </button>
+                )}
+              </span>
+            </div>
+          ) : (
+            <form onSubmit={saveLossPercent} className="flex items-center gap-2">
+              <input
+                type="number"
+                step="any"
+                min="0"
+                value={lossPercent}
+                onChange={(e) => setLossPercent(e.target.value)}
+                className="w-20 rounded-lg border border-ink/10 px-2 py-1 text-sm outline-none focus:border-terracotta"
+                autoFocus
+              />
+              <span className="text-ink/60">%</span>
+              <button
+                type="button"
+                onClick={() => {
+                  setEditingLoss(false)
+                  setLossPercent(recipe['процент потерь'].toString())
+                }}
+                className="ml-auto rounded-lg border border-ink/10 px-3 py-1 text-xs font-medium text-ink hover:bg-cream/60"
+              >
+                Отмена
+              </button>
+              <button
+                type="submit"
+                disabled={savingLoss}
+                className="rounded-lg bg-accent-add px-3 py-1 text-xs font-medium text-white hover:bg-accent-add-dark disabled:opacity-60"
+              >
+                {savingLoss ? '…' : 'Сохранить'}
+              </button>
+            </form>
+          )}
+          {lossError && <div className="mt-1 text-xs text-red-600">{lossError}</div>}
         </div>
 
         {canEdit && (

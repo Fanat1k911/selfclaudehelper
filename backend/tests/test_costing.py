@@ -82,7 +82,10 @@ def test_product_cost_missing_when_material_has_no_price_data(db_session):
 def test_product_cost_endpoint_reflects_recipe_and_lots(client, db_session):
     company_id = default_company_id(db_session)
     material = Material(company_id=company_id, name="Масло какао", category="жидкое", unit="кг")
-    recipe = Recipe(company_id=company_id, name="Мыльный рецепт", category="мыло", produces="мыло", batch_yield=10.0)
+    recipe = Recipe(
+        company_id=company_id, name="Мыльный рецепт", category="мыло", produces="мыло", batch_yield=10.0,
+        loss_percent=0,
+    )
     db_session.add_all([material, recipe])
     db_session.flush()
     db_session.add(RecipeItem(recipe_id=recipe.id, material_id=material.id, qty_per_batch=2.0))

@@ -134,12 +134,15 @@ def create_production(
     # Списание считается партиями, ввод теперь — готовым продуктом (2026-07-18): переводим
     # обратно делением на выход партии рецепта, дальше логика та же, что и раньше.
     batches = body.qty / float(recipe.batch_yield)
+    # Потери сырья при производстве (2026-07-21, запрос Александра) — сверх точного расчёта
+    # по рецепту, накидываются по проценту с самого рецепта (Recipe.loss_percent, дефолт 3%).
+    loss_factor = 1 + float(recipe.loss_percent) / 100
 
     recipe_items = db.scalars(select(RecipeItem).where(RecipeItem.recipe_id == body.recipe_id)).all()
 
     shortages = []
     for item in recipe_items:
-        need = float(item.qty_per_batch) * batches
+        need = float(item.qty_per_batch) * batches * loss_factor
         available = _balance(db, item.material_id, user["company_id"])
         if available < need:
             shortages.append(f"{item.material.name}: нужно {need:g}, в наличии {available:g}")
@@ -152,7 +155,7 @@ def create_production(
                 company_id=user["company_id"],
                 material_id=item.material_id,
                 type=TRANSACTION_EXPENSE,
-                qty=float(item.qty_per_batch) * batches,
+                qty=float(item.qty_per_batch) * batches * loss_factor,
                 recipe_id=body.recipe_id,
                 comment=f"списание по производству: {recipe.name}",
             )
