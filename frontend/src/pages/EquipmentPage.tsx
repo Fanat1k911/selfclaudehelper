@@ -52,7 +52,10 @@ export function EquipmentPage() {
   return (
     <div className="px-4 py-4 sm:px-8 sm:py-6">
       <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <h1 className="text-xl font-semibold text-ink sm:text-2xl">Рабочий инвентарь</h1>
+        <h1 className="flex items-baseline gap-2 text-xl font-semibold text-ink sm:text-2xl">
+          Рабочий инвентарь
+          {!loading && <span className="text-sm font-normal text-ink/40">{items.length}</span>}
+        </h1>
         <button
           onClick={() => setShowCreate(true)}
           className="w-full whitespace-nowrap rounded-lg bg-accent-add px-3 py-2 text-sm font-medium text-white hover:bg-accent-add-dark sm:w-auto sm:px-4"
