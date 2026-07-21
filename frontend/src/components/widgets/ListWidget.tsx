@@ -37,15 +37,20 @@ function LowStockRows({ rows }: { rows: DashboardLowStockItem[] }) {
 function RecentTransactionRows({ rows }: { rows: DashboardTransaction[] }) {
   if (rows.length === 0) return <Empty text="Движений пока нет." />
   return (
-    <ul className="space-y-1.5">
-      {rows.map((r) => (
-        <li key={r.id} className="flex items-center justify-between gap-2 text-sm">
-          <span className="min-w-0 truncate text-premium-text">{r['название']}</span>
-          <span className="shrink-0 text-premium-text-muted">{formatDate(r['дата'])}</span>
-          <span className={`shrink-0 font-medium ${r['тип'] === 'расход' ? 'text-red-400' : 'text-premium-text'}`}>
-            {r['тип'] === 'расход' ? '-' : '+'}
-            {r['кол-во']}
-          </span>
+    <ul className="space-y-2">
+      {rows.map((r, i) => (
+        <li
+          key={r.id}
+          className={`text-sm ${i < rows.length - 1 ? 'border-b border-premium-border/60 pb-2' : ''}`}
+        >
+          <div className="flex items-center justify-between gap-2">
+            <span className="min-w-0 truncate text-premium-text">{r['название']}</span>
+            <span className={`shrink-0 font-medium ${r['тип'] === 'расход' ? 'text-red-400' : 'text-premium-text'}`}>
+              {r['тип'] === 'расход' ? '-' : '+'}
+              {r['кол-во']} {r['ед.измерения']}
+            </span>
+          </div>
+          <div className="mt-0.5 text-xs text-premium-text-muted">{formatDate(r['дата'])}</div>
         </li>
       ))}
     </ul>

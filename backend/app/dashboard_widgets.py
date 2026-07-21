@@ -44,14 +44,15 @@ def _low_stock(db: Session, company_id: str) -> list[dict]:
 
 
 def _recent_transactions(db: Session, company_id: str) -> list[dict]:
-    name_by_id = {m.id: m.name for m in db.scalars(select(Material).where(Material.company_id == company_id))}
+    materials = {m.id: m for m in db.scalars(select(Material).where(Material.company_id == company_id))}
     stmt = select(Transaction).where(Transaction.company_id == company_id).order_by(Transaction.date.desc())
     transactions = db.scalars(stmt).all()[:10]
     return [
         {
             "id": tx.id,
             "дата": tx.date.isoformat(),
-            "название": name_by_id.get(tx.material_id, tx.material_id),
+            "название": materials[tx.material_id].name if tx.material_id in materials else tx.material_id,
+            "ед.измерения": materials[tx.material_id].unit if tx.material_id in materials else "",
             "тип": tx.type,
             "кол-во": float(tx.qty),
             "цена": float(tx.price) if tx.price is not None else "",

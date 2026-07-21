@@ -88,6 +88,7 @@ export interface EquipmentTransaction {
 
 export interface DashboardTransaction extends Transaction {
   'название': string
+  'ед.измерения': string
 }
 
 export interface DashboardLowStockItem {

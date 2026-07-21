@@ -219,6 +219,20 @@ def test_recent_events_widget_merges_sources_and_limits_to_5(client, db_session)
     assert rows[0]["текст"].startswith("Продажа:")
 
 
+def test_recent_transactions_widget_includes_unit(client, db_session):
+    company_id = default_company_id(db_session)
+    material = Material(company_id=company_id, name="Масло", category="жидкое", unit="кг")
+    db_session.add(material)
+    db_session.flush()
+    db_session.add(Transaction(company_id=company_id, material_id=material.id, type=TRANSACTION_INCOME, qty=5))
+    db_session.commit()
+
+    founder = make_user(db_session, login="wd9", role=FOUNDER, company_id=company_id)
+    resp = client.get("/api/dashboard/widgets/recent_transactions/data", headers=auth_headers(founder))
+    row = resp.json()[0]
+    assert row["ед.измерения"] == "кг"
+
+
 def test_worker_cannot_access_widgets(client, db_session):
     worker = make_user(db_session, login="ww1", role=WORKER)
     assert client.get("/api/dashboard/widgets/catalog", headers=auth_headers(worker)).status_code == 403
