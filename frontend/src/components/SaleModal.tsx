@@ -72,7 +72,7 @@ export function SaleModal({
       <form
         onSubmit={handleSubmit}
         onClick={(e) => e.stopPropagation()}
-        className="max-h-[90vh] w-full max-w-sm overflow-y-auto rounded-2xl bg-white p-6 shadow-2xl space-y-3"
+        className="max-h-[90vh] w-full max-w-sm touch-pan-y overflow-y-auto overflow-x-hidden rounded-2xl bg-white p-6 shadow-2xl space-y-3"
       >
         <div className="text-lg font-semibold text-ink mb-2">{editing ? 'Отгрузка' : 'Новая отгрузка'}</div>
 

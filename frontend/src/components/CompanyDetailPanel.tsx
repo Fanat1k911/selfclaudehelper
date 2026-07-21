@@ -55,7 +55,7 @@ export function CompanyDetailPanel({ companyId, onClose }: { companyId: string; 
           </button>
         </div>
 
-        <div className="flex-1 overflow-y-auto px-6 py-4">
+        <div className="flex-1 touch-pan-y overflow-y-auto overflow-x-hidden px-6 py-4">
           {loading && <div className="text-sm text-ink/40 text-center py-6">Загрузка…</div>}
           {!loading && error && <div className="text-sm text-red-600 text-center py-6">{error}</div>}
           {!loading && detail && detail.members.length === 0 && (

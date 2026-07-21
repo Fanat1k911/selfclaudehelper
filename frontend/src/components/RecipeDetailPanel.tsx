@@ -214,7 +214,7 @@ export function RecipeDetailPanel({
           </div>
         )}
 
-        <div className="flex-1 overflow-y-auto px-6 py-4">
+        <div className="flex-1 touch-pan-y overflow-y-auto overflow-x-hidden px-6 py-4">
           <div className="text-sm font-medium text-ink/70 mb-3">Состав рецепта</div>
           {items === null && <div className="text-sm text-ink/40">Загрузка…</div>}
           {items?.length === 0 && <div className="text-sm text-ink/40">Состав пока не задан.</div>}

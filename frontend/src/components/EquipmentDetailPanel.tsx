@@ -113,7 +113,7 @@ export function EquipmentDetailPanel({
           </button>
         </div>
 
-        <div className="flex-1 overflow-y-auto">
+        <div className="flex-1 touch-pan-y overflow-y-auto overflow-x-hidden">
           <div className="px-6 py-5 border-b border-ink/10 space-y-2">
             <div className="flex items-center justify-between text-sm">
               <span className="text-ink/60">Остаток</span>

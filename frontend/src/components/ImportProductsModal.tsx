@@ -107,7 +107,7 @@ export function ImportProductsModal({
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30" onClick={onClose}>
       <div
         onClick={(e) => e.stopPropagation()}
-        className="w-full max-w-3xl max-h-[85vh] overflow-y-auto rounded-2xl bg-white p-6 shadow-2xl space-y-4"
+        className="w-full max-w-3xl max-h-[85vh] touch-pan-y overflow-y-auto overflow-x-hidden rounded-2xl bg-white p-6 shadow-2xl space-y-4"
       >
         <div className="text-lg font-semibold text-ink">Импорт продуктов из файла</div>
         <p className="text-sm text-ink/50">

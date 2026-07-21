@@ -162,7 +162,7 @@ export function BatchIncomeModal({
           </button>
         </div>
 
-        <div className="flex-1 overflow-y-auto px-6 py-4 space-y-3">
+        <div className="flex-1 touch-pan-y overflow-y-auto overflow-x-hidden px-6 py-4 space-y-3">
           {rows.map((row, i) => (
             <div key={i} className="rounded-xl border border-ink/10 bg-cream/40 p-3">
               <div className="flex items-center gap-2">

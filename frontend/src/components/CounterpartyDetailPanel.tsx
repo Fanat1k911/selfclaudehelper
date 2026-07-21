@@ -59,7 +59,7 @@ export function CounterpartyDetailPanel({
           </button>
         </div>
 
-        <form onSubmit={handleSave} className="px-6 py-4 space-y-3 overflow-y-auto">
+        <form onSubmit={handleSave} className="px-6 py-4 space-y-3 touch-pan-y overflow-y-auto overflow-x-hidden">
           <div>
             <label className="block text-xs text-ink/60 mb-1">Наименование</label>
             <input

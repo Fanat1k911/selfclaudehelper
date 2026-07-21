@@ -37,7 +37,7 @@ export function NewCompanyModal({ onClose, onCreated }: { onClose: () => void; o
       <form
         onSubmit={handleSubmit}
         onClick={(e) => e.stopPropagation()}
-        className="w-full max-w-sm rounded-2xl bg-white p-6 shadow-2xl space-y-3 max-h-[90vh] overflow-y-auto"
+        className="w-full max-w-sm rounded-2xl bg-white p-6 shadow-2xl space-y-3 max-h-[90vh] touch-pan-y overflow-y-auto overflow-x-hidden"
       >
         <div className="text-lg font-semibold text-ink mb-2">Новая компания</div>
         <p className="text-xs text-ink/50 -mt-2 mb-2">

@@ -50,7 +50,7 @@ export function NewStaffModal({ onClose, onCreated }: { onClose: () => void; onC
       <form
         onSubmit={handleSubmit}
         onClick={(e) => e.stopPropagation()}
-        className="w-full max-w-sm rounded-2xl bg-white p-6 shadow-2xl space-y-3 max-h-[90vh] overflow-y-auto"
+        className="w-full max-w-sm rounded-2xl bg-white p-6 shadow-2xl space-y-3 max-h-[90vh] touch-pan-y overflow-y-auto overflow-x-hidden"
       >
         <div className="text-lg font-semibold text-ink mb-2">Новый сотрудник</div>
 

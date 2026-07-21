@@ -56,7 +56,7 @@ export function NewProductModal({
       <form
         onSubmit={handleSubmit}
         onClick={(e) => e.stopPropagation()}
-        className="w-full max-w-sm max-h-[85vh] overflow-y-auto rounded-2xl bg-white p-6 shadow-2xl space-y-3"
+        className="w-full max-w-sm max-h-[85vh] touch-pan-y overflow-y-auto overflow-x-hidden rounded-2xl bg-white p-6 shadow-2xl space-y-3"
       >
         <div className="text-lg font-semibold text-ink mb-2">Новый продукт</div>
 
