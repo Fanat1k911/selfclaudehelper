@@ -26,7 +26,9 @@ def _balances(db: Session, company_id: str) -> dict[str, float]:
 
 
 def _low_stock(db: Session, company_id: str) -> list[dict]:
-    materials = db.scalars(select(Material).where(Material.company_id == company_id)).all()
+    materials = db.scalars(
+        select(Material).where(Material.company_id == company_id, Material.archived.is_(False))
+    ).all()
     balances = _balances(db, company_id)
     rows = [
         {

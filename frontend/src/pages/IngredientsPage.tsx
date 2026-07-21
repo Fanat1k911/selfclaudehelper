@@ -1,12 +1,15 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Download, Plus, Truck, Upload } from 'lucide-react'
 import { apiFetch, apiDownload } from '../lib/api'
+import { useAuth } from '../lib/auth'
 import { materialCategoryLabel } from '../lib/labels'
-import type { Ingredient } from '../types'
+import type { Ingredient, User } from '../types'
 import { IngredientDetailPanel } from '../components/IngredientDetailPanel'
 import { NewIngredientModal } from '../components/NewIngredientModal'
 import { ImportIngredientsModal } from '../components/ImportIngredientsModal'
 import { BatchIncomeModal } from '../components/BatchIncomeModal'
+
+const MANAGEMENT_ROLES: User['role'][] = ['founder', 'developer']
 
 const COLOR_DOT: Record<Ingredient['цвет'], string> = {
   'зелёный': 'bg-emerald-500',
@@ -22,6 +25,8 @@ function formatDate(value: string | null) {
 }
 
 export function IngredientsPage() {
+  const { user } = useAuth()
+  const canManage = !!user && MANAGEMENT_ROLES.includes(user.role)
   const [ingredients, setIngredients] = useState<Ingredient[]>([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
@@ -29,11 +34,12 @@ export function IngredientsPage() {
   const [showCreate, setShowCreate] = useState(false)
   const [showImport, setShowImport] = useState(false)
   const [showBatchIncome, setShowBatchIncome] = useState(false)
+  const [showArchived, setShowArchived] = useState(false)
 
-  async function load() {
+  async function load(archived = showArchived) {
     setLoading(true)
     try {
-      const data = await apiFetch<Ingredient[]>('/ingredients')
+      const data = await apiFetch<Ingredient[]>(`/ingredients?archived=${archived}`)
       setIngredients(data)
     } finally {
       setLoading(false)
@@ -41,8 +47,8 @@ export function IngredientsPage() {
   }
 
   useEffect(() => {
-    load()
-  }, [])
+    load(showArchived)
+  }, [showArchived])
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase()
@@ -56,7 +62,7 @@ export function IngredientsPage() {
 
   function handleChanged() {
     setSelected(null)
-    load()
+    load(showArchived)
   }
 
   return (
@@ -85,21 +91,36 @@ export function IngredientsPage() {
 
           <div className="hidden h-8 w-px bg-ink/10 sm:block" />
 
-          <div className="grid grid-cols-2 gap-2 sm:flex sm:gap-2">
+          {!showArchived && (
+            <div className="grid grid-cols-2 gap-2 sm:flex sm:gap-2">
+              <button
+                onClick={() => setShowBatchIncome(true)}
+                disabled={ingredients.length === 0}
+                className="flex items-center justify-center gap-1.5 whitespace-nowrap rounded-lg bg-terracotta px-3 py-2 text-sm font-medium text-white shadow-sm hover:bg-terracotta-dark disabled:opacity-40 sm:w-auto sm:px-4"
+              >
+                <Truck size={15} /> Поставка
+              </button>
+              <button
+                onClick={() => setShowCreate(true)}
+                className="flex items-center justify-center gap-1.5 whitespace-nowrap rounded-lg bg-accent-add px-3 py-2 text-sm font-medium text-white hover:bg-accent-add-dark sm:w-auto sm:px-4"
+              >
+                <Plus size={15} /> Добавить компонент
+              </button>
+            </div>
+          )}
+
+          {canManage && (
             <button
-              onClick={() => setShowBatchIncome(true)}
-              disabled={ingredients.length === 0}
-              className="flex items-center justify-center gap-1.5 whitespace-nowrap rounded-lg bg-terracotta px-3 py-2 text-sm font-medium text-white shadow-sm hover:bg-terracotta-dark disabled:opacity-40 sm:w-auto sm:px-4"
+              onClick={() => setShowArchived((v) => !v)}
+              className={`whitespace-nowrap rounded-lg px-3 py-2 text-sm font-medium sm:px-4 ${
+                showArchived
+                  ? 'bg-ink text-white'
+                  : 'border border-ink/10 text-ink hover:bg-ink hover:text-white'
+              }`}
             >
-              <Truck size={15} /> Поставка
+              {showArchived ? 'Активные' : 'Архив'}
             </button>
-            <button
-              onClick={() => setShowCreate(true)}
-              className="flex items-center justify-center gap-1.5 whitespace-nowrap rounded-lg bg-accent-add px-3 py-2 text-sm font-medium text-white hover:bg-accent-add-dark sm:w-auto sm:px-4"
-            >
-              <Plus size={15} /> Добавить компонент
-            </button>
-          </div>
+          )}
         </div>
       </div>
 
@@ -118,7 +139,7 @@ export function IngredientsPage() {
         )}
         {!loading && filtered.length === 0 && (
           <div className="rounded-xl border border-ink/10 bg-white px-4 py-6 text-center text-sm text-ink/40">
-            Ничего не найдено.
+            {showArchived ? 'Архив пуст.' : 'Ничего не найдено.'}
           </div>
         )}
         {filtered.map((ing) => (
@@ -168,7 +189,7 @@ export function IngredientsPage() {
             {!loading && filtered.length === 0 && (
               <tr>
                 <td colSpan={5} className="px-4 py-6 text-center text-ink/40">
-                  Ничего не найдено.
+                  {showArchived ? 'Архив пуст.' : 'Ничего не найдено.'}
                 </td>
               </tr>
             )}

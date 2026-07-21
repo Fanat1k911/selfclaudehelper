@@ -47,7 +47,7 @@ def get_dashboard(user: dict = Depends(get_current_user), db: Session = Depends(
             "ед.измерения": m.unit,
         }
         for m in materials
-        if balances.get(m.id, 0.0) < float(m.min_stock)
+        if not m.archived and balances.get(m.id, 0.0) < float(m.min_stock)
     ]
     below_min.sort(key=lambda r: r["остаток"])
 

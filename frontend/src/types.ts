@@ -51,6 +51,7 @@ export interface Ingredient {
   'вес минимальной партии': number | null
   'поставщик': string
   'INCI': string
+  'архив': boolean
 }
 
 export interface Transaction {

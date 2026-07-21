@@ -116,6 +116,10 @@ class Material(Base):
     min_purchase_batch_weight: Mapped[float | None] = mapped_column(Numeric(12, 3))
     supplier: Mapped[str | None] = mapped_column(String(255))
     inci: Mapped[str | None] = mapped_column(Text)
+    # Архив (2026-07-21) — тот же паттерн, что у Recipe: архивный компонент просто не
+    # попадает в список по умолчанию, но остаток/история движений/ссылки из RecipeItem
+    # остаются нетронутыми, ничего не режем.
+    archived: Mapped[bool] = mapped_column(Boolean, default=False, server_default="false")
 
     transactions: Mapped[list["Transaction"]] = relationship(back_populates="material")
 

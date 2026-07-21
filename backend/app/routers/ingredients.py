@@ -9,7 +9,7 @@ import io
 from datetime import date
 from urllib.parse import quote
 
-from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
+from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile
 from fastapi.responses import StreamingResponse
 from openpyxl import Workbook, load_workbook
 from sqlalchemy import select
@@ -75,6 +75,7 @@ def _material_dict(material: Material, balance: float, last_movement: date | Non
         ),
         "поставщик": material.supplier or "",
         "INCI": material.inci or "",
+        "архив": material.archived,
     }
 
 
@@ -108,8 +109,12 @@ def _get_own_material(db: Session, material_id: str, company_id: str) -> Materia
 
 
 @router.get("")
-def list_ingredients(user: dict = Depends(get_current_user), db: Session = Depends(get_db)) -> list[dict]:
-    materials = db.scalars(select(Material).where(Material.company_id == user["company_id"])).all()
+def list_ingredients(
+    archived: bool = Query(False), user: dict = Depends(get_current_user), db: Session = Depends(get_db)
+) -> list[dict]:
+    materials = db.scalars(
+        select(Material).where(Material.company_id == user["company_id"], Material.archived == archived)
+    ).all()
     balances, last_movement = _balances_and_last_movement(db, user["company_id"])
     return [_material_dict(m, balances.get(m.id, 0.0), last_movement.get(m.id)) for m in materials]
 

@@ -79,6 +79,39 @@ def test_batch_income_rejects_empty_items(client, db_session):
     assert resp.status_code == 400
 
 
+def test_archive_hides_material_from_default_list_and_low_stock(client, db_session):
+    founder = make_user(db_session, login="iw16", role=FOUNDER)
+    headers = auth_headers(founder)
+    resp = client.post(
+        "/api/ingredients", json={"name": "Старый воск", "category": "тара", "unit": "кг", "min_stock": 10},
+        headers=headers,
+    )
+    material_id = resp.json()["id"]
+
+    resp = client.patch(f"/api/ingredients/{material_id}", json={"archived": True}, headers=headers)
+    assert resp.status_code == 200
+
+    active = client.get("/api/ingredients", headers=headers).json()
+    assert all(r["id"] != material_id for r in active)
+
+    archived = client.get("/api/ingredients?archived=true", headers=headers).json()
+    row = next(r for r in archived if r["id"] == material_id)
+    assert row["архив"] is True
+
+    dashboard_low_stock = client.get("/api/dashboard", headers=headers).json()["ниже_минимума"]
+    assert all(r["id"] != material_id for r in dashboard_low_stock)
+
+
+def test_archive_forbidden_for_worker(client, db_session):
+    founder = make_user(db_session, login="iw17f", role=FOUNDER)
+    resp = client.post("/api/ingredients", json={"name": "Тест", "category": "тара", "unit": "шт"}, headers=auth_headers(founder))
+    material_id = resp.json()["id"]
+
+    worker = make_user(db_session, login="iw17w", role=WORKER, company_id=founder.company_id)
+    resp = client.patch(f"/api/ingredients/{material_id}", json={"archived": True}, headers=auth_headers(worker))
+    assert resp.status_code == 403
+
+
 def test_categories_returns_defaults_and_custom(client, db_session):
     worker = make_user(db_session, login="iw15", role=WORKER)
     headers = auth_headers(worker)

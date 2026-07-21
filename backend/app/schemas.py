@@ -63,6 +63,7 @@ class MaterialAttrsUpdate(BaseModel):
     min_purchase_batch_weight: float | None = None
     supplier: str | None = None
     inci: str | None = None
+    archived: bool | None = None
 
 
 class TransactionRequest(BaseModel):

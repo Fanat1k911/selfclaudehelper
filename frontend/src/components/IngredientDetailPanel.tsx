@@ -58,6 +58,23 @@ export function IngredientDetailPanel({
   })
   const [savingAttrs, setSavingAttrs] = useState(false)
   const [attrsError, setAttrsError] = useState<string | null>(null)
+  const [archiving, setArchiving] = useState(false)
+
+  async function toggleArchived() {
+    setArchiving(true)
+    try {
+      await apiFetch(`/ingredients/${ingredient.id}`, {
+        method: 'PATCH',
+        body: JSON.stringify({ archived: !ingredient['архив'] }),
+      })
+      onChanged()
+      onClose()
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : 'Не удалось изменить статус архива.')
+    } finally {
+      setArchiving(false)
+    }
+  }
 
   useEffect(() => {
     let cancelled = false
@@ -173,6 +190,18 @@ export function IngredientDetailPanel({
             <span className="text-ink/60">Последнее движение</span>
             <span>{formatDate(ingredient['последнее движение'])}</span>
           </div>
+          {canEditAttrs && (
+            <>
+              <button
+                onClick={toggleArchived}
+                disabled={archiving}
+                className="mt-1 w-full rounded-lg border border-ink/10 px-4 py-2 text-sm font-medium text-ink hover:bg-cream/60 disabled:opacity-60"
+              >
+                {ingredient['архив'] ? 'Вернуть из архива' : 'Переместить в архив'}
+              </button>
+              {error && <div className="text-sm text-red-600">{error}</div>}
+            </>
+          )}
         </div>
 
         <div className="px-6 py-4 border-b border-ink/10">
