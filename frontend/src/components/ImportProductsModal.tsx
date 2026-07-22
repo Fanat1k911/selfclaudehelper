@@ -107,27 +107,27 @@ export function ImportProductsModal({
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30" onClick={onClose}>
       <div
         onClick={(e) => e.stopPropagation()}
-        className="w-full max-w-3xl max-h-[85vh] touch-pan-y overflow-y-auto overflow-x-hidden rounded-2xl bg-white p-6 shadow-2xl space-y-4"
+        className="w-full max-w-3xl max-h-[85vh] touch-pan-y overflow-y-auto overflow-x-hidden rounded-2xl bg-premium-surface p-6 shadow-2xl space-y-4"
       >
-        <div className="text-lg font-semibold text-ink">Импорт продуктов из файла</div>
-        <p className="text-sm text-ink/50">
+        <div className="text-lg font-semibold text-premium-text">Импорт продуктов из файла</div>
+        <p className="text-sm text-premium-text/50">
           Ожидаются колонки: Наименование, Категория, GTIN, ТН ВЭД, Декларация соответствия, Срок действия РД.
           Импорт только создаёт новые продукты — если GTIN уже есть в базе, строка пропускается.
           Рецепт выбирается вручную по каждой строке — без него «готово к отгрузке» не будет считаться.
         </p>
 
-        <label className="inline-block cursor-pointer rounded-lg bg-terracotta px-3 py-2 text-sm font-medium text-white hover:bg-terracotta-dark">
+        <label className="inline-block cursor-pointer rounded-lg bg-premium-gold px-3 py-2 text-sm font-medium text-premium-bg hover:bg-premium-gold-hi">
           Загрузить файл
           <input type="file" accept=".xlsx" className="hidden" onChange={handleFile} />
         </label>
 
         {sheets.length > 0 && (
           <div className="space-y-1">
-            <div className="text-sm text-ink/70">В файле несколько вкладок — выберите нужную:</div>
+            <div className="text-sm text-premium-text/70">В файле несколько вкладок — выберите нужную:</div>
             <select
               value={sheetName}
               onChange={(e) => handleSheetSelect(e.target.value)}
-              className="w-full max-w-sm rounded-lg border border-ink/10 bg-white px-3 py-2 text-sm outline-none focus:border-terracotta"
+              className="w-full max-w-sm rounded-lg border border-premium-border bg-premium-bg px-3 py-2 text-sm text-premium-text outline-none focus:border-premium-gold"
             >
               <option value="" disabled>
                 Выберите вкладку…
@@ -141,14 +141,14 @@ export function ImportProductsModal({
           </div>
         )}
 
-        {loading && <div className="text-sm text-ink/50">Читаем файл…</div>}
-        {error && <div className="text-sm text-red-600">{error}</div>}
+        {loading && <div className="text-sm text-premium-text/50">Читаем файл…</div>}
+        {error && <div className="text-sm text-red-400">{error}</div>}
 
         {rows.length > 0 && (
-          <div className="overflow-hidden rounded-xl border border-ink/10">
+          <div className="overflow-hidden rounded-xl border border-premium-border">
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-ink/10 text-left text-ink/50">
+                <tr className="border-b border-premium-border text-left text-premium-text/50">
                   <th className="px-3 py-2 font-medium">Название</th>
                   <th className="px-3 py-2 font-medium">Категория</th>
                   <th className="px-3 py-2 font-medium">GTIN</th>
@@ -159,17 +159,17 @@ export function ImportProductsModal({
               </thead>
               <tbody>
                 {rows.map((r, i) => (
-                  <tr key={i} className="border-b border-ink/5 last:border-0">
+                  <tr key={i} className="border-b border-premium-border/60 text-premium-text last:border-0">
                     <td className="px-3 py-2">{r.name}</td>
-                    <td className="px-3 py-2 text-ink/60">{r.category}</td>
-                    <td className="px-3 py-2 text-ink/60">{r.gtin}</td>
-                    <td className="px-3 py-2 text-ink/50">{r.tn_ved || '—'}</td>
+                    <td className="px-3 py-2 text-premium-text/60">{r.category}</td>
+                    <td className="px-3 py-2 text-premium-text/60">{r.gtin}</td>
+                    <td className="px-3 py-2 text-premium-text/50">{r.tn_ved || '—'}</td>
                     <td className="px-3 py-2">
                       {r.status === 'ok' ? (
                         <select
                           value={recipeByRow[i] || ''}
                           onChange={(e) => setRecipeByRow((prev) => ({ ...prev, [i]: e.target.value }))}
-                          className="w-full max-w-[10rem] rounded-lg border border-ink/10 px-2 py-1 text-xs outline-none focus:border-terracotta"
+                          className="w-full max-w-[10rem] rounded-lg border border-premium-border bg-premium-bg px-2 py-1 text-xs text-premium-text outline-none focus:border-premium-gold"
                         >
                           <option value="">без рецепта</option>
                           {recipes.map((rec) => (
@@ -182,7 +182,7 @@ export function ImportProductsModal({
                         '—'
                       )}
                     </td>
-                    <td className={`px-3 py-2 ${r.status === 'ok' ? 'text-emerald-600' : 'text-red-600'}`}>
+                    <td className={`px-3 py-2 ${r.status === 'ok' ? 'text-premium-sage-hi' : 'text-red-400'}`}>
                       {r.status === 'ok' ? 'ок' : r.status}
                     </td>
                   </tr>
@@ -195,14 +195,14 @@ export function ImportProductsModal({
         <div className="flex gap-2 pt-2">
           <button
             onClick={onClose}
-            className="flex-1 rounded-lg bg-cream py-2 text-sm font-medium text-ink hover:bg-ink/5"
+            className="flex-1 rounded-lg bg-premium-surface-2 py-2 text-sm font-medium text-premium-text hover:bg-premium-border"
           >
             Закрыть
           </button>
           <button
             onClick={handleConfirm}
             disabled={submitting || okRows.length === 0}
-            className="flex-1 rounded-lg bg-terracotta py-2 text-sm font-medium text-white hover:bg-terracotta-dark disabled:opacity-60"
+            className="flex-1 rounded-lg bg-premium-gold py-2 text-sm font-medium text-premium-bg hover:bg-premium-gold-hi disabled:opacity-60"
           >
             {submitting ? 'Применяем…' : `Применить (${okRows.length})`}
           </button>
