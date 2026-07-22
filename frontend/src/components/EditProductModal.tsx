@@ -168,7 +168,7 @@ export function EditProductModal({
             type="date"
             value={declarationExpires}
             onChange={(e) => setDeclarationExpires(e.target.value)}
-            className="w-full rounded-lg border border-ink/10 px-3 py-2 text-sm outline-none focus:border-terracotta"
+            className="w-full rounded-lg border border-ink/10 px-3 py-2 text-sm outline-none focus:border-terracotta [&::-webkit-date-and-time-value]:text-sm [&::-webkit-datetime-edit]:text-sm"
           />
         </div>
 
