@@ -164,12 +164,29 @@ export function EditProductModal({
 
         <div>
           <label className="block text-xs text-ink/60 mb-1">Срок действия РД (необязательно)</label>
-          <input
-            type="date"
-            value={declarationExpires}
-            onChange={(e) => setDeclarationExpires(e.target.value)}
-            className="w-full rounded-lg border border-ink/10 px-3 py-2 text-sm outline-none focus:border-terracotta [&::-webkit-date-and-time-value]:text-sm [&::-webkit-datetime-edit]:text-sm"
-          />
+          <div className="relative">
+            {/* iOS Safari рендерит выбранную дату в поле своим системным шрифтом крупнее
+                остальных полей, и это почти не поддаётся переопределению CSS на самом
+                нативном поле (::-webkit-date-and-time-value color:transparent проверено —
+                в Chromium даёт наложение текста, ненадёжно кросс-браузерно; Александр,
+                2026-07-22, скрин). Вместо борьбы со стилями нативного поля — прячем его
+                полностью (opacity-0, но поверх и кликабельно на весь блок, тап открывает
+                нативный календарь как раньше) и рисуем свой текст под ним в обычном
+                стиле — так реально одинаково рендерится везде. */}
+            <input
+              type="date"
+              value={declarationExpires}
+              onChange={(e) => setDeclarationExpires(e.target.value)}
+              className="absolute inset-0 h-full w-full cursor-pointer opacity-0"
+            />
+            <div className="pointer-events-none w-full rounded-lg border border-ink/10 px-3 py-2 text-sm text-ink">
+              {declarationExpires ? (
+                new Date(declarationExpires).toLocaleDateString('ru-RU')
+              ) : (
+                <span className="text-ink/40">дд.мм.гггг</span>
+              )}
+            </div>
+          </div>
         </div>
 
         {error && <div className="text-sm text-red-600">{error}</div>}
