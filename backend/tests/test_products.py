@@ -1,6 +1,6 @@
 from app.constants import FOUNDER
-from app.models import Product, Recipe
-from tests.conftest import auth_headers, make_user
+from app.models import Material, Product, Recipe, RecipeItem
+from tests.conftest import auth_headers, default_company_id, make_user
 
 
 def test_create_product_rejects_archived_recipe(client, db_session):
@@ -141,3 +141,56 @@ def test_import_commit_ignores_recipe_from_other_company(client, db_session):
 
     product = db_session.query(Product).filter_by(gtin="301", company_id=founder.company_id).one()
     assert product.recipe_id is None
+
+
+def test_inci_composition_ordered_by_qty_desc_and_skips_missing(client, db_session):
+    company_id = default_company_id(db_session)
+    heavy = Material(company_id=company_id, name="Вода", category="жидкое", unit="кг", inci="Aqua")
+    light = Material(company_id=company_id, name="Отдушка", category="жидкое", unit="кг", inci="Parfum")
+    no_inci = Material(company_id=company_id, name="Без INCI", category="жидкое", unit="кг")
+    recipe = Recipe(company_id=company_id, name="Рецепт INCI", category="мыло", produces="мыло", batch_yield=10.0)
+    db_session.add_all([heavy, light, no_inci, recipe])
+    db_session.flush()
+    db_session.add_all(
+        [
+            RecipeItem(recipe_id=recipe.id, material_id=light.id, qty_per_batch=1.0),
+            RecipeItem(recipe_id=recipe.id, material_id=heavy.id, qty_per_batch=50.0),
+            RecipeItem(recipe_id=recipe.id, material_id=no_inci.id, qty_per_batch=5.0),
+        ]
+    )
+    product = Product(company_id=company_id, name="Продукт INCI", category="мыло", gtin="inci-1", recipe_id=recipe.id)
+    db_session.add(product)
+    db_session.commit()
+
+    founder = make_user(db_session, login="pinci1", role=FOUNDER, company_id=company_id)
+    resp = client.get("/api/products", headers=auth_headers(founder))
+    row = next(r for r in resp.json() if r["id"] == product.id)
+    assert row["состав по INCI"] == "Aqua, Parfum"
+
+
+def test_inci_composition_none_without_recipe(client, db_session):
+    founder = make_user(db_session, login="pinci2", role=FOUNDER)
+    product = Product(company_id=founder.company_id, name="Без рецепта", category="мыло", gtin="inci-2")
+    db_session.add(product)
+    db_session.commit()
+
+    resp = client.get("/api/products", headers=auth_headers(founder))
+    row = next(r for r in resp.json() if r["id"] == product.id)
+    assert row["состав по INCI"] is None
+
+
+def test_inci_composition_none_when_no_material_has_inci(client, db_session):
+    company_id = default_company_id(db_session)
+    material = Material(company_id=company_id, name="Без INCI вообще", category="жидкое", unit="кг")
+    recipe = Recipe(company_id=company_id, name="Рецепт без INCI", category="мыло", produces="мыло", batch_yield=10.0)
+    db_session.add_all([material, recipe])
+    db_session.flush()
+    db_session.add(RecipeItem(recipe_id=recipe.id, material_id=material.id, qty_per_batch=1.0))
+    product = Product(company_id=company_id, name="Продукт без INCI", category="мыло", gtin="inci-3", recipe_id=recipe.id)
+    db_session.add(product)
+    db_session.commit()
+
+    founder = make_user(db_session, login="pinci3", role=FOUNDER, company_id=company_id)
+    resp = client.get("/api/products", headers=auth_headers(founder))
+    row = next(r for r in resp.json() if r["id"] == product.id)
+    assert row["состав по INCI"] is None

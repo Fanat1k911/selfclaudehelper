@@ -19,7 +19,7 @@ from app.constants import DEVELOPER, FOUNDER, PRODUCT_REQUIRED_FIELDS
 from app.costing import compute_active_lot_unit_costs, compute_product_costs
 
 from app.db import get_db
-from app.models import Product, ProductionLog, Recipe, Sale
+from app.models import Product, ProductionLog, Recipe, RecipeItem, Sale
 from app.schemas import NewProductRequest, ProductImportCommitRequest, UpdateProductRequest
 from app.security import get_current_user, get_owned_or_404, require_roles
 
@@ -46,9 +46,26 @@ def _sold_by_product(db: Session, company_id: str) -> dict[str, float]:
     return sold
 
 
+def _inci_composition(db: Session, recipe_id: str | None) -> str | None:
+    """Состав по INCI (2026-07-22, запрос Александра) — собирается автоматически из
+    INCI-названий компонентов рецепта, через запятую, по убыванию кол-ва на партию
+    (стандартный порядок для INCI-этикеток — сначала то, чего больше). Компоненты без
+    заполненного поля INCI (Material.inci) молча пропускаются — это НЕ "полный список
+    минус дырки", а лучшее, что можно собрать из того, что заполнено; печатающий должен
+    сверить, что у каждого компонента рецепта INCI реально указан, прежде чем печатать
+    этикетку под это поле как окончательное."""
+    if not recipe_id:
+        return None
+    items = db.scalars(
+        select(RecipeItem).where(RecipeItem.recipe_id == recipe_id).order_by(RecipeItem.qty_per_batch.desc())
+    ).all()
+    parts = [item.material.inci.strip() for item in items if item.material.inci and item.material.inci.strip()]
+    return ", ".join(parts) if parts else None
+
+
 def _product_dict(
     product: Product, produced_by_recipe: dict[str, float], sold_by_product: dict[str, float],
-    cost_per_batch: float | None, cost_per_unit: float | None,
+    cost_per_batch: float | None, cost_per_unit: float | None, inci_composition: str | None,
 ) -> dict:
     ready = None
     if product.recipe_id:
@@ -67,6 +84,7 @@ def _product_dict(
         "готово к отгрузке": ready,
         "себестоимость партии": cost_per_batch,
         "себестоимость единицы": cost_per_unit,
+        "состав по INCI": inci_composition,
     }
 
 
@@ -79,7 +97,10 @@ def list_products(user: dict = Depends(get_current_user), db: Session = Depends(
     result = []
     for p in db.scalars(stmt):
         cost_per_batch, cost_per_unit = compute_product_costs(db, user["company_id"], p, lot_unit_costs)
-        result.append(_product_dict(p, produced_by_recipe, sold_by_product, cost_per_batch, cost_per_unit))
+        inci_composition = _inci_composition(db, p.recipe_id)
+        result.append(
+            _product_dict(p, produced_by_recipe, sold_by_product, cost_per_batch, cost_per_unit, inci_composition)
+        )
     return result
 
 

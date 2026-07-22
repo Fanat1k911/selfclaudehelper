@@ -198,6 +198,7 @@ export interface Product {
   'готово к отгрузке': number | null
   'себестоимость партии': number | null
   'себестоимость единицы': number | null
+  'состав по INCI': string | null
 }
 
 export interface Sale {

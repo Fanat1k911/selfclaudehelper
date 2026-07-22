@@ -1,4 +1,5 @@
 import { useEffect, useState, type FormEvent } from 'react'
+import { Check, Copy } from 'lucide-react'
 import { apiFetch, ApiError } from '../lib/api'
 import type { Product, Recipe } from '../types'
 
@@ -22,6 +23,15 @@ export function EditProductModal({
   const [declarationExpires, setDeclarationExpires] = useState(product['срок действия РД'])
   const [error, setError] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
+  const [inciCopied, setInciCopied] = useState(false)
+
+  async function copyInci() {
+    const value = product['состав по INCI']
+    if (!value) return
+    await navigator.clipboard.writeText(value)
+    setInciCopied(true)
+    setTimeout(() => setInciCopied(false), 1500)
+  }
 
   useEffect(() => {
     apiFetch<Recipe[]>('/recipes').then(setRecipes)
@@ -131,6 +141,32 @@ export function EditProductModal({
             {product['себестоимость партии'] === null && (
               <p className="mt-1 text-xs text-premium-text/40">
                 По части сырья в рецепте нет ни цены прихода, ни ручной себестоимости на карточке компонента.
+              </p>
+            )}
+          </div>
+        )}
+
+        {product.recipe_id && (
+          <div className="rounded-lg bg-premium-bg px-3 py-2 text-sm">
+            <div className="mb-1 flex items-center justify-between">
+              <span className="text-premium-text/60">Состав по INCI</span>
+              {product['состав по INCI'] && (
+                <button
+                  type="button"
+                  onClick={copyInci}
+                  className="flex items-center gap-1 text-xs text-premium-gold-hi hover:text-premium-gold"
+                >
+                  {inciCopied ? <Check size={13} /> : <Copy size={13} />}
+                  {inciCopied ? 'Скопировано' : 'Копировать'}
+                </button>
+              )}
+            </div>
+            {product['состав по INCI'] ? (
+              <p className="text-premium-text">{product['состав по INCI']}</p>
+            ) : (
+              <p className="text-xs text-premium-text/40">
+                Ни у одного компонента рецепта не заполнено поле INCI на карточке компонента —
+                собрать состав не из чего.
               </p>
             )}
           </div>
