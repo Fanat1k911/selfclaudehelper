@@ -1,7 +1,9 @@
 import { useEffect, useState } from 'react'
 import { apiFetch } from '../lib/api'
+import { usePremiumBackground } from '../lib/usePremiumBackground'
 import type { Sale } from '../types'
 import { SaleModal } from '../components/SaleModal'
+import { SkeletonRows } from '../components/SkeletonRows'
 
 function formatDate(value: string | null) {
   if (!value) return '—'
@@ -11,6 +13,7 @@ function formatDate(value: string | null) {
 }
 
 export function SalesPage() {
+  usePremiumBackground()
   const [sales, setSales] = useState<Sale[]>([])
   const [loading, setLoading] = useState(true)
   const [showCreate, setShowCreate] = useState(false)
@@ -31,25 +34,26 @@ export function SalesPage() {
   }, [])
 
   return (
-    <div className="px-4 py-4 sm:px-8 sm:py-6">
-      <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <h1 className="text-xl font-semibold text-ink sm:text-2xl">Отгрузка</h1>
+    <div className="relative min-h-full overflow-hidden bg-premium-bg px-4 py-4 sm:px-8 sm:py-6">
+      <div className="premium-grain" aria-hidden />
+      <div className="relative mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <h1 className="font-display text-xl font-semibold italic text-premium-text sm:text-2xl">Отгрузка</h1>
         <button
           onClick={() => setShowCreate(true)}
-          className="whitespace-nowrap rounded-lg bg-accent-add px-3 py-2 text-sm font-medium text-white hover:bg-accent-add-dark sm:px-4"
+          className="whitespace-nowrap rounded-lg bg-premium-gold px-3 py-2 text-sm font-medium text-premium-bg hover:bg-premium-gold-hi sm:px-4"
         >
           + Внести отгрузку
         </button>
       </div>
 
-      <div className="space-y-2 md:hidden">
+      <div className="relative space-y-2 md:hidden">
         {loading && (
-          <div className="rounded-xl border border-ink/10 bg-white px-4 py-6 text-center text-sm text-ink/40">
-            Загрузка…
+          <div className="overflow-hidden rounded-xl border border-premium-border bg-premium-surface">
+            <SkeletonRows />
           </div>
         )}
         {!loading && sales.length === 0 && (
-          <div className="rounded-xl border border-ink/10 bg-white px-4 py-6 text-center text-sm text-ink/40">
+          <div className="rounded-xl border border-premium-border bg-premium-surface px-4 py-6 text-center text-sm text-premium-text/40">
             Отгрузок пока нет.
           </div>
         )}
@@ -57,26 +61,26 @@ export function SalesPage() {
           <button
             key={s.id}
             onClick={() => setEditingSale(s)}
-            className="w-full rounded-xl border border-ink/10 bg-white p-4 text-left shadow-sm active:bg-cream/60"
+            className="premium-card w-full rounded-xl border border-premium-border bg-premium-surface p-4 text-left active:bg-premium-surface-2"
           >
             <div className="flex items-start justify-between gap-2">
-              <span className="truncate text-sm font-medium text-ink">{s['название']}</span>
-              <span className="shrink-0 text-sm font-semibold text-ink">{s['кол-во']} шт</span>
+              <span className="truncate text-sm font-medium text-premium-text">{s['название']}</span>
+              <span className="shrink-0 text-sm font-semibold text-premium-text">{s['кол-во']} шт</span>
             </div>
-            <div className="mt-1.5 flex items-center justify-between text-xs text-ink/50">
+            <div className="mt-1.5 flex items-center justify-between text-xs text-premium-text/50">
               <span className="truncate">{formatDate(s['дата'])}</span>
               <span className="shrink-0">{s['цена']} ₽</span>
             </div>
-            {s['контрагент'] && <div className="mt-1.5 truncate text-xs text-ink/50">{s['контрагент']}</div>}
-            {s['комментарий'] && <div className="mt-1.5 truncate text-xs text-ink/50">{s['комментарий']}</div>}
+            {s['контрагент'] && <div className="mt-1.5 truncate text-xs text-premium-text/50">{s['контрагент']}</div>}
+            {s['комментарий'] && <div className="mt-1.5 truncate text-xs text-premium-text/50">{s['комментарий']}</div>}
           </button>
         ))}
       </div>
 
-      <div className="hidden overflow-hidden rounded-xl border border-ink/10 bg-white shadow-sm md:block">
+      <div className="relative hidden overflow-hidden rounded-xl border border-premium-border bg-premium-surface md:block">
         <table className="w-full text-sm">
           <thead>
-            <tr className="border-b border-ink/10 text-left text-ink/50">
+            <tr className="border-b border-premium-border text-left text-premium-text/50">
               <th className="px-4 py-3 font-medium">Дата</th>
               <th className="px-4 py-3 font-medium">Продукт</th>
               <th className="px-4 py-3 font-medium">Контрагент</th>
@@ -88,14 +92,14 @@ export function SalesPage() {
           <tbody>
             {loading && (
               <tr>
-                <td colSpan={6} className="px-4 py-6 text-center text-ink/40">
-                  Загрузка…
+                <td colSpan={6} className="p-0">
+                  <SkeletonRows />
                 </td>
               </tr>
             )}
             {!loading && sales.length === 0 && (
               <tr>
-                <td colSpan={6} className="px-4 py-6 text-center text-ink/40">
+                <td colSpan={6} className="px-4 py-6 text-center text-premium-text/40">
                   Отгрузок пока нет.
                 </td>
               </tr>
@@ -104,14 +108,14 @@ export function SalesPage() {
               <tr
                 key={s.id}
                 onClick={() => setEditingSale(s)}
-                className="cursor-pointer border-b border-ink/5 last:border-0 hover:bg-cream/60"
+                className="cursor-pointer border-b border-premium-border/60 transition-colors last:border-0 hover:bg-premium-surface-2"
               >
-                <td className="px-4 py-3 text-ink/50">{formatDate(s['дата'])}</td>
-                <td className="px-4 py-3">{s['название']}</td>
-                <td className="px-4 py-3 text-ink/50">{s['контрагент'] || '—'}</td>
-                <td className="px-4 py-3 text-right font-medium">{s['кол-во']}</td>
-                <td className="px-4 py-3 text-right text-ink/50">{s['цена']}</td>
-                <td className="px-4 py-3 text-ink/50">{s['комментарий']}</td>
+                <td className="px-4 py-3 text-premium-text/50">{formatDate(s['дата'])}</td>
+                <td className="px-4 py-3 text-premium-text">{s['название']}</td>
+                <td className="px-4 py-3 text-premium-text/50">{s['контрагент'] || '—'}</td>
+                <td className="px-4 py-3 text-right font-medium text-premium-text">{s['кол-во']}</td>
+                <td className="px-4 py-3 text-right text-premium-text/50">{s['цена']}</td>
+                <td className="px-4 py-3 text-premium-text/50">{s['комментарий']}</td>
               </tr>
             ))}
           </tbody>

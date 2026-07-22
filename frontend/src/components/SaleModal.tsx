@@ -72,16 +72,16 @@ export function SaleModal({
       <form
         onSubmit={handleSubmit}
         onClick={(e) => e.stopPropagation()}
-        className="max-h-[90vh] w-full max-w-sm touch-pan-y overflow-y-auto overflow-x-hidden rounded-2xl bg-white p-6 shadow-2xl space-y-3"
+        className="max-h-[90vh] w-full max-w-sm touch-pan-y overflow-y-auto overflow-x-hidden rounded-2xl bg-premium-surface p-6 shadow-2xl space-y-3"
       >
-        <div className="text-lg font-semibold text-ink mb-2">{editing ? 'Отгрузка' : 'Новая отгрузка'}</div>
+        <div className="text-lg font-semibold text-premium-text mb-2">{editing ? 'Отгрузка' : 'Новая отгрузка'}</div>
 
         <div>
-          <label className="block text-xs text-ink/60 mb-1">Продукт</label>
+          <label className="block text-xs text-premium-text/60 mb-1">Продукт</label>
           <select
             value={productId}
             onChange={(e) => setProductId(e.target.value)}
-            className="w-full rounded-lg border border-ink/10 px-3 py-2 text-sm outline-none focus:border-terracotta"
+            className="w-full rounded-lg border border-premium-border bg-premium-bg px-3 py-2 text-sm text-premium-text outline-none focus:border-premium-gold"
             required
           >
             {products.map((p) => (
@@ -93,11 +93,11 @@ export function SaleModal({
         </div>
 
         <div>
-          <label className="block text-xs text-ink/60 mb-1">Контрагент (необязательно)</label>
+          <label className="block text-xs text-premium-text/60 mb-1">Контрагент (необязательно)</label>
           <select
             value={counterpartyId}
             onChange={(e) => setCounterpartyId(e.target.value)}
-            className="w-full rounded-lg border border-ink/10 px-3 py-2 text-sm outline-none focus:border-terracotta"
+            className="w-full rounded-lg border border-premium-border bg-premium-bg px-3 py-2 text-sm text-premium-text outline-none focus:border-premium-gold"
           >
             <option value="">— не указан —</option>
             {counterparties.map((c) => (
@@ -110,95 +110,95 @@ export function SaleModal({
 
         <div className="grid grid-cols-2 gap-3">
           <div>
-            <label className="block text-xs text-ink/60 mb-1">Количество</label>
+            <label className="block text-xs text-premium-text/60 mb-1">Количество</label>
             <input
               type="number" step="any" min="0" value={qty}
               onChange={(e) => setQty(e.target.value)}
-              className="w-full rounded-lg border border-ink/10 px-3 py-2 text-sm outline-none focus:border-terracotta"
+              className="w-full rounded-lg border border-premium-border bg-premium-bg px-3 py-2 text-sm text-premium-text outline-none focus:border-premium-gold"
               required
             />
           </div>
           <div>
-            <label className="block text-xs text-ink/60 mb-1">Цена (необязательно)</label>
+            <label className="block text-xs text-premium-text/60 mb-1">Цена (необязательно)</label>
             <input
               type="number" step="any" value={price}
               onChange={(e) => setPrice(e.target.value)}
-              className="w-full rounded-lg border border-ink/10 px-3 py-2 text-sm outline-none focus:border-terracotta"
+              className="w-full rounded-lg border border-premium-border bg-premium-bg px-3 py-2 text-sm text-premium-text outline-none focus:border-premium-gold"
             />
           </div>
         </div>
 
-        <div className="border-t border-ink/10 pt-3">
-          <div className="mb-2 text-xs font-medium uppercase tracking-wide text-ink/40">Упаковка и логистика</div>
+        <div className="border-t border-premium-border pt-3">
+          <div className="mb-2 text-xs font-medium uppercase tracking-wide text-premium-text/40">Упаковка и логистика</div>
           <div className="grid grid-cols-3 gap-3">
             <div>
-              <label className="block text-xs text-ink/60 mb-1">Коробки, шт</label>
+              <label className="block text-xs text-premium-text/60 mb-1">Коробки, шт</label>
               <input
                 type="number" step="any" min="0" value={boxCount}
                 onChange={(e) => setBoxCount(e.target.value)}
-                className="w-full rounded-lg border border-ink/10 px-3 py-2 text-sm outline-none focus:border-terracotta"
+                className="w-full rounded-lg border border-premium-border bg-premium-bg px-3 py-2 text-sm text-premium-text outline-none focus:border-premium-gold"
               />
             </div>
             <div>
-              <label className="block text-xs text-ink/60 mb-1">Скотч, см</label>
+              <label className="block text-xs text-premium-text/60 mb-1">Скотч, см</label>
               <input
                 type="number" step="any" min="0" value={tapeCm}
                 onChange={(e) => setTapeCm(e.target.value)}
-                className="w-full rounded-lg border border-ink/10 px-3 py-2 text-sm outline-none focus:border-terracotta"
+                className="w-full rounded-lg border border-premium-border bg-premium-bg px-3 py-2 text-sm text-premium-text outline-none focus:border-premium-gold"
               />
             </div>
             <div>
-              <label className="block text-xs text-ink/60 mb-1">Наклейки, шт</label>
+              <label className="block text-xs text-premium-text/60 mb-1">Наклейки, шт</label>
               <input
                 type="number" step="any" min="0" value={stickerCount}
                 onChange={(e) => setStickerCount(e.target.value)}
-                className="w-full rounded-lg border border-ink/10 px-3 py-2 text-sm outline-none focus:border-terracotta"
+                className="w-full rounded-lg border border-premium-border bg-premium-bg px-3 py-2 text-sm text-premium-text outline-none focus:border-premium-gold"
               />
             </div>
           </div>
           <div className="mt-3 grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs text-ink/60 mb-1">Курьер, ₽</label>
+              <label className="block text-xs text-premium-text/60 mb-1">Курьер, ₽</label>
               <input
                 type="number" step="any" min="0" value={courierCost}
                 onChange={(e) => setCourierCost(e.target.value)}
-                className="w-full rounded-lg border border-ink/10 px-3 py-2 text-sm outline-none focus:border-terracotta"
+                className="w-full rounded-lg border border-premium-border bg-premium-bg px-3 py-2 text-sm text-premium-text outline-none focus:border-premium-gold"
               />
             </div>
             <div>
-              <label className="block text-xs text-ink/60 mb-1">Логист, ₽</label>
+              <label className="block text-xs text-premium-text/60 mb-1">Логист, ₽</label>
               <input
                 type="number" step="any" min="0" value={logistCost}
                 onChange={(e) => setLogistCost(e.target.value)}
-                className="w-full rounded-lg border border-ink/10 px-3 py-2 text-sm outline-none focus:border-terracotta"
+                className="w-full rounded-lg border border-premium-border bg-premium-bg px-3 py-2 text-sm text-premium-text outline-none focus:border-premium-gold"
               />
             </div>
           </div>
         </div>
 
         <div>
-          <label className="block text-xs text-ink/60 mb-1">Комментарий</label>
+          <label className="block text-xs text-premium-text/60 mb-1">Комментарий</label>
           <input
             value={comment}
             onChange={(e) => setComment(e.target.value)}
-            className="w-full rounded-lg border border-ink/10 px-3 py-2 text-sm outline-none focus:border-terracotta"
+            className="w-full rounded-lg border border-premium-border bg-premium-bg px-3 py-2 text-sm text-premium-text outline-none focus:border-premium-gold"
           />
         </div>
 
-        {error && <div className="text-sm text-red-600">{error}</div>}
+        {error && <div className="text-sm text-red-400">{error}</div>}
 
         <div className="flex gap-2 pt-2">
           <button
             type="button"
             onClick={onClose}
-            className="flex-1 rounded-lg bg-cream py-2 text-sm font-medium text-ink hover:bg-ink/5"
+            className="flex-1 rounded-lg bg-premium-surface-2 py-2 text-sm font-medium text-premium-text hover:bg-premium-border"
           >
             Отмена
           </button>
           <button
             type="submit"
             disabled={submitting || !productId}
-            className="flex-1 rounded-lg bg-accent-add py-2 text-sm font-medium text-white hover:bg-accent-add-dark disabled:opacity-60"
+            className="flex-1 rounded-lg bg-premium-gold py-2 text-sm font-medium text-premium-bg hover:bg-premium-gold-hi disabled:opacity-60"
           >
             {submitting ? 'Сохраняем…' : 'Сохранить'}
           </button>
