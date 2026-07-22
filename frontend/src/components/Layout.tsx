@@ -17,18 +17,21 @@ export function Layout() {
     <div className="flex h-dvh overflow-hidden">
       <Sidebar mobileOpen={mobileOpen} onCloseMobile={() => setMobileOpen(false)} />
       <div className="flex flex-1 flex-col overflow-hidden">
-        {/* Общий для ВСЕХ 11 страниц (Outlet ниже) — только Sidebar/Dashboard мигрировали
-            на тёмную тему (см. DESIGN.md), поэтому этот хедер остаётся светлым, чтобы не
-            ломать 8 нетронутых светлых страниц на мобильных viewport-ах. */}
-        <header className="flex items-center gap-3 border-b border-ink/10 bg-white px-4 py-3 md:hidden">
+        {/* Общий для ВСЕХ 11 страниц (Outlet ниже) — переведён на тёмную тему 2026-07-22
+            вместе с общим переносом остальных страниц на Refined Industrial (см. DESIGN.md).
+            Страницы, ещё не переведённые в рамках этой же партии работ, временно контрастируют
+            с этим хедером на мобильном — тот же переходный компромисс, что раньше был в
+            обратную сторону (тёмный Dashboard под светлым хедером), сам собой исчезнет по
+            завершении рассылки остальных страниц. */}
+        <header className="flex items-center gap-3 border-b border-premium-border bg-premium-bg px-4 py-3 md:hidden">
           <button
             onClick={() => setMobileOpen(true)}
-            className="rounded-lg p-1.5 text-ink hover:bg-ink/5"
+            className="rounded-lg p-1.5 text-premium-text hover:bg-premium-surface-2"
             aria-label="Открыть меню"
           >
             <Menu className="h-5 w-5" />
           </button>
-          <Brand user={user} className="text-ink" />
+          <Brand user={user} className="text-premium-text" />
         </header>
         {/* overflow переключается на hidden, пока открыт мобильный сайдбар (2026-07-18,
             репорт Founder: "скрол при открытом сайдбаре работает" + "закрытие по тапу вне
