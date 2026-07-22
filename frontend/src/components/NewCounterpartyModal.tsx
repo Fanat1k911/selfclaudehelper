@@ -103,55 +103,55 @@ export function NewCounterpartyModal({ onClose, onCreated }: { onClose: () => vo
       <form
         onSubmit={handleSubmit}
         onClick={(e) => e.stopPropagation()}
-        className="w-full max-w-sm rounded-2xl bg-white p-6 shadow-2xl space-y-3 max-h-[90vh] touch-pan-y overflow-y-auto overflow-x-hidden"
+        className="w-full max-w-sm rounded-2xl bg-premium-surface p-6 shadow-2xl space-y-3 max-h-[90vh] touch-pan-y overflow-y-auto overflow-x-hidden"
       >
-        <div className="text-lg font-semibold text-ink mb-2">Новый контрагент</div>
+        <div className="text-lg font-semibold text-premium-text mb-2">Новый контрагент</div>
 
         <div>
-          <label className="block text-xs text-ink/60 mb-1">Наименование</label>
+          <label className="block text-xs text-premium-text/60 mb-1">Наименование</label>
           <input
             value={name}
             onChange={(e) => setName(e.target.value)}
             readOnly={locked}
-            className={`w-full rounded-lg border border-ink/10 px-3 py-2 text-sm outline-none focus:border-terracotta ${locked ? 'bg-cream text-ink/70' : ''}`}
+            className={`w-full rounded-lg border border-premium-border bg-premium-bg px-3 py-2 text-sm text-premium-text outline-none focus:border-premium-gold ${locked ? 'bg-premium-surface-2 text-premium-text/70' : ''}`}
             required
           />
         </div>
 
         <div className="grid grid-cols-2 gap-3">
           <div>
-            <label className="block text-xs text-ink/60 mb-1">
+            <label className="block text-xs text-premium-text/60 mb-1">
               ИНН
-              {lookupState === 'loading' && <span className="ml-1 text-ink/40">ищем…</span>}
+              {lookupState === 'loading' && <span className="ml-1 text-premium-text/40">ищем…</span>}
             </label>
             <input
               inputMode="numeric"
               maxLength={12}
               value={inn}
               onChange={(e) => setInn(sanitizeDigits(e.target.value))}
-              className="w-full rounded-lg border border-ink/10 px-3 py-2 text-sm outline-none focus:border-terracotta"
+              className="w-full rounded-lg border border-premium-border bg-premium-bg px-3 py-2 text-sm text-premium-text outline-none focus:border-premium-gold"
             />
           </div>
           <div>
-            <label className="block text-xs text-ink/60 mb-1">КПП</label>
+            <label className="block text-xs text-premium-text/60 mb-1">КПП</label>
             <input
               inputMode="numeric"
               maxLength={9}
               value={kpp}
               onChange={(e) => setKpp(sanitizeDigits(e.target.value))}
               readOnly={locked}
-              className={`w-full rounded-lg border border-ink/10 px-3 py-2 text-sm outline-none focus:border-terracotta ${locked ? 'bg-cream text-ink/70' : ''}`}
+              className={`w-full rounded-lg border border-premium-border bg-premium-bg px-3 py-2 text-sm text-premium-text outline-none focus:border-premium-gold ${locked ? 'bg-premium-surface-2 text-premium-text/70' : ''}`}
             />
           </div>
         </div>
 
         {lookupState === 'idle' && (
-          <div className="rounded-lg bg-cream px-3 py-2 text-xs text-ink/50">
+          <div className="rounded-lg bg-premium-surface-2 px-3 py-2 text-xs text-premium-text/50">
             Введите ИНН — если компания найдётся в реестре, остальные поля подтянутся автоматически.
           </div>
         )}
         {lookupState === 'found' && (
-          <div className="flex items-center justify-between rounded-lg bg-emerald-50 px-3 py-2 text-xs text-emerald-700">
+          <div className="flex items-center justify-between rounded-lg bg-premium-sage/15 px-3 py-2 text-xs text-premium-sage-hi">
             <span>Данные найдены по ИНН, поля заблокированы от опечаток.</span>
             <button type="button" onClick={editManually} className="shrink-0 font-medium underline">
               Ввести вручную
@@ -159,81 +159,81 @@ export function NewCounterpartyModal({ onClose, onCreated }: { onClose: () => vo
           </div>
         )}
         {lookupState === 'not_found' && (
-          <div className="rounded-lg bg-amber-50 px-3 py-2 text-xs text-amber-700">
+          <div className="rounded-lg bg-amber-500/10 px-3 py-2 text-xs text-amber-500">
             Компания с таким ИНН не найдена — заполните поля вручную.
           </div>
         )}
         {lookupState === 'error' && (
-          <div className="rounded-lg bg-red-50 px-3 py-2 text-xs text-red-700">
+          <div className="rounded-lg bg-red-500/10 px-3 py-2 text-xs text-red-400">
             {lookupErrorMessage} Заполните поля вручную.
           </div>
         )}
 
         <div>
-          <label className="block text-xs text-ink/60 mb-1">ОГРН</label>
+          <label className="block text-xs text-premium-text/60 mb-1">ОГРН</label>
           <input
             inputMode="numeric"
             maxLength={15}
             value={ogrn}
             onChange={(e) => setOgrn(sanitizeDigits(e.target.value))}
             readOnly={locked}
-            className={`w-full rounded-lg border border-ink/10 px-3 py-2 text-sm outline-none focus:border-terracotta ${locked ? 'bg-cream text-ink/70' : ''}`}
+            className={`w-full rounded-lg border border-premium-border bg-premium-bg px-3 py-2 text-sm text-premium-text outline-none focus:border-premium-gold ${locked ? 'bg-premium-surface-2 text-premium-text/70' : ''}`}
           />
         </div>
 
         <div>
-          <label className="block text-xs text-ink/60 mb-1">Юридический адрес</label>
+          <label className="block text-xs text-premium-text/60 mb-1">Юридический адрес</label>
           <input
             value={legalAddress}
             onChange={(e) => setLegalAddress(e.target.value)}
             readOnly={locked}
-            className={`w-full rounded-lg border border-ink/10 px-3 py-2 text-sm outline-none focus:border-terracotta ${locked ? 'bg-cream text-ink/70' : ''}`}
+            className={`w-full rounded-lg border border-premium-border bg-premium-bg px-3 py-2 text-sm text-premium-text outline-none focus:border-premium-gold ${locked ? 'bg-premium-surface-2 text-premium-text/70' : ''}`}
           />
         </div>
 
         <div>
-          <label className="block text-xs text-ink/60 mb-1">Телефон</label>
+          <label className="block text-xs text-premium-text/60 mb-1">Телефон</label>
           <input
             type="tel"
             inputMode="tel"
             value={phone}
             onChange={(e) => setPhone(sanitizePhone(e.target.value))}
-            className="w-full rounded-lg border border-ink/10 px-3 py-2 text-sm outline-none focus:border-terracotta"
+            className="w-full rounded-lg border border-premium-border bg-premium-bg px-3 py-2 text-sm text-premium-text outline-none focus:border-premium-gold"
           />
         </div>
 
         <div>
-          <label className="block text-xs text-ink/60 mb-1">Контактное лицо</label>
+          <label className="block text-xs text-premium-text/60 mb-1">Контактное лицо</label>
           <input
             value={contactPerson}
             onChange={(e) => setContactPerson(e.target.value)}
-            className="w-full rounded-lg border border-ink/10 px-3 py-2 text-sm outline-none focus:border-terracotta"
+            className="w-full rounded-lg border border-premium-border bg-premium-bg px-3 py-2 text-sm text-premium-text outline-none focus:border-premium-gold"
           />
         </div>
 
         <div>
-          <label className="block text-xs text-ink/60 mb-1">Комментарий</label>
+          <label className="block text-xs text-premium-text/60 mb-1">Комментарий</label>
           <input
             value={comment}
             onChange={(e) => setComment(e.target.value)}
-            className="w-full rounded-lg border border-ink/10 px-3 py-2 text-sm outline-none focus:border-terracotta"
+            className="w-full rounded-lg border border-premium-border bg-premium-bg px-3 py-2 text-sm text-premium-text outline-none focus:border-premium-gold"
           />
         </div>
 
-        {error && <div className="text-sm text-red-600">{error}</div>}
+        {error && <div className="text-sm text-red-400">{error}</div>}
 
         <div className="flex gap-2 pt-2">
           <button
             type="button"
             onClick={onClose}
-            className="flex-1 rounded-lg bg-cream py-2 text-sm font-medium text-ink hover:bg-ink/5"
+            className="flex-1 rounded-lg bg-premium-surface-2 py-2 text-sm font-medium text-premium-text hover:bg-premium-border"
           >
             Отмена
           </button>
           <button
             type="submit"
             disabled={submitting}
-            className="flex-1 rounded-lg bg-accent-add py-2 text-sm font-medium text-white hover:bg-accent-add-dark disabled:opacity-60"
+            className="flex-1 rounded-lg bg-premium-gold py-2 text-sm font-medium text-premium-bg hover:bg-premium-gold-hi disabled:opacity-60"
           >
             {submitting ? 'Создаём…' : 'Создать'}
           </button>

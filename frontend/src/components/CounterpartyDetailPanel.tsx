@@ -51,103 +51,103 @@ export function CounterpartyDetailPanel({
 
   return (
     <div className="fixed inset-0 z-50 flex justify-end bg-black/30" onClick={onClose}>
-      <div className="flex h-full w-full max-w-md flex-col bg-white shadow-2xl" onClick={(e) => e.stopPropagation()}>
-        <div className="flex items-start justify-between border-b border-ink/10 px-6 py-5">
-          <div className="text-lg font-semibold text-ink">{counterparty['название']}</div>
-          <button onClick={onClose} className="text-ink/40 hover:text-ink text-xl leading-none">
+      <div className="flex h-full w-full max-w-md flex-col bg-premium-surface shadow-2xl" onClick={(e) => e.stopPropagation()}>
+        <div className="flex items-start justify-between border-b border-premium-border px-6 py-5">
+          <div className="text-lg font-semibold text-premium-text">{counterparty['название']}</div>
+          <button onClick={onClose} className="text-premium-text/40 hover:text-premium-text text-xl leading-none">
             ×
           </button>
         </div>
 
         <form onSubmit={handleSave} className="px-6 py-4 space-y-3 touch-pan-y overflow-y-auto overflow-x-hidden">
           <div>
-            <label className="block text-xs text-ink/60 mb-1">Наименование</label>
+            <label className="block text-xs text-premium-text/60 mb-1">Наименование</label>
             <input
               value={name}
               onChange={(e) => setName(e.target.value)}
-              className="w-full rounded-lg border border-ink/10 px-3 py-2 text-sm outline-none focus:border-terracotta"
+              className="w-full rounded-lg border border-premium-border bg-premium-bg px-3 py-2 text-sm text-premium-text outline-none focus:border-premium-gold"
               required
             />
           </div>
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs text-ink/60 mb-1">ИНН</label>
+              <label className="block text-xs text-premium-text/60 mb-1">ИНН</label>
               <input
                 inputMode="numeric"
                 maxLength={12}
                 value={inn}
                 onChange={(e) => setInn(sanitizeDigits(e.target.value))}
-                className="w-full rounded-lg border border-ink/10 px-3 py-2 text-sm outline-none focus:border-terracotta"
+                className="w-full rounded-lg border border-premium-border bg-premium-bg px-3 py-2 text-sm text-premium-text outline-none focus:border-premium-gold"
               />
             </div>
             <div>
-              <label className="block text-xs text-ink/60 mb-1">КПП</label>
+              <label className="block text-xs text-premium-text/60 mb-1">КПП</label>
               <input
                 inputMode="numeric"
                 maxLength={9}
                 value={kpp}
                 onChange={(e) => setKpp(sanitizeDigits(e.target.value))}
-                className="w-full rounded-lg border border-ink/10 px-3 py-2 text-sm outline-none focus:border-terracotta"
+                className="w-full rounded-lg border border-premium-border bg-premium-bg px-3 py-2 text-sm text-premium-text outline-none focus:border-premium-gold"
               />
             </div>
           </div>
 
           <div>
-            <label className="block text-xs text-ink/60 mb-1">ОГРН</label>
+            <label className="block text-xs text-premium-text/60 mb-1">ОГРН</label>
             <input
               inputMode="numeric"
               maxLength={15}
               value={ogrn}
               onChange={(e) => setOgrn(sanitizeDigits(e.target.value))}
-              className="w-full rounded-lg border border-ink/10 px-3 py-2 text-sm outline-none focus:border-terracotta"
+              className="w-full rounded-lg border border-premium-border bg-premium-bg px-3 py-2 text-sm text-premium-text outline-none focus:border-premium-gold"
             />
           </div>
 
           <div>
-            <label className="block text-xs text-ink/60 mb-1">Юридический адрес</label>
+            <label className="block text-xs text-premium-text/60 mb-1">Юридический адрес</label>
             <input
               value={legalAddress}
               onChange={(e) => setLegalAddress(e.target.value)}
-              className="w-full rounded-lg border border-ink/10 px-3 py-2 text-sm outline-none focus:border-terracotta"
+              className="w-full rounded-lg border border-premium-border bg-premium-bg px-3 py-2 text-sm text-premium-text outline-none focus:border-premium-gold"
             />
           </div>
 
           <div>
-            <label className="block text-xs text-ink/60 mb-1">Телефон</label>
+            <label className="block text-xs text-premium-text/60 mb-1">Телефон</label>
             <input
               type="tel"
               inputMode="tel"
               value={phone}
               onChange={(e) => setPhone(sanitizePhone(e.target.value))}
-              className="w-full rounded-lg border border-ink/10 px-3 py-2 text-sm outline-none focus:border-terracotta"
+              className="w-full rounded-lg border border-premium-border bg-premium-bg px-3 py-2 text-sm text-premium-text outline-none focus:border-premium-gold"
             />
           </div>
 
           <div>
-            <label className="block text-xs text-ink/60 mb-1">Контактное лицо</label>
+            <label className="block text-xs text-premium-text/60 mb-1">Контактное лицо</label>
             <input
               value={contactPerson}
               onChange={(e) => setContactPerson(e.target.value)}
-              className="w-full rounded-lg border border-ink/10 px-3 py-2 text-sm outline-none focus:border-terracotta"
+              className="w-full rounded-lg border border-premium-border bg-premium-bg px-3 py-2 text-sm text-premium-text outline-none focus:border-premium-gold"
             />
           </div>
 
           <div>
-            <label className="block text-xs text-ink/60 mb-1">Комментарий</label>
+            <label className="block text-xs text-premium-text/60 mb-1">Комментарий</label>
             <input
               value={comment}
               onChange={(e) => setComment(e.target.value)}
-              className="w-full rounded-lg border border-ink/10 px-3 py-2 text-sm outline-none focus:border-terracotta"
+              className="w-full rounded-lg border border-premium-border bg-premium-bg px-3 py-2 text-sm text-premium-text outline-none focus:border-premium-gold"
             />
           </div>
 
-          {error && <div className="text-sm text-red-600">{error}</div>}
+          {error && <div className="text-sm text-red-400">{error}</div>}
 
           <button
             type="submit"
             disabled={submitting}
-            className="w-full rounded-lg bg-terracotta py-2 text-sm font-medium text-white hover:bg-terracotta-dark disabled:opacity-60"
+            className="w-full rounded-lg bg-premium-gold py-2 text-sm font-medium text-premium-bg hover:bg-premium-gold-hi disabled:opacity-60"
           >
             {submitting ? 'Сохраняем…' : 'Сохранить'}
           </button>
