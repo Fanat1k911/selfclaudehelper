@@ -25,14 +25,18 @@ function formatDateTime(value: string) {
 const WEEKDAY_SHORT = ['Вс', 'Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб']
 
 // Короткий формат для карточки/таблицы сотрудника (2026-07-22, запрос Александра) —
-// чч:мм, ДН, дд.мм.гггг — компактнее, чем полный formatDateTime (используется в
-// "Истории входов" ниже, там формат оставлен как был).
+// чч:мм, ДН, дд.мм[.гггг] — компактнее, чем полный formatDateTime (используется в
+// "Истории входов" ниже, там формат оставлен как был). Год опускается, если совпадает
+// с текущим — на практике почти всегда так, и он только занимает место.
 function formatLastLoginShort(value: string) {
   const d = new Date(value)
   if (Number.isNaN(d.getTime())) return null
   const pad = (n: number) => String(n).padStart(2, '0')
   const time = `${pad(d.getHours())}:${pad(d.getMinutes())}`
-  const date = `${pad(d.getDate())}.${pad(d.getMonth() + 1)}.${d.getFullYear()}`
+  const sameYear = d.getFullYear() === new Date().getFullYear()
+  const date = sameYear
+    ? `${pad(d.getDate())}.${pad(d.getMonth() + 1)}`
+    : `${pad(d.getDate())}.${pad(d.getMonth() + 1)}.${d.getFullYear()}`
   return `${time}, ${WEEKDAY_SHORT[d.getDay()]}, ${date}`
 }
 
