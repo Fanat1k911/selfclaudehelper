@@ -35,7 +35,7 @@ function MaterialCombobox({
   return (
     <div className="relative min-w-0 flex-1">
       <div className="relative">
-        <Search size={14} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-ink/30" />
+        <Search size={14} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-premium-text/30" />
         <input
           value={open ? query : (selected?.['название'] ?? '')}
           onFocus={() => {
@@ -45,12 +45,12 @@ function MaterialCombobox({
           onChange={(e) => setQuery(e.target.value)}
           onBlur={() => setTimeout(() => setOpen(false), 150)}
           placeholder="Введите название материала…"
-          className="w-full rounded-lg border border-ink/10 bg-white py-2 pl-8 pr-3 text-sm font-medium text-ink outline-none focus:border-terracotta"
+          className="w-full rounded-lg border border-premium-border bg-premium-bg py-2 pl-8 pr-3 text-sm font-medium text-premium-text outline-none focus:border-premium-gold"
         />
       </div>
       {open && (
-        <div className="absolute z-10 mt-1 max-h-48 w-full overflow-y-auto rounded-lg border border-ink/10 bg-white shadow-lg">
-          {filtered.length === 0 && <div className="px-3 py-2 text-sm text-ink/40">Ничего не найдено</div>}
+        <div className="absolute z-10 mt-1 max-h-48 w-full overflow-y-auto rounded-lg border border-premium-border bg-premium-surface shadow-lg">
+          {filtered.length === 0 && <div className="px-3 py-2 text-sm text-premium-text/40">Ничего не найдено</div>}
           {filtered.map((ing) => (
             <button
               type="button"
@@ -60,8 +60,8 @@ function MaterialCombobox({
                 onChange(ing.id)
                 setOpen(false)
               }}
-              className={`block w-full px-3 py-2 text-left text-sm hover:bg-cream ${
-                ing.id === value ? 'bg-terracotta/10 font-medium text-terracotta' : 'text-ink'
+              className={`block w-full px-3 py-2 text-left text-sm hover:bg-premium-surface-2 ${
+                ing.id === value ? 'bg-premium-gold/15 font-medium text-premium-gold-hi' : 'text-premium-text'
               }`}
             >
               {ing['название']}
@@ -143,28 +143,28 @@ export function BatchIncomeModal({
       <form
         onSubmit={handleSubmit}
         onClick={(e) => e.stopPropagation()}
-        className="flex w-full max-w-lg max-h-[90vh] flex-col overflow-hidden rounded-2xl bg-white shadow-2xl"
+        className="flex w-full max-w-lg max-h-[90vh] flex-col overflow-hidden rounded-2xl bg-premium-surface shadow-2xl"
       >
-        <div className="flex items-start justify-between border-b border-ink/10 px-6 py-5">
+        <div className="flex items-start justify-between border-b border-premium-border px-6 py-5">
           <div className="flex items-start gap-3">
-            <div className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-terracotta/10 text-terracotta">
+            <div className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-premium-gold/15 text-premium-gold-hi">
               <Truck size={18} strokeWidth={2} />
             </div>
             <div>
-              <div className="text-lg font-semibold text-ink">Поставка</div>
-              <div className="mt-0.5 text-xs text-ink/50">
+              <div className="text-lg font-semibold text-premium-text">Поставка</div>
+              <div className="mt-0.5 text-xs text-premium-text/50">
                 Несколько материалов одним приходом — транспортные расходы разделятся между ними по весу.
               </div>
             </div>
           </div>
-          <button type="button" onClick={onClose} className="shrink-0 text-ink/40 hover:text-ink">
+          <button type="button" onClick={onClose} className="shrink-0 text-premium-text/40 hover:text-premium-text">
             <X size={18} />
           </button>
         </div>
 
         <div className="flex-1 touch-pan-y overflow-y-auto overflow-x-hidden px-6 py-4 space-y-3">
           {rows.map((row, i) => (
-            <div key={i} className="rounded-xl border border-ink/10 bg-cream/40 p-3">
+            <div key={i} className="rounded-xl border border-premium-border bg-premium-bg/60 p-3">
               <div className="flex items-center gap-2">
                 <MaterialCombobox
                   ingredients={ingredients}
@@ -175,36 +175,36 @@ export function BatchIncomeModal({
                   type="button"
                   onClick={() => removeRow(i)}
                   disabled={rows.length === 1}
-                  className="shrink-0 rounded-lg p-2 text-ink/40 hover:bg-red-50 hover:text-red-600 disabled:opacity-30"
+                  className="shrink-0 rounded-lg p-2 text-premium-text/40 hover:bg-red-500/10 hover:text-red-400 disabled:opacity-30"
                 >
                   <X size={16} />
                 </button>
               </div>
               <div className="mt-2 grid grid-cols-2 gap-2">
                 <div>
-                  <label className="block text-xs text-ink/50 mb-1">
+                  <label className="block text-xs text-premium-text/50 mb-1">
                     Кол-во{row.materialId && byId.get(row.materialId) ? `, ${byId.get(row.materialId)!['ед.измерения']}` : ''}
                   </label>
                   <input
                     type="number" step="any" required
                     value={row.qty}
                     onChange={(e) => updateRow(i, { qty: e.target.value })}
-                    className="w-full rounded-lg border border-ink/10 bg-white px-3 py-2 text-sm outline-none focus:border-terracotta"
+                    className="w-full rounded-lg border border-premium-border bg-premium-bg px-3 py-2 text-sm text-premium-text outline-none focus:border-premium-gold"
                   />
                 </div>
                 <div>
-                  <label className="block text-xs text-ink/50 mb-1">Цена за единицу</label>
+                  <label className="block text-xs text-premium-text/50 mb-1">Цена за единицу</label>
                   <input
                     type="number" step="any"
                     value={row.price}
                     onChange={(e) => updateRow(i, { price: e.target.value })}
-                    className="w-full rounded-lg border border-ink/10 bg-white px-3 py-2 text-sm outline-none focus:border-terracotta"
+                    className="w-full rounded-lg border border-premium-border bg-premium-bg px-3 py-2 text-sm text-premium-text outline-none focus:border-premium-gold"
                   />
                 </div>
               </div>
               {freightPreview && freightPreview[i] > 0 && (
-                <div className="mt-2 text-xs text-ink/50">
-                  + доставка ≈ <span className="font-medium text-terracotta">{freightPreview[i].toFixed(2)} ₽</span>
+                <div className="mt-2 text-xs text-premium-text/50">
+                  + доставка ≈ <span className="font-medium text-premium-gold-hi">{freightPreview[i].toFixed(2)} ₽</span>
                 </div>
               )}
             </div>
@@ -214,45 +214,45 @@ export function BatchIncomeModal({
             type="button"
             onClick={addRow}
             disabled={rows.length >= ingredients.length}
-            className="text-sm font-medium text-terracotta hover:text-terracotta-dark disabled:opacity-40"
+            className="text-sm font-medium text-premium-gold-hi hover:text-premium-gold disabled:opacity-40"
           >
             + добавить материал
           </button>
 
-          <div className="pt-2 border-t border-ink/10">
-            <label className="block text-xs text-ink/60 mb-1">Транспортные расходы за всю поставку (₽, необязательно)</label>
+          <div className="pt-2 border-t border-premium-border">
+            <label className="block text-xs text-premium-text/60 mb-1">Транспортные расходы за всю поставку (₽, необязательно)</label>
             <input
               type="number" step="any"
               value={transportCost}
               onChange={(e) => setTransportCost(e.target.value)}
-              className="w-full rounded-lg border border-ink/10 px-3 py-2 text-sm outline-none focus:border-terracotta"
+              className="w-full rounded-lg border border-premium-border bg-premium-bg px-3 py-2 text-sm text-premium-text outline-none focus:border-premium-gold"
             />
           </div>
 
           <div>
-            <label className="block text-xs text-ink/60 mb-1">Комментарий</label>
+            <label className="block text-xs text-premium-text/60 mb-1">Комментарий</label>
             <input
               value={comment}
               onChange={(e) => setComment(e.target.value)}
-              className="w-full rounded-lg border border-ink/10 px-3 py-2 text-sm outline-none focus:border-terracotta"
+              className="w-full rounded-lg border border-premium-border bg-premium-bg px-3 py-2 text-sm text-premium-text outline-none focus:border-premium-gold"
             />
           </div>
 
-          {error && <div className="text-sm text-red-600">{error}</div>}
+          {error && <div className="text-sm text-red-400">{error}</div>}
         </div>
 
-        <div className="flex gap-2 border-t border-ink/10 px-6 py-4">
+        <div className="flex gap-2 border-t border-premium-border px-6 py-4">
           <button
             type="button"
             onClick={onClose}
-            className="flex-1 rounded-lg bg-cream py-2 text-sm font-medium text-ink hover:bg-ink/5"
+            className="flex-1 rounded-lg bg-premium-surface-2 py-2 text-sm font-medium text-premium-text hover:bg-premium-border"
           >
             Отмена
           </button>
           <button
             type="submit"
             disabled={submitting}
-            className="flex-1 rounded-lg bg-accent-add py-2 text-sm font-medium text-white hover:bg-accent-add-dark disabled:opacity-60"
+            className="flex-1 rounded-lg bg-premium-gold py-2 text-sm font-medium text-premium-bg hover:bg-premium-gold-hi disabled:opacity-60"
           >
             {submitting ? 'Сохраняем…' : 'Сохранить поставку'}
           </button>

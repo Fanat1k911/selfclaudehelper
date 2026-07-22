@@ -12,7 +12,7 @@ import { BatchIncomeModal } from '../components/BatchIncomeModal'
 const MANAGEMENT_ROLES: User['role'][] = ['founder', 'developer']
 
 const COLOR_DOT: Record<Ingredient['цвет'], string> = {
-  'зелёный': 'bg-emerald-500',
+  'зелёный': 'bg-premium-sage-hi',
   'жёлтый': 'bg-amber-500',
   'красный': 'bg-red-500',
 }
@@ -66,11 +66,12 @@ export function IngredientsPage() {
   }
 
   return (
-    <div className="px-4 py-4 sm:px-8 sm:py-6">
-      <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <h1 className="flex items-baseline gap-2 text-xl font-semibold text-ink sm:text-2xl">
+    <div className="relative min-h-full overflow-hidden bg-premium-bg px-4 py-4 sm:px-8 sm:py-6">
+      <div className="premium-grain" aria-hidden />
+      <div className="relative mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <h1 className="flex items-baseline gap-2 font-display text-xl font-semibold italic text-premium-text sm:text-2xl">
           Компоненты
-          {!loading && <span className="text-sm font-normal text-ink/40">{ingredients.length}</span>}
+          {!loading && <span className="font-sans text-sm font-normal not-italic text-premium-text/40">{ingredients.length}</span>}
         </h1>
         <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-end">
           {/* Два явных блока (Александр, 2026-07-21): служебное (Экспорт/Импорт/Архив —
@@ -81,13 +82,13 @@ export function IngredientsPage() {
           <div className="grid grid-cols-3 gap-2 sm:flex sm:gap-2">
             <button
               onClick={() => apiDownload('/ingredients/export', 'компоненты.xlsx')}
-              className="flex items-center justify-center gap-1.5 whitespace-nowrap rounded-lg border border-ink/15 bg-cream px-3 py-2 text-sm font-medium text-ink hover:bg-ink/5 sm:w-auto sm:px-4"
+              className="flex items-center justify-center gap-1.5 whitespace-nowrap rounded-lg border border-premium-border bg-premium-surface px-3 py-2 text-sm font-medium text-premium-text hover:bg-premium-surface-2 sm:w-auto sm:px-4"
             >
               <Download size={15} /> Экспорт
             </button>
             <button
               onClick={() => setShowImport(true)}
-              className="flex items-center justify-center gap-1.5 whitespace-nowrap rounded-lg border border-ink/15 bg-cream px-3 py-2 text-sm font-medium text-ink hover:bg-ink/5 sm:w-auto sm:px-4"
+              className="flex items-center justify-center gap-1.5 whitespace-nowrap rounded-lg border border-premium-border bg-premium-surface px-3 py-2 text-sm font-medium text-premium-text hover:bg-premium-surface-2 sm:w-auto sm:px-4"
             >
               <Upload size={15} /> Импорт
             </button>
@@ -96,8 +97,8 @@ export function IngredientsPage() {
                 onClick={() => setShowArchived((v) => !v)}
                 className={`whitespace-nowrap rounded-lg px-3 py-2 text-sm font-medium sm:w-auto sm:px-4 ${
                   showArchived
-                    ? 'bg-ink text-white'
-                    : 'border border-ink/10 text-ink hover:bg-ink hover:text-white'
+                    ? 'bg-premium-gold text-premium-bg'
+                    : 'border border-premium-border text-premium-text hover:bg-premium-surface-2'
                 }`}
               >
                 {showArchived ? 'Активные' : 'Архив'}
@@ -105,20 +106,20 @@ export function IngredientsPage() {
             )}
           </div>
 
-          <div className="hidden h-8 w-px bg-ink/10 sm:block" />
+          <div className="hidden h-8 w-px bg-premium-border sm:block" />
 
           {!showArchived && (
             <div className="grid grid-cols-2 gap-2 sm:flex sm:gap-2">
               <button
                 onClick={() => setShowBatchIncome(true)}
                 disabled={ingredients.length === 0}
-                className="flex items-center justify-center gap-1.5 whitespace-nowrap rounded-lg bg-terracotta px-3 py-2 text-sm font-medium text-white shadow-sm hover:bg-terracotta-dark disabled:opacity-40 sm:w-auto sm:px-4"
+                className="flex items-center justify-center gap-1.5 whitespace-nowrap rounded-lg bg-premium-gold px-3 py-2 text-sm font-medium text-premium-bg shadow-sm hover:bg-premium-gold-hi disabled:opacity-40 sm:w-auto sm:px-4"
               >
                 <Truck size={15} /> Поставка
               </button>
               <button
                 onClick={() => setShowCreate(true)}
-                className="flex items-center justify-center gap-1.5 whitespace-nowrap rounded-lg bg-accent-add px-3 py-2 text-sm font-medium text-white hover:bg-accent-add-dark sm:w-auto sm:px-4"
+                className="flex items-center justify-center gap-1.5 whitespace-nowrap rounded-lg border border-premium-gold/50 px-3 py-2 text-sm font-medium text-premium-gold-hi hover:bg-premium-gold/10 sm:w-auto sm:px-4"
               >
                 <Plus size={15} /> Добавить компонент
               </button>
@@ -131,17 +132,17 @@ export function IngredientsPage() {
         value={search}
         onChange={(e) => setSearch(e.target.value)}
         placeholder="Поиск по названию…"
-        className="mb-4 w-full max-w-sm rounded-lg border border-ink/10 bg-white px-3 py-2 text-sm outline-none focus:border-terracotta"
+        className="relative mb-4 w-full max-w-sm rounded-lg border border-premium-border bg-premium-surface px-3 py-2 text-sm text-premium-text outline-none placeholder:text-premium-text/40 focus:border-premium-gold"
       />
 
-      <div className="space-y-2 md:hidden">
+      <div className="relative space-y-2 md:hidden">
         {loading && (
-          <div className="rounded-xl border border-ink/10 bg-white px-4 py-6 text-center text-sm text-ink/40">
+          <div className="rounded-xl border border-premium-border bg-premium-surface px-4 py-6 text-center text-sm text-premium-text/40">
             Загрузка…
           </div>
         )}
         {!loading && filtered.length === 0 && (
-          <div className="rounded-xl border border-ink/10 bg-white px-4 py-6 text-center text-sm text-ink/40">
+          <div className="rounded-xl border border-premium-border bg-premium-surface px-4 py-6 text-center text-sm text-premium-text/40">
             {showArchived ? 'Архив пуст.' : 'Ничего не найдено.'}
           </div>
         )}
@@ -149,18 +150,18 @@ export function IngredientsPage() {
           <button
             key={ing.id}
             onClick={() => handleRowClick(ing)}
-            className="w-full rounded-xl border border-ink/10 bg-white p-4 text-left shadow-sm active:bg-cream/60"
+            className="premium-card w-full rounded-xl border border-premium-border bg-premium-surface p-4 text-left active:bg-premium-surface-2"
           >
             <div className="flex items-start justify-between gap-2">
               <div className="flex min-w-0 items-center gap-2">
                 <span className={`h-2 w-2 shrink-0 rounded-full ${COLOR_DOT[ing['цвет']]}`} />
-                <span className="truncate text-sm font-medium text-ink">{ing['название']}</span>
+                <span className="truncate text-sm font-medium text-premium-text">{ing['название']}</span>
               </div>
-              <span className="shrink-0 text-sm font-semibold text-ink">
+              <span className="shrink-0 text-sm font-semibold text-premium-text">
                 {ing['остаток']} {ing['ед.измерения']}
               </span>
             </div>
-            <div className="mt-1.5 flex items-center justify-between text-xs text-ink/50">
+            <div className="mt-1.5 flex items-center justify-between text-xs text-premium-text/50">
               <span className="truncate">{materialCategoryLabel(ing['категория']) || '—'}</span>
               <span className="shrink-0">
                 мин. {ing['мин.остаток']} {ing['ед.измерения']} · {formatDate(ing['последнее движение'])}
@@ -170,10 +171,10 @@ export function IngredientsPage() {
         ))}
       </div>
 
-      <div className="hidden overflow-hidden rounded-xl border border-ink/10 bg-white shadow-sm md:block">
+      <div className="relative hidden overflow-hidden rounded-xl border border-premium-border bg-premium-surface md:block">
         <table className="w-full text-sm">
           <thead>
-            <tr className="border-b border-ink/10 text-left text-ink/50">
+            <tr className="border-b border-premium-border text-left text-premium-text/50">
               <th className="px-4 py-3 font-medium">Название</th>
               <th className="px-4 py-3 font-medium">Категория</th>
               <th className="px-4 py-3 font-medium text-right">Остаток</th>
@@ -184,14 +185,14 @@ export function IngredientsPage() {
           <tbody>
             {loading && (
               <tr>
-                <td colSpan={5} className="px-4 py-6 text-center text-ink/40">
+                <td colSpan={5} className="px-4 py-6 text-center text-premium-text/40">
                   Загрузка…
                 </td>
               </tr>
             )}
             {!loading && filtered.length === 0 && (
               <tr>
-                <td colSpan={5} className="px-4 py-6 text-center text-ink/40">
+                <td colSpan={5} className="px-4 py-6 text-center text-premium-text/40">
                   {showArchived ? 'Архив пуст.' : 'Ничего не найдено.'}
                 </td>
               </tr>
@@ -200,20 +201,20 @@ export function IngredientsPage() {
               <tr
                 key={ing.id}
                 onClick={() => handleRowClick(ing)}
-                className="cursor-pointer border-b border-ink/5 last:border-0 hover:bg-cream/60"
+                className="cursor-pointer border-b border-premium-border/60 transition-colors last:border-0 hover:bg-premium-surface-2"
               >
-                <td className="px-4 py-3 flex items-center gap-2">
+                <td className="px-4 py-3 flex items-center gap-2 text-premium-text">
                   <span className={`h-2 w-2 shrink-0 rounded-full ${COLOR_DOT[ing['цвет']]}`} />
                   {ing['название']}
                 </td>
-                <td className="px-4 py-3 text-ink/60">{materialCategoryLabel(ing['категория'])}</td>
-                <td className="px-4 py-3 text-right font-medium">
+                <td className="px-4 py-3 text-premium-text/60">{materialCategoryLabel(ing['категория'])}</td>
+                <td className="px-4 py-3 text-right font-medium text-premium-text">
                   {ing['остаток']} {ing['ед.измерения']}
                 </td>
-                <td className="px-4 py-3 text-right text-ink/50">
+                <td className="px-4 py-3 text-right text-premium-text/50">
                   {ing['мин.остаток']} {ing['ед.измерения']}
                 </td>
-                <td className="px-4 py-3 text-ink/50">{formatDate(ing['последнее движение'])}</td>
+                <td className="px-4 py-3 text-premium-text/50">{formatDate(ing['последнее движение'])}</td>
               </tr>
             ))}
           </tbody>

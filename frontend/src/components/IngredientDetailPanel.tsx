@@ -8,7 +8,7 @@ import type { Ingredient, Transaction } from '../types'
 type ActionKind = 'приход' | 'расход' | 'корректировка' | null
 
 const COLOR_DOT: Record<Ingredient['цвет'], string> = {
-  'зелёный': 'bg-emerald-500',
+  'зелёный': 'bg-premium-sage-hi',
   'жёлтый': 'bg-amber-500',
   'красный': 'bg-red-500',
 }
@@ -160,57 +160,57 @@ export function IngredientDetailPanel({
   return (
     <div className="fixed inset-0 z-50 flex justify-end bg-black/30" onClick={onClose}>
       <div
-        className="flex h-full w-full max-w-md flex-col bg-white shadow-2xl"
+        className="flex h-full w-full max-w-md flex-col bg-premium-surface shadow-2xl"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex items-start justify-between border-b border-ink/10 px-6 py-5">
+        <div className="flex items-start justify-between border-b border-premium-border px-6 py-5">
           <div>
-            <div className="text-lg font-semibold text-ink">{ingredient['название']}</div>
-            <div className="text-sm text-ink/50">{materialCategoryLabel(ingredient['категория'])}</div>
+            <div className="text-lg font-semibold text-premium-text">{ingredient['название']}</div>
+            <div className="text-sm text-premium-text/50">{materialCategoryLabel(ingredient['категория'])}</div>
           </div>
-          <button onClick={onClose} className="text-ink/40 hover:text-ink text-xl leading-none">
+          <button onClick={onClose} className="text-premium-text/40 hover:text-premium-text text-xl leading-none">
             ×
           </button>
         </div>
 
         <div className="flex-1 touch-pan-y overflow-y-auto overflow-x-hidden">
-        <div className="px-6 py-5 border-b border-ink/10 space-y-2">
+        <div className="px-6 py-5 border-b border-premium-border space-y-2">
           <div className="flex items-center justify-between text-sm">
-            <span className="text-ink/60">Остаток на складе</span>
-            <span className="flex items-center gap-2 font-medium">
+            <span className="text-premium-text/60">Остаток на складе</span>
+            <span className="flex items-center gap-2 font-medium text-premium-text">
               <span className={`h-2 w-2 rounded-full ${COLOR_DOT[ingredient['цвет']]}`} />
               {ingredient['остаток']} {ingredient['ед.измерения']}
             </span>
           </div>
           <div className="flex items-center justify-between text-sm">
-            <span className="text-ink/60">Мин. остаток</span>
-            <span>{ingredient['мин.остаток']} {ingredient['ед.измерения']}</span>
+            <span className="text-premium-text/60">Мин. остаток</span>
+            <span className="text-premium-text">{ingredient['мин.остаток']} {ingredient['ед.измерения']}</span>
           </div>
           <div className="flex items-center justify-between text-sm">
-            <span className="text-ink/60">Последнее движение</span>
-            <span>{formatDate(ingredient['последнее движение'])}</span>
+            <span className="text-premium-text/60">Последнее движение</span>
+            <span className="text-premium-text">{formatDate(ingredient['последнее движение'])}</span>
           </div>
           {canEditAttrs && (
             <>
               <button
                 onClick={toggleArchived}
                 disabled={archiving}
-                className="mt-1 w-full rounded-lg border border-ink/10 px-4 py-2 text-sm font-medium text-ink hover:bg-cream/60 disabled:opacity-60"
+                className="mt-1 w-full rounded-lg border border-premium-border px-4 py-2 text-sm font-medium text-premium-text hover:bg-premium-surface-2 disabled:opacity-60"
               >
                 {ingredient['архив'] ? 'Вернуть из архива' : 'Переместить в архив'}
               </button>
-              {error && <div className="text-sm text-red-600">{error}</div>}
+              {error && <div className="text-sm text-red-400">{error}</div>}
             </>
           )}
         </div>
 
-        <div className="px-6 py-4 border-b border-ink/10">
+        <div className="px-6 py-4 border-b border-premium-border">
           <div className="mb-3 flex items-center justify-between">
-            <div className="text-sm font-medium text-ink/70">Закупка</div>
+            <div className="text-sm font-medium text-premium-text/70">Закупка</div>
             {!editingAttrs && canEditAttrs && (
               <button
                 onClick={() => setEditingAttrs(true)}
-                className="flex items-center gap-1 text-xs text-ink/50 hover:text-terracotta"
+                className="flex items-center gap-1 text-xs text-premium-text/50 hover:text-premium-gold-hi"
               >
                 <Pencil size={13} /> Редактировать
               </button>
@@ -218,97 +218,97 @@ export function IngredientDetailPanel({
           </div>
 
           {!editingAttrs || !canEditAttrs ? (
-            <div className="space-y-1.5 text-sm">
+            <div className="space-y-1.5 text-sm text-premium-text">
               <div className="flex items-center justify-between">
-                <span className="text-ink/60">Себестоимость 1 {ingredient['ед.измерения']}</span>
+                <span className="text-premium-text/60">Себестоимость 1 {ingredient['ед.измерения']}</span>
                 <span>{ingredient['себестоимость 1 шт'] ?? '—'} ₽</span>
               </div>
               <div className="flex items-center justify-between">
-                <span className="text-ink/60">Мин. партия для закупки</span>
+                <span className="text-premium-text/60">Мин. партия для закупки</span>
                 <span>{ingredient['минимальная партия для закупки'] ?? '—'} {ingredient['ед.измерения']}</span>
               </div>
               <div className="flex items-center justify-between">
-                <span className="text-ink/60">Себестоимость мин. партии</span>
+                <span className="text-premium-text/60">Себестоимость мин. партии</span>
                 <span>{ingredient['себестоимость минимальной партии'] ?? '—'} ₽</span>
               </div>
               <div className="flex items-center justify-between">
-                <span className="text-ink/60">Вес мин. партии</span>
+                <span className="text-premium-text/60">Вес мин. партии</span>
                 <span>{ingredient['вес минимальной партии'] ?? '—'} {ingredient['ед.измерения']}</span>
               </div>
               <div className="flex items-center justify-between">
-                <span className="text-ink/60">Поставщик</span>
+                <span className="text-premium-text/60">Поставщик</span>
                 <span className="max-w-[60%] truncate text-right">{ingredient['поставщик'] || '—'}</span>
               </div>
               <div className="flex items-center justify-between gap-2">
-                <span className="shrink-0 text-ink/60">INCI</span>
-                <span className="truncate text-right text-xs text-ink/70">{ingredient['INCI'] || '—'}</span>
+                <span className="shrink-0 text-premium-text/60">INCI</span>
+                <span className="truncate text-right text-xs text-premium-text/70">{ingredient['INCI'] || '—'}</span>
               </div>
             </div>
           ) : (
             <form onSubmit={handleSaveAttrs} className="space-y-3">
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs text-ink/60 mb-1">Себестоимость 1 {ingredient['ед.измерения']}</label>
+                  <label className="block text-xs text-premium-text/60 mb-1">Себестоимость 1 {ingredient['ед.измерения']}</label>
                   <input
                     type="number" step="any" value={attrs.unitCost}
                     onChange={(e) => setAttrs({ ...attrs, unitCost: e.target.value })}
-                    className="w-full rounded-lg border border-ink/10 px-3 py-2 text-sm outline-none focus:border-terracotta"
+                    className="w-full rounded-lg border border-premium-border bg-premium-bg px-3 py-2 text-sm text-premium-text outline-none focus:border-premium-gold"
                   />
                 </div>
                 <div>
-                  <label className="block text-xs text-ink/60 mb-1">Мин. партия для закупки</label>
+                  <label className="block text-xs text-premium-text/60 mb-1">Мин. партия для закупки</label>
                   <input
                     type="number" step="any" value={attrs.minBatchQty}
                     onChange={(e) => setAttrs({ ...attrs, minBatchQty: e.target.value })}
-                    className="w-full rounded-lg border border-ink/10 px-3 py-2 text-sm outline-none focus:border-terracotta"
+                    className="w-full rounded-lg border border-premium-border bg-premium-bg px-3 py-2 text-sm text-premium-text outline-none focus:border-premium-gold"
                   />
                 </div>
                 <div>
-                  <label className="block text-xs text-ink/60 mb-1">Себестоимость мин. партии</label>
+                  <label className="block text-xs text-premium-text/60 mb-1">Себестоимость мин. партии</label>
                   <input
                     type="number" step="any" value={attrs.minBatchCost}
                     onChange={(e) => setAttrs({ ...attrs, minBatchCost: e.target.value })}
-                    className="w-full rounded-lg border border-ink/10 px-3 py-2 text-sm outline-none focus:border-terracotta"
+                    className="w-full rounded-lg border border-premium-border bg-premium-bg px-3 py-2 text-sm text-premium-text outline-none focus:border-premium-gold"
                   />
                 </div>
                 <div>
-                  <label className="block text-xs text-ink/60 mb-1">Вес мин. партии</label>
+                  <label className="block text-xs text-premium-text/60 mb-1">Вес мин. партии</label>
                   <input
                     type="number" step="any" value={attrs.minBatchWeight}
                     onChange={(e) => setAttrs({ ...attrs, minBatchWeight: e.target.value })}
-                    className="w-full rounded-lg border border-ink/10 px-3 py-2 text-sm outline-none focus:border-terracotta"
+                    className="w-full rounded-lg border border-premium-border bg-premium-bg px-3 py-2 text-sm text-premium-text outline-none focus:border-premium-gold"
                   />
                 </div>
               </div>
               <div>
-                <label className="block text-xs text-ink/60 mb-1">Поставщик</label>
+                <label className="block text-xs text-premium-text/60 mb-1">Поставщик</label>
                 <input
                   value={attrs.supplier}
                   onChange={(e) => setAttrs({ ...attrs, supplier: e.target.value })}
-                  className="w-full rounded-lg border border-ink/10 px-3 py-2 text-sm outline-none focus:border-terracotta"
+                  className="w-full rounded-lg border border-premium-border bg-premium-bg px-3 py-2 text-sm text-premium-text outline-none focus:border-premium-gold"
                 />
               </div>
               <div>
-                <label className="block text-xs text-ink/60 mb-1">INCI</label>
+                <label className="block text-xs text-premium-text/60 mb-1">INCI</label>
                 <input
                   value={attrs.inci}
                   onChange={(e) => setAttrs({ ...attrs, inci: e.target.value })}
-                  className="w-full rounded-lg border border-ink/10 px-3 py-2 text-sm outline-none focus:border-terracotta"
+                  className="w-full rounded-lg border border-premium-border bg-premium-bg px-3 py-2 text-sm text-premium-text outline-none focus:border-premium-gold"
                 />
               </div>
-              {attrsError && <div className="text-sm text-red-600">{attrsError}</div>}
+              {attrsError && <div className="text-sm text-red-400">{attrsError}</div>}
               <div className="flex gap-2">
                 <button
                   type="button"
                   onClick={() => setEditingAttrs(false)}
-                  className="flex-1 rounded-lg border border-ink/15 py-2 text-sm font-medium text-ink hover:bg-ink/5"
+                  className="flex-1 rounded-lg border border-premium-border py-2 text-sm font-medium text-premium-text hover:bg-premium-surface-2"
                 >
                   Отмена
                 </button>
                 <button
                   type="submit"
                   disabled={savingAttrs}
-                  className="flex-1 rounded-lg bg-terracotta py-2 text-sm font-medium text-white hover:bg-terracotta-dark disabled:opacity-60"
+                  className="flex-1 rounded-lg bg-premium-gold py-2 text-sm font-medium text-premium-bg hover:bg-premium-gold-hi disabled:opacity-60"
                 >
                   {savingAttrs ? 'Сохраняем…' : 'Сохранить'}
                 </button>
@@ -317,7 +317,7 @@ export function IngredientDetailPanel({
           )}
         </div>
 
-        <div className="px-6 py-4 border-b border-ink/10">
+        <div className="px-6 py-4 border-b border-premium-border">
           <div className="grid grid-cols-3 gap-2">
             {(['приход', 'расход', 'корректировка'] as const).map((kind) => {
               const { label, icon: Icon } = ACTION_META[kind]
@@ -330,8 +330,8 @@ export function IngredientDetailPanel({
                   }}
                   className={`flex flex-col items-center gap-1 rounded-lg border py-2.5 text-sm font-medium transition-colors ${
                     action === kind
-                      ? 'border-terracotta bg-terracotta text-white shadow-sm'
-                      : 'border-ink/15 bg-white text-ink hover:border-terracotta/50 hover:bg-terracotta/5'
+                      ? 'border-premium-gold bg-premium-gold text-premium-bg shadow-sm'
+                      : 'border-premium-border bg-premium-bg text-premium-text hover:border-premium-gold/50 hover:bg-premium-gold/10'
                   }`}
                 >
                   <Icon size={18} strokeWidth={2} />
@@ -344,7 +344,7 @@ export function IngredientDetailPanel({
           {action && (
             <form onSubmit={handleSubmit} className="mt-4 space-y-3">
               <div>
-                <label className="block text-xs text-ink/60 mb-1">
+                <label className="block text-xs text-premium-text/60 mb-1">
                   {action === 'корректировка' ? 'Фактическое количество' : 'Количество'}
                 </label>
                 <input
@@ -352,35 +352,35 @@ export function IngredientDetailPanel({
                   step="any"
                   value={qty}
                   onChange={(e) => setQty(e.target.value)}
-                  className="w-full rounded-lg border border-ink/10 px-3 py-2 text-sm outline-none focus:border-terracotta"
+                  className="w-full rounded-lg border border-premium-border bg-premium-bg px-3 py-2 text-sm text-premium-text outline-none focus:border-premium-gold"
                   required
                 />
               </div>
               {action === 'приход' && (
                 <div>
-                  <label className="block text-xs text-ink/60 mb-1">Цена за единицу (необязательно)</label>
+                  <label className="block text-xs text-premium-text/60 mb-1">Цена за единицу (необязательно)</label>
                   <input
                     type="number"
                     step="any"
                     value={price}
                     onChange={(e) => setPrice(e.target.value)}
-                    className="w-full rounded-lg border border-ink/10 px-3 py-2 text-sm outline-none focus:border-terracotta"
+                    className="w-full rounded-lg border border-premium-border bg-premium-bg px-3 py-2 text-sm text-premium-text outline-none focus:border-premium-gold"
                   />
                 </div>
               )}
               <div>
-                <label className="block text-xs text-ink/60 mb-1">Комментарий</label>
+                <label className="block text-xs text-premium-text/60 mb-1">Комментарий</label>
                 <input
                   value={comment}
                   onChange={(e) => setComment(e.target.value)}
-                  className="w-full rounded-lg border border-ink/10 px-3 py-2 text-sm outline-none focus:border-terracotta"
+                  className="w-full rounded-lg border border-premium-border bg-premium-bg px-3 py-2 text-sm text-premium-text outline-none focus:border-premium-gold"
                 />
               </div>
-              {error && <div className="text-sm text-red-600">{error}</div>}
+              {error && <div className="text-sm text-red-400">{error}</div>}
               <button
                 type="submit"
                 disabled={submitting}
-                className="w-full rounded-lg bg-terracotta py-2 text-sm font-medium text-white hover:bg-terracotta-dark disabled:opacity-60"
+                className="w-full rounded-lg bg-premium-gold py-2 text-sm font-medium text-premium-bg hover:bg-premium-gold-hi disabled:opacity-60"
               >
                 {submitting ? 'Сохраняем…' : 'Сохранить'}
               </button>
@@ -389,20 +389,20 @@ export function IngredientDetailPanel({
         </div>
 
         <div className="px-6 py-4">
-          <div className="text-sm font-medium text-ink/70 mb-3">Движение товара</div>
-          {loadingHistory && <div className="text-sm text-ink/40">Загрузка…</div>}
+          <div className="text-sm font-medium text-premium-text/70 mb-3">Движение товара</div>
+          {loadingHistory && <div className="text-sm text-premium-text/40">Загрузка…</div>}
           {!loadingHistory && transactions?.length === 0 && (
-            <div className="text-sm text-ink/40">Движений пока нет.</div>
+            <div className="text-sm text-premium-text/40">Движений пока нет.</div>
           )}
           <div className="space-y-2">
             {transactions?.map((tx) => (
-              <div key={tx.id} className="flex items-start justify-between text-sm border-b border-ink/5 pb-2">
+              <div key={tx.id} className="flex items-start justify-between text-sm border-b border-premium-border/60 pb-2">
                 <div>
-                  <div className="capitalize">{tx['тип']}</div>
-                  <div className="text-xs text-ink/40">{formatDate(tx['дата'])}</div>
-                  {tx['комментарий'] && <div className="text-xs text-ink/50">{tx['комментарий']}</div>}
+                  <div className="capitalize text-premium-text">{tx['тип']}</div>
+                  <div className="text-xs text-premium-text/40">{formatDate(tx['дата'])}</div>
+                  {tx['комментарий'] && <div className="text-xs text-premium-text/50">{tx['комментарий']}</div>}
                 </div>
-                <div className="font-medium">
+                <div className="font-medium text-premium-text">
                   {tx['тип'] === 'расход' ? '-' : '+'}
                   {Math.abs(Number(tx['кол-во']))} {ingredient['ед.измерения']}
                 </div>
