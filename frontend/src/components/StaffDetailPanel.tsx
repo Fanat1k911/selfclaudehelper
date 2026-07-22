@@ -133,42 +133,42 @@ export function StaffDetailPanel({
   return (
     <div className="fixed inset-0 z-50 flex justify-end bg-black/30" onClick={onClose}>
       <div
-        className="flex h-full w-full max-w-md flex-col bg-white shadow-2xl"
+        className="flex h-full w-full max-w-md flex-col bg-premium-surface shadow-2xl"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex items-start justify-between border-b border-ink/10 px-6 py-5">
+        <div className="flex items-start justify-between border-b border-premium-border px-6 py-5">
           <div>
-            <div className="text-lg font-semibold text-ink">{staff.fio}</div>
-            <div className="text-sm text-ink/50">
+            <div className="text-lg font-semibold text-premium-text">{staff.fio}</div>
+            <div className="text-sm text-premium-text/50">
               {staff.login} · создан {formatDate(staff.created_at)}
             </div>
           </div>
-          <button onClick={onClose} className="text-ink/40 hover:text-ink text-xl leading-none">
+          <button onClick={onClose} className="text-premium-text/40 hover:text-premium-text text-xl leading-none">
             ×
           </button>
         </div>
 
-        <div className="px-6 py-4 border-b border-ink/10 flex items-center justify-between">
+        <div className="px-6 py-4 border-b border-premium-border flex items-center justify-between">
           <span
             className={`inline-flex items-center gap-2 text-sm font-medium ${
-              staff.status === 'активен' ? 'text-emerald-600' : 'text-red-600'
+              staff.status === 'активен' ? 'text-premium-sage-hi' : 'text-red-400'
             }`}
           >
-            <span className={`h-2 w-2 rounded-full ${staff.status === 'активен' ? 'bg-emerald-500' : 'bg-red-500'}`} />
+            <span className={`h-2 w-2 rounded-full ${staff.status === 'активен' ? 'bg-premium-sage-hi' : 'bg-red-500'}`} />
             {staff.status === 'активен' ? 'Активен' : 'Уволен'}
           </span>
           <button
             onClick={toggleStatus}
             disabled={statusBusy}
-            className="rounded-lg border border-ink/10 px-4 py-2 text-sm font-medium text-ink hover:bg-cream/60 disabled:opacity-60"
+            className="rounded-lg border border-premium-border px-4 py-2 text-sm font-medium text-premium-text hover:bg-premium-surface-2 disabled:opacity-60"
           >
             {staff.status === 'активен' ? 'Уволить' : 'Восстановить'}
           </button>
         </div>
 
         {otherCompanies && otherCompanies.length > 0 && (
-          <div className="px-6 py-4 border-b border-ink/10">
-            <div className="text-xs text-ink/50 mb-2">
+          <div className="px-6 py-4 border-b border-premium-border">
+            <div className="text-xs text-premium-text/50 mb-2">
               {otherCompanies.length > 1
                 ? `Состоит в ${otherCompanies.length} компаниях`
                 : 'Компания'}{' '}
@@ -177,8 +177,8 @@ export function StaffDetailPanel({
             <div className="space-y-1.5">
               {otherCompanies.map((c) => (
                 <div key={c.id} className="flex items-center justify-between text-sm">
-                  <span className="text-ink">{c.name}</span>
-                  <span className="text-ink/50 text-xs">{ROLE_LABEL[c.role]}</span>
+                  <span className="text-premium-text">{c.name}</span>
+                  <span className="text-premium-text/50 text-xs">{ROLE_LABEL[c.role]}</span>
                 </div>
               ))}
             </div>
@@ -186,56 +186,56 @@ export function StaffDetailPanel({
         )}
 
         {!editing ? (
-          <div className="px-6 py-4 border-b border-ink/10 space-y-3">
+          <div className="px-6 py-4 border-b border-premium-border space-y-3">
             <div>
-              <div className="text-xs text-ink/50">ФИО</div>
-              <div className="text-sm text-ink">{staff.fio}</div>
+              <div className="text-xs text-premium-text/50">ФИО</div>
+              <div className="text-sm text-premium-text">{staff.fio}</div>
             </div>
             <div>
-              <div className="text-xs text-ink/50">Роль</div>
-              <div className="text-sm text-ink">{ROLES.find((r) => r.value === staff.role)?.label ?? staff.role}</div>
+              <div className="text-xs text-premium-text/50">Роль</div>
+              <div className="text-sm text-premium-text">{ROLES.find((r) => r.value === staff.role)?.label ?? staff.role}</div>
             </div>
             <div>
-              <div className="text-xs text-ink/50">Телефон</div>
-              <div className="text-sm text-ink">{staff.phone || '—'}</div>
+              <div className="text-xs text-premium-text/50">Телефон</div>
+              <div className="text-sm text-premium-text">{staff.phone || '—'}</div>
             </div>
             <div>
-              <div className="text-xs text-ink/50">Мессенджер</div>
-              <div className="text-sm text-ink">{staff.messenger || '—'}</div>
+              <div className="text-xs text-premium-text/50">Мессенджер</div>
+              <div className="text-sm text-premium-text">{staff.messenger || '—'}</div>
             </div>
             <div>
-              <div className="text-xs text-ink/50">Адрес проживания</div>
-              <div className="text-sm text-ink">{staff.address || '—'}</div>
+              <div className="text-xs text-premium-text/50">Адрес проживания</div>
+              <div className="text-sm text-premium-text">{staff.address || '—'}</div>
             </div>
             <div>
-              <div className="text-xs text-ink/50">Документ (паспорт/ИНН)</div>
-              <div className="text-sm text-ink">{staff.document || '—'}</div>
+              <div className="text-xs text-premium-text/50">Документ (паспорт/ИНН)</div>
+              <div className="text-sm text-premium-text">{staff.document || '—'}</div>
             </div>
             <button
               type="button"
               onClick={startEditing}
-              className="w-full rounded-lg border border-ink/10 py-2 text-sm font-medium text-ink hover:bg-cream/60"
+              className="w-full rounded-lg border border-premium-border py-2 text-sm font-medium text-premium-text hover:bg-premium-surface-2"
             >
               Редактировать
             </button>
           </div>
         ) : (
-          <form onSubmit={handleSave} className="px-6 py-4 border-b border-ink/10 space-y-3">
+          <form onSubmit={handleSave} className="px-6 py-4 border-b border-premium-border space-y-3">
             <div>
-              <label className="block text-xs text-ink/60 mb-1">ФИО</label>
+              <label className="block text-xs text-premium-text/60 mb-1">ФИО</label>
               <input
                 value={fio}
                 onChange={(e) => setFio(e.target.value)}
-                className="w-full rounded-lg border border-ink/10 px-3 py-2 text-sm outline-none focus:border-terracotta"
+                className="w-full rounded-lg border border-premium-border bg-premium-bg px-3 py-2 text-sm text-premium-text outline-none focus:border-premium-gold"
                 required
               />
             </div>
             <div>
-              <label className="block text-xs text-ink/60 mb-1">Роль</label>
+              <label className="block text-xs text-premium-text/60 mb-1">Роль</label>
               <select
                 value={role}
                 onChange={(e) => setRole(e.target.value as StaffUser['role'])}
-                className="w-full rounded-lg border border-ink/10 px-3 py-2 text-sm outline-none focus:border-terracotta"
+                className="w-full rounded-lg border border-premium-border bg-premium-bg px-3 py-2 text-sm text-premium-text outline-none focus:border-premium-gold"
               >
                 {ROLES.map((r) => (
                   <option key={r.value} value={r.value}>
@@ -245,52 +245,52 @@ export function StaffDetailPanel({
               </select>
             </div>
             <div>
-              <label className="block text-xs text-ink/60 mb-1">Телефон</label>
+              <label className="block text-xs text-premium-text/60 mb-1">Телефон</label>
               <input
                 type="tel"
                 inputMode="tel"
                 value={phone}
                 onChange={(e) => setPhone(sanitizePhone(e.target.value))}
-                className="w-full rounded-lg border border-ink/10 px-3 py-2 text-sm outline-none focus:border-terracotta"
+                className="w-full rounded-lg border border-premium-border bg-premium-bg px-3 py-2 text-sm text-premium-text outline-none focus:border-premium-gold"
               />
             </div>
             <div>
-              <label className="block text-xs text-ink/60 mb-1">Мессенджер</label>
+              <label className="block text-xs text-premium-text/60 mb-1">Мессенджер</label>
               <input
                 value={messenger}
                 onChange={(e) => setMessenger(e.target.value)}
-                className="w-full rounded-lg border border-ink/10 px-3 py-2 text-sm outline-none focus:border-terracotta"
+                className="w-full rounded-lg border border-premium-border bg-premium-bg px-3 py-2 text-sm text-premium-text outline-none focus:border-premium-gold"
               />
             </div>
             <div>
-              <label className="block text-xs text-ink/60 mb-1">Адрес проживания</label>
+              <label className="block text-xs text-premium-text/60 mb-1">Адрес проживания</label>
               <input
                 value={address}
                 onChange={(e) => setAddress(e.target.value)}
-                className="w-full rounded-lg border border-ink/10 px-3 py-2 text-sm outline-none focus:border-terracotta"
+                className="w-full rounded-lg border border-premium-border bg-premium-bg px-3 py-2 text-sm text-premium-text outline-none focus:border-premium-gold"
               />
             </div>
             <div>
-              <label className="block text-xs text-ink/60 mb-1">Документ (паспорт/ИНН)</label>
+              <label className="block text-xs text-premium-text/60 mb-1">Документ (паспорт/ИНН)</label>
               <input
                 value={document}
                 onChange={(e) => setDocument(e.target.value)}
-                className="w-full rounded-lg border border-ink/10 px-3 py-2 text-sm outline-none focus:border-terracotta"
+                className="w-full rounded-lg border border-premium-border bg-premium-bg px-3 py-2 text-sm text-premium-text outline-none focus:border-premium-gold"
               />
             </div>
-            {error && <div className="text-sm text-red-600">{error}</div>}
+            {error && <div className="text-sm text-red-400">{error}</div>}
             <div className="flex gap-2">
               <button
                 type="button"
                 onClick={() => setEditing(false)}
-                className="flex-1 rounded-lg bg-cream py-2 text-sm font-medium text-ink hover:bg-ink/5"
+                className="flex-1 rounded-lg bg-premium-surface-2 py-2 text-sm font-medium text-premium-text hover:bg-premium-border"
               >
                 Отмена
               </button>
               <button
                 type="submit"
                 disabled={submitting}
-                className="flex-1 rounded-lg bg-terracotta py-2 text-sm font-medium text-white hover:bg-terracotta-dark disabled:opacity-60"
+                className="flex-1 rounded-lg bg-premium-gold py-2 text-sm font-medium text-premium-bg hover:bg-premium-gold-hi disabled:opacity-60"
               >
                 {submitting ? 'Сохраняем…' : 'Сохранить'}
               </button>
@@ -299,8 +299,8 @@ export function StaffDetailPanel({
             {/* Сброс пароля — тоже только в режиме редактирования (2026-07-18, запрос
                 Founder: раньше было видно и кликабельно всегда, даже при простом просмотре
                 карточки — риск случайного сброса чужого пароля одним лишним кликом). */}
-            <div className="mt-2 border-t border-ink/10 pt-3 space-y-2">
-              <div className="text-sm font-medium text-ink/70">Сбросить пароль</div>
+            <div className="mt-2 border-t border-premium-border pt-3 space-y-2">
+              <div className="text-sm font-medium text-premium-text/70">Сбросить пароль</div>
               <div className="flex gap-2">
                 <input
                   type="password"
@@ -317,19 +317,19 @@ export function StaffDetailPanel({
                     }
                   }}
                   placeholder="Новый пароль"
-                  className="flex-1 rounded-lg border border-ink/10 px-3 py-2 text-sm outline-none focus:border-terracotta"
+                  className="flex-1 rounded-lg border border-premium-border bg-premium-bg px-3 py-2 text-sm text-premium-text outline-none focus:border-premium-gold"
                   autoComplete="new-password"
                 />
                 <button
                   type="button"
                   onClick={handleResetPassword}
                   disabled={resetting || !newPassword}
-                  className="rounded-lg bg-ink px-4 py-2 text-sm font-medium text-white hover:bg-ink/80 disabled:opacity-60"
+                  className="rounded-lg bg-premium-gold px-4 py-2 text-sm font-medium text-premium-bg hover:bg-premium-gold-hi disabled:opacity-60"
                 >
                   {resetting ? '…' : 'Сбросить'}
                 </button>
               </div>
-              {resetMsg && <div className="text-sm text-ink/60">{resetMsg}</div>}
+              {resetMsg && <div className="text-sm text-premium-text/60">{resetMsg}</div>}
             </div>
           </form>
         )}

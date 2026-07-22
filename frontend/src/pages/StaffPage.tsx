@@ -1,8 +1,10 @@
 import { useEffect, useState } from 'react'
 import { apiFetch } from '../lib/api'
+import { usePremiumBackground } from '../lib/usePremiumBackground'
 import type { LoginLogEntry, StaffUser } from '../types'
 import { NewStaffModal } from '../components/NewStaffModal'
 import { StaffDetailPanel } from '../components/StaffDetailPanel'
+import { SkeletonRows } from '../components/SkeletonRows'
 
 const ROLE_LABEL: Record<StaffUser['role'], string> = {
   worker: 'Сотрудник',
@@ -21,6 +23,7 @@ function formatDateTime(value: string) {
 }
 
 export function StaffPage() {
+  usePremiumBackground()
   const [staff, setStaff] = useState<StaffUser[]>([])
   const [loading, setLoading] = useState(true)
   const [showCreate, setShowCreate] = useState(false)
@@ -49,28 +52,29 @@ export function StaffPage() {
   }
 
   return (
-    <div className="px-4 py-4 sm:px-8 sm:py-6">
-      <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <h1 className="text-xl font-semibold text-ink sm:text-2xl">Сотрудники</h1>
+    <div className="relative min-h-full overflow-hidden bg-premium-bg px-4 py-4 sm:px-8 sm:py-6">
+      <div className="premium-grain" aria-hidden />
+      <div className="relative mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <h1 className="font-display text-xl font-semibold italic text-premium-text sm:text-2xl">Сотрудники</h1>
         <button
           onClick={() => {
             setSelected(null)
             setShowCreate(true)
           }}
-          className="whitespace-nowrap rounded-lg bg-accent-add px-3 py-2 text-sm font-medium text-white hover:bg-accent-add-dark sm:px-4"
+          className="whitespace-nowrap rounded-lg bg-premium-gold px-3 py-2 text-sm font-medium text-premium-bg hover:bg-premium-gold-hi sm:px-4"
         >
           + Добавить сотрудника
         </button>
       </div>
 
-      <div className="space-y-2 md:hidden">
+      <div className="relative space-y-2 md:hidden">
         {loading && (
-          <div className="rounded-xl border border-ink/10 bg-white px-4 py-6 text-center text-sm text-ink/40">
-            Загрузка…
+          <div className="overflow-hidden rounded-xl border border-premium-border bg-premium-surface">
+            <SkeletonRows />
           </div>
         )}
         {!loading && staff.length === 0 && (
-          <div className="rounded-xl border border-ink/10 bg-white px-4 py-6 text-center text-sm text-ink/40">
+          <div className="rounded-xl border border-premium-border bg-premium-surface px-4 py-6 text-center text-sm text-premium-text/40">
             Сотрудников пока нет.
           </div>
         )}
@@ -78,20 +82,20 @@ export function StaffPage() {
           <button
             key={u.id}
             onClick={() => handleRowClick(u)}
-            className="w-full rounded-xl border border-ink/10 bg-white p-4 text-left shadow-sm active:bg-cream/60"
+            className="premium-card w-full rounded-xl border border-premium-border bg-premium-surface p-4 text-left active:bg-premium-surface-2"
           >
             <div className="flex items-start justify-between gap-2">
-              <span className="truncate text-sm font-medium text-ink">{u.fio}</span>
+              <span className="truncate text-sm font-medium text-premium-text">{u.fio}</span>
               <span
                 className={`inline-flex shrink-0 items-center gap-1.5 text-xs font-medium ${
-                  u.status === 'активен' ? 'text-emerald-600' : 'text-red-600'
+                  u.status === 'активен' ? 'text-premium-sage-hi' : 'text-red-400'
                 }`}
               >
-                <span className={`h-2 w-2 rounded-full ${u.status === 'активен' ? 'bg-emerald-500' : 'bg-red-500'}`} />
+                <span className={`h-2 w-2 rounded-full ${u.status === 'активен' ? 'bg-premium-sage-hi' : 'bg-red-500'}`} />
                 {u.status === 'активен' ? 'Активен' : 'Уволен'}
               </span>
             </div>
-            <div className="mt-1.5 flex items-center justify-between text-xs text-ink/50">
+            <div className="mt-1.5 flex items-center justify-between text-xs text-premium-text/50">
               <span className="truncate">
                 {ROLE_LABEL[u.role]} · {u.login}
               </span>
@@ -101,10 +105,10 @@ export function StaffPage() {
         ))}
       </div>
 
-      <div className="hidden overflow-hidden rounded-xl border border-ink/10 bg-white shadow-sm md:block">
+      <div className="relative hidden overflow-hidden rounded-xl border border-premium-border bg-premium-surface md:block">
         <table className="w-full text-sm">
           <thead>
-            <tr className="border-b border-ink/10 text-left text-ink/50">
+            <tr className="border-b border-premium-border text-left text-premium-text/50">
               <th className="px-4 py-3 font-medium">ФИО</th>
               <th className="px-4 py-3 font-medium">Логин</th>
               <th className="px-4 py-3 font-medium">Роль</th>
@@ -115,14 +119,14 @@ export function StaffPage() {
           <tbody>
             {loading && (
               <tr>
-                <td colSpan={5} className="px-4 py-6 text-center text-ink/40">
-                  Загрузка…
+                <td colSpan={5} className="p-0">
+                  <SkeletonRows />
                 </td>
               </tr>
             )}
             {!loading && staff.length === 0 && (
               <tr>
-                <td colSpan={5} className="px-4 py-6 text-center text-ink/40">
+                <td colSpan={5} className="px-4 py-6 text-center text-premium-text/40">
                   Сотрудников пока нет.
                 </td>
               </tr>
@@ -131,21 +135,21 @@ export function StaffPage() {
               <tr
                 key={u.id}
                 onClick={() => handleRowClick(u)}
-                className="cursor-pointer border-b border-ink/5 last:border-0 hover:bg-cream/60"
+                className="cursor-pointer border-b border-premium-border/60 transition-colors last:border-0 hover:bg-premium-surface-2"
               >
-                <td className="px-4 py-3">{u.fio}</td>
-                <td className="px-4 py-3 text-ink/60">{u.login}</td>
-                <td className="px-4 py-3 text-ink/60">{ROLE_LABEL[u.role]}</td>
-                <td className="px-4 py-3 text-ink/60">{u.phone || '—'}</td>
+                <td className="px-4 py-3 text-premium-text">{u.fio}</td>
+                <td className="px-4 py-3 text-premium-text/60">{u.login}</td>
+                <td className="px-4 py-3 text-premium-text/60">{ROLE_LABEL[u.role]}</td>
+                <td className="px-4 py-3 text-premium-text/60">{u.phone || '—'}</td>
                 <td className="px-4 py-3">
                   <span
                     className={`inline-flex items-center gap-2 ${
-                      u.status === 'активен' ? 'text-emerald-600' : 'text-red-600'
+                      u.status === 'активен' ? 'text-premium-sage-hi' : 'text-red-400'
                     }`}
                   >
                     <span
                       className={`h-2 w-2 rounded-full ${
-                        u.status === 'активен' ? 'bg-emerald-500' : 'bg-red-500'
+                        u.status === 'активен' ? 'bg-premium-sage-hi' : 'bg-red-500'
                       }`}
                     />
                     {u.status === 'активен' ? 'Активен' : 'Уволен'}
@@ -157,12 +161,12 @@ export function StaffPage() {
         </table>
       </div>
 
-      <div className="mt-8">
-        <h2 className="mb-3 text-lg font-semibold text-ink">История входов</h2>
-        <div className="overflow-hidden rounded-xl border border-ink/10 bg-white shadow-sm">
+      <div className="relative mt-8">
+        <h2 className="mb-3 font-display text-lg font-semibold italic text-premium-text">История входов</h2>
+        <div className="overflow-hidden rounded-xl border border-premium-border bg-premium-surface">
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-ink/10 text-left text-ink/50">
+              <tr className="border-b border-premium-border text-left text-premium-text/50">
                 <th className="px-4 py-3 font-medium">Сотрудник</th>
                 <th className="px-4 py-3 font-medium">Логин</th>
                 <th className="px-4 py-3 font-medium">Дата и время</th>
@@ -171,16 +175,16 @@ export function StaffPage() {
             <tbody>
               {loginLog.length === 0 && (
                 <tr>
-                  <td colSpan={3} className="px-4 py-6 text-center text-ink/40">
+                  <td colSpan={3} className="px-4 py-6 text-center text-premium-text/40">
                     Входов ещё не было.
                   </td>
                 </tr>
               )}
               {loginLog.map((entry) => (
-                <tr key={entry.id} className="border-b border-ink/5 last:border-0">
-                  <td className="px-4 py-3">{entry['ФИО']}</td>
-                  <td className="px-4 py-3 text-ink/60">{entry['логин']}</td>
-                  <td className="px-4 py-3 text-ink/50">{formatDateTime(entry['дата и время'])}</td>
+                <tr key={entry.id} className="border-b border-premium-border/60 last:border-0">
+                  <td className="px-4 py-3 text-premium-text">{entry['ФИО']}</td>
+                  <td className="px-4 py-3 text-premium-text/60">{entry['логин']}</td>
+                  <td className="px-4 py-3 text-premium-text/50">{formatDateTime(entry['дата и время'])}</td>
                 </tr>
               ))}
             </tbody>
