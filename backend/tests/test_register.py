@@ -1,24 +1,12 @@
 from datetime import datetime, timezone
 
 import jwt
-import pytest
 
 from app.config import JWT_ALGORITHM, JWT_SECRET
-from app.rate_limit import _hits
 from app.timezone_utils import next_midnight_utc
 from tests.conftest import make_user
 
 REGISTER_URL = "/api/auth/register"
-
-
-@pytest.fixture(autouse=True)
-def _reset_rate_limit():
-    """TestClient шлёт все запросы с одного фейкового IP ("testclient") — без сброса
-    между тестами они бы делили один rate-limit счётчик и тесты цеплялись бы друг за
-    друга."""
-    _hits.clear()
-    yield
-    _hits.clear()
 
 
 def _payload(**overrides):

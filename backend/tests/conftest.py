@@ -10,7 +10,19 @@ from app.constants import USER_STATUS_ACTIVE
 from app.db import Base, get_db
 from app.main import app
 from app.models import Company, CompanyMembership, User
+from app.rate_limit import _hits
 from app.security import create_access_token
+
+
+@pytest.fixture(autouse=True)
+def _reset_rate_limit():
+    """TestClient шлёт все запросы с одного фейкового IP ("testclient") — без сброса
+    между тестами /login и /register делили бы один rate-limit счётчик на весь прогон
+    и тесты цеплялись бы друг за друга (был реальный кросс-файловый провал на полном
+    прогоне после добавления лимита на /login, 2026-07-22)."""
+    _hits.clear()
+    yield
+    _hits.clear()
 
 
 @pytest.fixture()

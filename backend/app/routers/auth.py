@@ -24,6 +24,13 @@ router = APIRouter(prefix="/api/auth", tags=["auth"])
 _REGISTER_MAX_PER_HOUR = 5
 _REGISTER_WINDOW_SECONDS = 3600
 
+# Брутфорс/credential stuffing по /login (2026-07-22, security-review) — раньше только
+# /register был лимитирован, вход вообще без ограничений. Двойной ключ: по IP (не даёт
+# перебирать логины с одной машины) и по нормализованному логину (не даёт долбить один
+# аккаунт с ботнета/множества IP). Любой из двух лимитов срабатывает первым.
+_LOGIN_MAX_ATTEMPTS = 10
+_LOGIN_WINDOW_SECONDS = 300
+
 
 def _finalize(result: dict, db: Session) -> dict:
     """authenticate()/select_company()/register_company() уже отдали публичные поля юзера
@@ -38,7 +45,9 @@ def _finalize(result: dict, db: Session) -> dict:
 
 
 @router.post("/login")
-def login(body: LoginRequest, db: Session = Depends(get_db)) -> dict:
+def login(body: LoginRequest, request: Request, db: Session = Depends(get_db)) -> dict:
+    check_rate_limit(f"login-ip:{client_ip(request)}", _LOGIN_MAX_ATTEMPTS, _LOGIN_WINDOW_SECONDS)
+    check_rate_limit(f"login-user:{body.login.strip().lower()}", _LOGIN_MAX_ATTEMPTS, _LOGIN_WINDOW_SECONDS)
     result = authenticate(body.login, body.password, db)
     if result["status"] == "choose_company":
         # Несколько компаний у одного логина (2026-07-18) — не логиним сразу, фронт

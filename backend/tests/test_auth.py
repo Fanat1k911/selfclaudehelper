@@ -58,6 +58,17 @@ def test_login_wrong_password(client, db_session):
     assert resp.status_code == 401
 
 
+def test_login_rate_limited_after_threshold(client, db_session):
+    """Регрессия: /login раньше не был лимитирован вообще (нашлось на security-review) —
+    брутфорс/credential stuffing по паролю не встречал никакого сопротивления."""
+    make_user(db_session, login="worker5", role=WORKER, password="pass1234")
+    for _ in range(10):
+        resp = client.post("/api/auth/login", json={"login": "worker5", "password": "wrong"})
+        assert resp.status_code == 401
+    over_limit = client.post("/api/auth/login", json={"login": "worker5", "password": "wrong"})
+    assert over_limit.status_code == 429
+
+
 def test_login_creates_log_entry(client, db_session):
     make_user(db_session, login="worker3", role=WORKER, password="pass1234")
     client.post("/api/auth/login", json={"login": "worker3", "password": "pass1234"})

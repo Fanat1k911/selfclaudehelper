@@ -14,7 +14,7 @@ from sqlalchemy.orm import Session
 from app.constants import DEVELOPER, FOUNDER, TRANSACTION_ADJUSTMENT, TRANSACTION_EXPENSE, TRANSACTION_INCOME
 
 from app.db import get_db
-from app.models import LoginLog, Product, ProductionLog, Recipe, RecipeItem, Transaction
+from app.models import LoginLog, Material, Product, ProductionLog, Recipe, RecipeItem, Transaction
 from app.schemas import ProductionRequest
 from app.security import get_current_user, get_owned_or_404
 
@@ -139,6 +139,15 @@ def create_production(
     loss_factor = 1 + float(recipe.loss_percent) / 100
 
     recipe_items = db.scalars(select(RecipeItem).where(RecipeItem.recipe_id == body.recipe_id)).all()
+
+    # Row-lock материалов (2026-07-22, security-review) — без этого два одновременных
+    # POST /api/production по одному рецепту оба проходят проверку остатка на одних и тех
+    # же данных и вместе списывают больше, чем есть на складе (тот же TOCTOU, что был
+    # закрыт в sales.py). Сортировка по id — фиксированный порядок захвата блокировок,
+    # чтобы два запроса с разным набором материалов не заблокировали друг друга насмерть.
+    material_ids = sorted({item.material_id for item in recipe_items})
+    if material_ids:
+        db.execute(select(Material.id).where(Material.id.in_(material_ids)).order_by(Material.id).with_for_update())
 
     shortages = []
     for item in recipe_items:
