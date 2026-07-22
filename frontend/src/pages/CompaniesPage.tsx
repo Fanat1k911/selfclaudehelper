@@ -1,8 +1,10 @@
 import { useEffect, useState } from 'react'
 import { apiFetch } from '../lib/api'
+import { usePremiumBackground } from '../lib/usePremiumBackground'
 import type { Company } from '../types'
 import { CompanyDetailPanel } from '../components/CompanyDetailPanel'
 import { NewCompanyModal } from '../components/NewCompanyModal'
+import { SkeletonRows } from '../components/SkeletonRows'
 
 function formatDate(value: string) {
   const d = new Date(value)
@@ -11,6 +13,7 @@ function formatDate(value: string) {
 }
 
 export function CompaniesPage() {
+  usePremiumBackground()
   const [companies, setCompanies] = useState<Company[]>([])
   const [loading, setLoading] = useState(true)
   const [showCreate, setShowCreate] = useState(false)
@@ -31,21 +34,22 @@ export function CompaniesPage() {
   }, [])
 
   return (
-    <div className="px-4 py-4 sm:px-8 sm:py-6">
-      <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <h1 className="text-xl font-semibold text-ink sm:text-2xl">Компании</h1>
+    <div className="relative min-h-full overflow-hidden bg-premium-bg px-4 py-4 sm:px-8 sm:py-6">
+      <div className="premium-grain" aria-hidden />
+      <div className="relative mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <h1 className="font-display text-xl font-semibold italic text-premium-text sm:text-2xl">Компании</h1>
         <button
           onClick={() => setShowCreate(true)}
-          className="whitespace-nowrap rounded-lg bg-accent-add px-3 py-2 text-sm font-medium text-white hover:bg-accent-add-dark sm:px-4"
+          className="whitespace-nowrap rounded-lg bg-premium-gold px-3 py-2 text-sm font-medium text-premium-bg hover:bg-premium-gold-hi sm:px-4"
         >
           + Новая компания
         </button>
       </div>
 
-      <div className="overflow-hidden rounded-xl border border-ink/10 bg-white shadow-sm">
+      <div className="relative overflow-hidden rounded-xl border border-premium-border bg-premium-surface">
         <table className="w-full text-sm">
           <thead>
-            <tr className="border-b border-ink/10 text-left text-ink/50">
+            <tr className="border-b border-premium-border text-left text-premium-text/50">
               <th className="px-4 py-3 font-medium">Название</th>
               <th className="px-4 py-3 font-medium">ID</th>
               <th className="px-4 py-3 font-medium">Создана</th>
@@ -54,14 +58,14 @@ export function CompaniesPage() {
           <tbody>
             {loading && (
               <tr>
-                <td colSpan={3} className="px-4 py-6 text-center text-ink/40">
-                  Загрузка…
+                <td colSpan={3} className="p-0">
+                  <SkeletonRows />
                 </td>
               </tr>
             )}
             {!loading && companies.length === 0 && (
               <tr>
-                <td colSpan={3} className="px-4 py-6 text-center text-ink/40">
+                <td colSpan={3} className="px-4 py-6 text-center text-premium-text/40">
                   Компаний пока нет.
                 </td>
               </tr>
@@ -70,11 +74,11 @@ export function CompaniesPage() {
               <tr
                 key={c.id}
                 onClick={() => setSelectedId(c.id)}
-                className="cursor-pointer border-b border-ink/5 last:border-0 hover:bg-cream/60"
+                className="cursor-pointer border-b border-premium-border/60 transition-colors last:border-0 hover:bg-premium-surface-2"
               >
-                <td className="px-4 py-3">{c.name}</td>
-                <td className="px-4 py-3 text-ink/50 font-mono text-xs">{c.id}</td>
-                <td className="px-4 py-3 text-ink/60">{formatDate(c.created_at)}</td>
+                <td className="px-4 py-3 text-premium-text">{c.name}</td>
+                <td className="px-4 py-3 text-premium-text/50 font-mono text-xs">{c.id}</td>
+                <td className="px-4 py-3 text-premium-text/60">{formatDate(c.created_at)}</td>
               </tr>
             ))}
           </tbody>
