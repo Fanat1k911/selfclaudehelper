@@ -4,6 +4,7 @@ import type { Layout } from 'react-grid-layout/legacy'
 import 'react-grid-layout/css/styles.css'
 import 'react-resizable/css/styles.css'
 import { apiFetch } from '../lib/api'
+import { usePremiumBackground } from '../lib/usePremiumBackground'
 import type { WidgetCatalogItem, WidgetLayoutItem } from '../types'
 import { AddWidgetModal } from '../components/widgets/AddWidgetModal'
 import { WidgetFrame } from '../components/widgets/WidgetFrame'
@@ -23,22 +24,7 @@ export function DashboardPage() {
 
   const catalogByKey = Object.fromEntries(catalog.map((w) => [w.key, w]))
 
-  // Тот же 100vh/rubber-band баг, что чинили на логине (fix(login): мобильный 100vh-баг) —
-  // body по умолчанию светлый (--color-cream), Дашборд теперь тёмный. При овербаунсе
-  // на iOS/Brave снизу мелькает светлый body вместо тёмного фона страницы.
-  useEffect(() => {
-    const prevHtml = document.documentElement.style.background
-    const prevBody = document.body.style.background
-    // var(...), не хардкод hex — раньше дублировал --color-premium-bg (index.css) как
-    // отдельную строку, retroactive code-review 2026-07-18 поймал: смена токена в одном
-    // месте молча разъезжалась бы с этим забытым вторым.
-    document.documentElement.style.background = 'var(--color-premium-bg)'
-    document.body.style.background = 'var(--color-premium-bg)'
-    return () => {
-      document.documentElement.style.background = prevHtml
-      document.body.style.background = prevBody
-    }
-  }, [])
+  usePremiumBackground()
 
   async function loadWidgetData(key: string) {
     const data = await apiFetch(`/dashboard/widgets/${key}/data`)

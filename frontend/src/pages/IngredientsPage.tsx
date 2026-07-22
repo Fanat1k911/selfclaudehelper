@@ -3,11 +3,13 @@ import { Download, Plus, Truck, Upload } from 'lucide-react'
 import { apiFetch, apiDownload } from '../lib/api'
 import { useAuth } from '../lib/auth'
 import { materialCategoryLabel } from '../lib/labels'
+import { usePremiumBackground } from '../lib/usePremiumBackground'
 import type { Ingredient, User } from '../types'
 import { IngredientDetailPanel } from '../components/IngredientDetailPanel'
 import { NewIngredientModal } from '../components/NewIngredientModal'
 import { ImportIngredientsModal } from '../components/ImportIngredientsModal'
 import { BatchIncomeModal } from '../components/BatchIncomeModal'
+import { SkeletonRows } from '../components/SkeletonRows'
 
 const MANAGEMENT_ROLES: User['role'][] = ['founder', 'developer']
 
@@ -25,6 +27,7 @@ function formatDate(value: string | null) {
 }
 
 export function IngredientsPage() {
+  usePremiumBackground()
   const { user } = useAuth()
   const canManage = !!user && MANAGEMENT_ROLES.includes(user.role)
   const [ingredients, setIngredients] = useState<Ingredient[]>([])
@@ -137,8 +140,8 @@ export function IngredientsPage() {
 
       <div className="relative space-y-2 md:hidden">
         {loading && (
-          <div className="rounded-xl border border-premium-border bg-premium-surface px-4 py-6 text-center text-sm text-premium-text/40">
-            Загрузка…
+          <div className="overflow-hidden rounded-xl border border-premium-border bg-premium-surface">
+            <SkeletonRows />
           </div>
         )}
         {!loading && filtered.length === 0 && (
@@ -185,8 +188,8 @@ export function IngredientsPage() {
           <tbody>
             {loading && (
               <tr>
-                <td colSpan={5} className="px-4 py-6 text-center text-premium-text/40">
-                  Загрузка…
+                <td colSpan={5} className="p-0">
+                  <SkeletonRows />
                 </td>
               </tr>
             )}

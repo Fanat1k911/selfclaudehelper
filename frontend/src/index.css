@@ -191,6 +191,22 @@ a[href] {
   }
 }
 
+/* Скелетон-загрузка (2026-07-22, /redesign-existing-projects) — opacity-пульс, не
+   top/left/width, чтобы анимация шла на GPU-слое, а не переигрывала layout каждый кадр. */
+@keyframes skeleton-pulse {
+  0%, 100% { opacity: 0.35; }
+  50% { opacity: 0.7; }
+}
+.skeleton-pulse {
+  animation: skeleton-pulse 1.4s ease-in-out infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .skeleton-pulse {
+    animation: none;
+    opacity: 0.5;
+  }
+}
+
 /* Плашка "доступно обновление" (2026-07-18, полировка по фидбеку Founder — "уродство") —
    плавающая карточка в стиле Refined Industrial вместо голой светлой полосы во всю ширину,
    видна на любой странице (и старых светлых, и новых тёмных) поверх остального UI, поэтому

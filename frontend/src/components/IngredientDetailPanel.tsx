@@ -396,13 +396,13 @@ export function IngredientDetailPanel({
           )}
           <div className="space-y-2">
             {transactions?.map((tx) => (
-              <div key={tx.id} className="flex items-start justify-between text-sm border-b border-premium-border/60 pb-2">
-                <div>
+              <div key={tx.id} className="flex items-start justify-between gap-3 text-sm border-b border-premium-border/60 pb-2">
+                <div className="min-w-0">
                   <div className="capitalize text-premium-text">{tx['тип']}</div>
                   <div className="text-xs text-premium-text/40">{formatDate(tx['дата'])}</div>
                   {tx['комментарий'] && <div className="text-xs text-premium-text/50">{tx['комментарий']}</div>}
                 </div>
-                <div className="font-medium text-premium-text">
+                <div className="shrink-0 whitespace-nowrap font-medium text-premium-text">
                   {tx['тип'] === 'расход' ? '-' : '+'}
                   {Math.abs(Number(tx['кол-во']))} {ingredient['ед.измерения']}
                 </div>

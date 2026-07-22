@@ -1,7 +1,9 @@
 import { useEffect, useState } from 'react'
 import { apiFetch } from '../lib/api'
+import { usePremiumBackground } from '../lib/usePremiumBackground'
 import type { LeaderboardRow, ProductionLogEntry } from '../types'
 import { NewProductionModal } from '../components/NewProductionModal'
+import { SkeletonRows } from '../components/SkeletonRows'
 
 function formatDate(value: string | null) {
   if (!value) return '—'
@@ -11,6 +13,7 @@ function formatDate(value: string | null) {
 }
 
 export function ProductionPage() {
+  usePremiumBackground()
   const [log, setLog] = useState<ProductionLogEntry[]>([])
   const [leaderboard, setLeaderboard] = useState<LeaderboardRow[]>([])
   const [loading, setLoading] = useState(true)
@@ -72,8 +75,8 @@ export function ProductionPage() {
 
       <div className="relative space-y-2 md:hidden">
         {loading && (
-          <div className="rounded-xl border border-premium-border bg-premium-surface px-4 py-6 text-center text-sm text-premium-text/40">
-            Загрузка…
+          <div className="overflow-hidden rounded-xl border border-premium-border bg-premium-surface">
+            <SkeletonRows />
           </div>
         )}
         {!loading && log.length === 0 && (
@@ -117,8 +120,8 @@ export function ProductionPage() {
           <tbody>
             {loading && (
               <tr>
-                <td colSpan={6} className="px-4 py-6 text-center text-premium-text/40">
-                  Загрузка…
+                <td colSpan={6} className="p-0">
+                  <SkeletonRows />
                 </td>
               </tr>
             )}

@@ -95,27 +95,27 @@ export function RecipeDetailPanel({
   return (
     <div className="fixed inset-0 z-50 flex justify-end bg-black/30" onClick={onClose}>
       <div
-        className="flex h-full w-full max-w-md flex-col bg-white shadow-2xl"
+        className="flex h-full w-full max-w-md flex-col bg-premium-surface shadow-2xl"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex items-start justify-between border-b border-ink/10 px-6 py-5">
+        <div className="flex items-start justify-between border-b border-premium-border px-6 py-5">
           <div>
-            <div className="text-lg font-semibold text-ink">{recipe['название']}</div>
-            <div className="text-sm text-ink/50">{recipe['что производим']}</div>
+            <div className="text-lg font-semibold text-premium-text">{recipe['название']}</div>
+            <div className="text-sm text-premium-text/50">{recipe['что производим']}</div>
           </div>
-          <button onClick={onClose} className="text-ink/40 hover:text-ink text-xl leading-none">
+          <button onClick={onClose} className="text-premium-text/40 hover:text-premium-text text-xl leading-none">
             ×
           </button>
         </div>
 
-        <div className="px-6 py-3 border-b border-ink/10 text-sm">
+        <div className="px-6 py-3 border-b border-premium-border text-sm">
           {!editingLoss ? (
             <div className="flex items-center justify-between">
-              <span className="text-ink/60">Потери сырья при производстве</span>
-              <span className="flex items-center gap-2 font-medium">
+              <span className="text-premium-text/60">Потери сырья при производстве</span>
+              <span className="flex items-center gap-2 font-medium text-premium-text">
                 {lossPercent}%
                 {canEdit && (
-                  <button onClick={() => setEditingLoss(true)} className="text-xs text-ink/40 hover:text-terracotta">
+                  <button onClick={() => setEditingLoss(true)} className="text-xs text-premium-text/40 hover:text-premium-gold-hi">
                     изменить
                   </button>
                 )}
@@ -129,58 +129,58 @@ export function RecipeDetailPanel({
                 min="0"
                 value={lossPercent}
                 onChange={(e) => setLossPercent(e.target.value)}
-                className="w-20 rounded-lg border border-ink/10 px-2 py-1 text-sm outline-none focus:border-terracotta"
+                className="w-20 rounded-lg border border-premium-border bg-premium-bg px-2 py-1 text-sm text-premium-text outline-none focus:border-premium-gold"
                 autoFocus
               />
-              <span className="text-ink/60">%</span>
+              <span className="text-premium-text/60">%</span>
               <button
                 type="button"
                 onClick={() => {
                   setEditingLoss(false)
                   setLossPercent(recipe['процент потерь'].toString())
                 }}
-                className="ml-auto rounded-lg border border-ink/10 px-3 py-1 text-xs font-medium text-ink hover:bg-cream/60"
+                className="ml-auto rounded-lg border border-premium-border px-3 py-1 text-xs font-medium text-premium-text hover:bg-premium-surface-2"
               >
                 Отмена
               </button>
               <button
                 type="submit"
                 disabled={savingLoss}
-                className="rounded-lg bg-accent-add px-3 py-1 text-xs font-medium text-white hover:bg-accent-add-dark disabled:opacity-60"
+                className="rounded-lg bg-premium-gold px-3 py-1 text-xs font-medium text-premium-bg hover:bg-premium-gold-hi disabled:opacity-60"
               >
                 {savingLoss ? '…' : 'Сохранить'}
               </button>
             </form>
           )}
-          {lossError && <div className="mt-1 text-xs text-red-600">{lossError}</div>}
+          {lossError && <div className="mt-1 text-xs text-red-400">{lossError}</div>}
         </div>
 
         {canEdit && (
-          <div className="px-6 py-4 border-b border-ink/10 space-y-3">
+          <div className="px-6 py-4 border-b border-premium-border space-y-3">
             {!editing ? (
               <div className="flex gap-2">
                 <button
                   onClick={() => setEditing(true)}
-                  className="rounded-lg border border-ink/10 px-4 py-2 text-sm font-medium text-ink hover:bg-cream/60"
+                  className="rounded-lg border border-premium-border px-4 py-2 text-sm font-medium text-premium-text hover:bg-premium-surface-2"
                 >
                   Редактировать состав
                 </button>
                 <button
                   onClick={toggleArchived}
                   disabled={archiving}
-                  className="rounded-lg border border-ink/10 px-4 py-2 text-sm font-medium text-ink hover:bg-cream/60 disabled:opacity-60"
+                  className="rounded-lg border border-premium-border px-4 py-2 text-sm font-medium text-premium-text hover:bg-premium-surface-2 disabled:opacity-60"
                 >
                   {recipe['архив'] ? 'Вернуть из архива' : 'Переместить в архив'}
                 </button>
               </div>
             ) : (
               <>
-                <div className="text-sm font-medium text-ink/70">Добавить компонент в состав</div>
+                <div className="text-sm font-medium text-premium-text/70">Добавить компонент в состав</div>
                 <form onSubmit={handleSubmit} className="space-y-3">
                   <select
                     value={materialId}
                     onChange={(e) => setMaterialId(e.target.value)}
-                    className="w-full rounded-lg border border-ink/10 px-3 py-2 text-sm outline-none focus:border-terracotta"
+                    className="w-full rounded-lg border border-premium-border bg-premium-bg px-3 py-2 text-sm text-premium-text outline-none focus:border-premium-gold"
                   >
                     {ingredients.map((ing) => (
                       <option key={ing.id} value={ing.id}>
@@ -196,18 +196,18 @@ export function RecipeDetailPanel({
                       value={qty}
                       onChange={(e) => setQty(e.target.value)}
                       placeholder="Кол-во на 1 партию"
-                      className="flex-1 rounded-lg border border-ink/10 px-3 py-2 text-sm outline-none focus:border-terracotta"
+                      className="flex-1 rounded-lg border border-premium-border bg-premium-bg px-3 py-2 text-sm text-premium-text outline-none focus:border-premium-gold"
                       required
                     />
                     <button
                       type="submit"
                       disabled={submitting || !materialId}
-                      className="rounded-lg bg-accent-add px-4 py-2 text-sm font-medium text-white hover:bg-accent-add-dark disabled:opacity-60"
+                      className="rounded-lg bg-premium-gold px-4 py-2 text-sm font-medium text-premium-bg hover:bg-premium-gold-hi disabled:opacity-60"
                     >
                       {submitting ? '…' : 'Добавить'}
                     </button>
                   </div>
-                  {error && <div className="text-sm text-red-600">{error}</div>}
+                  {error && <div className="text-sm text-red-400">{error}</div>}
                 </form>
               </>
             )}
@@ -215,12 +215,12 @@ export function RecipeDetailPanel({
         )}
 
         <div className="flex-1 touch-pan-y overflow-y-auto overflow-x-hidden px-6 py-4">
-          <div className="text-sm font-medium text-ink/70 mb-3">Состав рецепта</div>
-          {items === null && <div className="text-sm text-ink/40">Загрузка…</div>}
-          {items?.length === 0 && <div className="text-sm text-ink/40">Состав пока не задан.</div>}
+          <div className="text-sm font-medium text-premium-text/70 mb-3">Состав рецепта</div>
+          {items === null && <div className="text-sm text-premium-text/40">Загрузка…</div>}
+          {items?.length === 0 && <div className="text-sm text-premium-text/40">Состав пока не задан.</div>}
           <div className="space-y-2">
             {items?.map((item, i) => (
-              <div key={i} className="flex items-center justify-between text-sm border-b border-ink/5 pb-2">
+              <div key={i} className="flex items-center justify-between text-sm border-b border-premium-border/60 pb-2 text-premium-text">
                 <span>{item['название материала']}</span>
                 <span className="font-medium">{item['кол-во на 1 партию']}</span>
               </div>
