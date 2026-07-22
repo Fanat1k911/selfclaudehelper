@@ -42,66 +42,66 @@ export function NewEquipmentModal({
       <form
         onSubmit={handleSubmit}
         onClick={(e) => e.stopPropagation()}
-        className="w-full max-w-sm rounded-2xl bg-white p-6 shadow-2xl space-y-3"
+        className="w-full max-w-sm rounded-2xl bg-premium-surface p-6 shadow-2xl space-y-3"
       >
-        <div className="text-lg font-semibold text-ink mb-2">Новый инвентарь</div>
+        <div className="text-lg font-semibold text-premium-text mb-2">Новый инвентарь</div>
 
         <div>
-          <label className="block text-xs text-ink/60 mb-1">Название</label>
+          <label className="block text-xs text-premium-text/60 mb-1">Название</label>
           <input
             value={name}
             onChange={(e) => setName(e.target.value)}
-            className="w-full rounded-lg border border-ink/10 px-3 py-2 text-sm outline-none focus:border-terracotta"
+            className="w-full rounded-lg border border-premium-border bg-premium-bg px-3 py-2 text-sm text-premium-text outline-none focus:border-premium-gold"
             required
           />
         </div>
 
         <div>
-          <label className="block text-xs text-ink/60 mb-1">Ед.измерения</label>
+          <label className="block text-xs text-premium-text/60 mb-1">Ед.измерения</label>
           <input
             value={unit}
             onChange={(e) => setUnit(e.target.value)}
-            className="w-full rounded-lg border border-ink/10 px-3 py-2 text-sm outline-none focus:border-terracotta"
+            className="w-full rounded-lg border border-premium-border bg-premium-bg px-3 py-2 text-sm text-premium-text outline-none focus:border-premium-gold"
           />
         </div>
 
         <div className="grid grid-cols-2 gap-3">
           <div>
-            <label className="block text-xs text-ink/60 mb-1">Мин. остаток</label>
+            <label className="block text-xs text-premium-text/60 mb-1">Мин. остаток</label>
             <input
               type="number"
               step="any"
               value={minStock}
               onChange={(e) => setMinStock(e.target.value)}
-              className="w-full rounded-lg border border-ink/10 px-3 py-2 text-sm outline-none focus:border-terracotta"
+              className="w-full rounded-lg border border-premium-border bg-premium-bg px-3 py-2 text-sm text-premium-text outline-none focus:border-premium-gold"
             />
           </div>
           <div>
-            <label className="block text-xs text-ink/60 mb-1">Начальный остаток</label>
+            <label className="block text-xs text-premium-text/60 mb-1">Начальный остаток</label>
             <input
               type="number"
               step="any"
               value={initialQty}
               onChange={(e) => setInitialQty(e.target.value)}
-              className="w-full rounded-lg border border-ink/10 px-3 py-2 text-sm outline-none focus:border-terracotta"
+              className="w-full rounded-lg border border-premium-border bg-premium-bg px-3 py-2 text-sm text-premium-text outline-none focus:border-premium-gold"
             />
           </div>
         </div>
 
-        {error && <div className="text-sm text-red-600">{error}</div>}
+        {error && <div className="text-sm text-red-400">{error}</div>}
 
         <div className="flex gap-2 pt-2">
           <button
             type="button"
             onClick={onClose}
-            className="flex-1 rounded-lg bg-cream py-2 text-sm font-medium text-ink hover:bg-ink/5"
+            className="flex-1 rounded-lg bg-premium-surface-2 py-2 text-sm font-medium text-premium-text hover:bg-premium-border"
           >
             Отмена
           </button>
           <button
             type="submit"
             disabled={submitting}
-            className="flex-1 rounded-lg bg-accent-add py-2 text-sm font-medium text-white hover:bg-accent-add-dark disabled:opacity-60"
+            className="flex-1 rounded-lg bg-premium-gold py-2 text-sm font-medium text-premium-bg hover:bg-premium-gold-hi disabled:opacity-60"
           >
             {submitting ? 'Создаём…' : 'Создать'}
           </button>

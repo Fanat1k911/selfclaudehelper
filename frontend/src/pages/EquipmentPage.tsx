@@ -1,11 +1,13 @@
 import { useEffect, useMemo, useState } from 'react'
 import { apiFetch } from '../lib/api'
+import { usePremiumBackground } from '../lib/usePremiumBackground'
 import type { EquipmentItem } from '../types'
 import { EquipmentDetailPanel } from '../components/EquipmentDetailPanel'
 import { NewEquipmentModal } from '../components/NewEquipmentModal'
+import { SkeletonRows } from '../components/SkeletonRows'
 
 const COLOR_DOT: Record<EquipmentItem['цвет'], string> = {
-  'зелёный': 'bg-emerald-500',
+  'зелёный': 'bg-premium-sage-hi',
   'жёлтый': 'bg-amber-500',
   'красный': 'bg-red-500',
 }
@@ -18,6 +20,7 @@ function formatDate(value: string | null) {
 }
 
 export function EquipmentPage() {
+  usePremiumBackground()
   const [items, setItems] = useState<EquipmentItem[]>([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
@@ -50,15 +53,16 @@ export function EquipmentPage() {
   }
 
   return (
-    <div className="px-4 py-4 sm:px-8 sm:py-6">
-      <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <h1 className="flex items-baseline gap-2 text-xl font-semibold text-ink sm:text-2xl">
+    <div className="relative min-h-full overflow-hidden bg-premium-bg px-4 py-4 sm:px-8 sm:py-6">
+      <div className="premium-grain" aria-hidden />
+      <div className="relative mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <h1 className="flex items-baseline gap-2 font-display text-xl font-semibold italic text-premium-text sm:text-2xl">
           Рабочий инвентарь
-          {!loading && <span className="text-sm font-normal text-ink/40">{items.length}</span>}
+          {!loading && <span className="font-sans text-sm font-normal not-italic text-premium-text/40">{items.length}</span>}
         </h1>
         <button
           onClick={() => setShowCreate(true)}
-          className="w-full whitespace-nowrap rounded-lg bg-accent-add px-3 py-2 text-sm font-medium text-white hover:bg-accent-add-dark sm:w-auto sm:px-4"
+          className="w-full whitespace-nowrap rounded-lg bg-premium-gold px-3 py-2 text-sm font-medium text-premium-bg hover:bg-premium-gold-hi sm:w-auto sm:px-4"
         >
           + Добавить инвентарь
         </button>
@@ -68,17 +72,17 @@ export function EquipmentPage() {
         value={search}
         onChange={(e) => setSearch(e.target.value)}
         placeholder="Поиск по названию…"
-        className="mb-4 w-full max-w-sm rounded-lg border border-ink/10 bg-white px-3 py-2 text-sm outline-none focus:border-terracotta"
+        className="relative mb-4 w-full max-w-sm rounded-lg border border-premium-border bg-premium-surface px-3 py-2 text-sm text-premium-text outline-none placeholder:text-premium-text/40 focus:border-premium-gold"
       />
 
-      <div className="space-y-2 md:hidden">
+      <div className="relative space-y-2 md:hidden">
         {loading && (
-          <div className="rounded-xl border border-ink/10 bg-white px-4 py-6 text-center text-sm text-ink/40">
-            Загрузка…
+          <div className="overflow-hidden rounded-xl border border-premium-border bg-premium-surface">
+            <SkeletonRows />
           </div>
         )}
         {!loading && filtered.length === 0 && (
-          <div className="rounded-xl border border-ink/10 bg-white px-4 py-6 text-center text-sm text-ink/40">
+          <div className="rounded-xl border border-premium-border bg-premium-surface px-4 py-6 text-center text-sm text-premium-text/40">
             Ничего не найдено.
           </div>
         )}
@@ -86,18 +90,18 @@ export function EquipmentPage() {
           <button
             key={it.id}
             onClick={() => setSelected(it)}
-            className="w-full rounded-xl border border-ink/10 bg-white p-4 text-left shadow-sm active:bg-cream/60"
+            className="premium-card w-full rounded-xl border border-premium-border bg-premium-surface p-4 text-left active:bg-premium-surface-2"
           >
             <div className="flex items-start justify-between gap-2">
               <div className="flex min-w-0 items-center gap-2">
                 <span className={`h-2 w-2 shrink-0 rounded-full ${COLOR_DOT[it['цвет']]}`} />
-                <span className="truncate text-sm font-medium text-ink">{it['название']}</span>
+                <span className="truncate text-sm font-medium text-premium-text">{it['название']}</span>
               </div>
-              <span className="shrink-0 text-sm font-semibold text-ink">
+              <span className="shrink-0 text-sm font-semibold text-premium-text">
                 {it['остаток']} {it['ед.измерения']}
               </span>
             </div>
-            <div className="mt-1.5 flex items-center justify-between text-xs text-ink/50">
+            <div className="mt-1.5 flex items-center justify-between text-xs text-premium-text/50">
               <span>мин. {it['мин.остаток']} {it['ед.измерения']}</span>
               <span className="shrink-0">{formatDate(it['последнее движение'])}</span>
             </div>
@@ -105,10 +109,10 @@ export function EquipmentPage() {
         ))}
       </div>
 
-      <div className="hidden overflow-hidden rounded-xl border border-ink/10 bg-white shadow-sm md:block">
+      <div className="relative hidden overflow-hidden rounded-xl border border-premium-border bg-premium-surface md:block">
         <table className="w-full text-sm">
           <thead>
-            <tr className="border-b border-ink/10 text-left text-ink/50">
+            <tr className="border-b border-premium-border text-left text-premium-text/50">
               <th className="px-4 py-3 font-medium">Название</th>
               <th className="px-4 py-3 font-medium text-right">Остаток</th>
               <th className="px-4 py-3 font-medium text-right">Мин.</th>
@@ -118,14 +122,14 @@ export function EquipmentPage() {
           <tbody>
             {loading && (
               <tr>
-                <td colSpan={4} className="px-4 py-6 text-center text-ink/40">
-                  Загрузка…
+                <td colSpan={4} className="p-0">
+                  <SkeletonRows />
                 </td>
               </tr>
             )}
             {!loading && filtered.length === 0 && (
               <tr>
-                <td colSpan={4} className="px-4 py-6 text-center text-ink/40">
+                <td colSpan={4} className="px-4 py-6 text-center text-premium-text/40">
                   Ничего не найдено.
                 </td>
               </tr>
@@ -134,19 +138,19 @@ export function EquipmentPage() {
               <tr
                 key={it.id}
                 onClick={() => setSelected(it)}
-                className="cursor-pointer border-b border-ink/5 last:border-0 hover:bg-cream/60"
+                className="cursor-pointer border-b border-premium-border/60 transition-colors last:border-0 hover:bg-premium-surface-2"
               >
-                <td className="px-4 py-3 flex items-center gap-2">
+                <td className="px-4 py-3 flex items-center gap-2 text-premium-text">
                   <span className={`h-2 w-2 shrink-0 rounded-full ${COLOR_DOT[it['цвет']]}`} />
                   {it['название']}
                 </td>
-                <td className="px-4 py-3 text-right font-medium">
+                <td className="px-4 py-3 text-right font-medium text-premium-text">
                   {it['остаток']} {it['ед.измерения']}
                 </td>
-                <td className="px-4 py-3 text-right text-ink/50">
+                <td className="px-4 py-3 text-right text-premium-text/50">
                   {it['мин.остаток']} {it['ед.измерения']}
                 </td>
-                <td className="px-4 py-3 text-ink/50">{formatDate(it['последнее движение'])}</td>
+                <td className="px-4 py-3 text-premium-text/50">{formatDate(it['последнее движение'])}</td>
               </tr>
             ))}
           </tbody>

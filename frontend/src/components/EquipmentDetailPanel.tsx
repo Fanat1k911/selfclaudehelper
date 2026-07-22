@@ -6,7 +6,7 @@ import type { EquipmentItem, EquipmentTransaction } from '../types'
 type ActionKind = 'приход' | 'поломка' | 'пропажа' | 'корректировка' | null
 
 const COLOR_DOT: Record<EquipmentItem['цвет'], string> = {
-  'зелёный': 'bg-emerald-500',
+  'зелёный': 'bg-premium-sage-hi',
   'жёлтый': 'bg-amber-500',
   'красный': 'bg-red-500',
 }
@@ -103,36 +103,36 @@ export function EquipmentDetailPanel({
   return (
     <div className="fixed inset-0 z-50 flex justify-end bg-black/30" onClick={onClose}>
       <div
-        className="flex h-full w-full max-w-md flex-col bg-white shadow-2xl"
+        className="flex h-full w-full max-w-md flex-col bg-premium-surface shadow-2xl"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex items-start justify-between border-b border-ink/10 px-6 py-5">
-          <div className="text-lg font-semibold text-ink">{item['название']}</div>
-          <button onClick={onClose} className="text-ink/40 hover:text-ink text-xl leading-none">
+        <div className="flex items-start justify-between border-b border-premium-border px-6 py-5">
+          <div className="text-lg font-semibold text-premium-text">{item['название']}</div>
+          <button onClick={onClose} className="text-premium-text/40 hover:text-premium-text text-xl leading-none">
             ×
           </button>
         </div>
 
         <div className="flex-1 touch-pan-y overflow-y-auto overflow-x-hidden">
-          <div className="px-6 py-5 border-b border-ink/10 space-y-2">
+          <div className="px-6 py-5 border-b border-premium-border space-y-2">
             <div className="flex items-center justify-between text-sm">
-              <span className="text-ink/60">Остаток</span>
-              <span className="flex items-center gap-2 font-medium">
+              <span className="text-premium-text/60">Остаток</span>
+              <span className="flex items-center gap-2 font-medium text-premium-text">
                 <span className={`h-2 w-2 rounded-full ${COLOR_DOT[item['цвет']]}`} />
                 {item['остаток']} {item['ед.измерения']}
               </span>
             </div>
             <div className="flex items-center justify-between text-sm">
-              <span className="text-ink/60">Мин. остаток</span>
-              <span>{item['мин.остаток']} {item['ед.измерения']}</span>
+              <span className="text-premium-text/60">Мин. остаток</span>
+              <span className="text-premium-text">{item['мин.остаток']} {item['ед.измерения']}</span>
             </div>
             <div className="flex items-center justify-between text-sm">
-              <span className="text-ink/60">Последнее движение</span>
-              <span>{formatDate(item['последнее движение'])}</span>
+              <span className="text-premium-text/60">Последнее движение</span>
+              <span className="text-premium-text">{formatDate(item['последнее движение'])}</span>
             </div>
           </div>
 
-          <div className="px-6 py-4 border-b border-ink/10">
+          <div className="px-6 py-4 border-b border-premium-border">
             <div className="grid grid-cols-4 gap-2">
               {(['приход', 'поломка', 'пропажа', 'корректировка'] as const).map((kind) => {
                 const { label, icon: Icon } = ACTION_META[kind]
@@ -145,8 +145,8 @@ export function EquipmentDetailPanel({
                     }}
                     className={`flex flex-col items-center gap-1 rounded-lg border py-2.5 text-xs font-medium transition-colors ${
                       action === kind
-                        ? 'border-terracotta bg-terracotta text-white shadow-sm'
-                        : 'border-ink/15 bg-white text-ink hover:border-terracotta/50 hover:bg-terracotta/5'
+                        ? 'border-premium-gold bg-premium-gold text-premium-bg shadow-sm'
+                        : 'border-premium-border bg-premium-bg text-premium-text hover:border-premium-gold/50 hover:bg-premium-gold/10'
                     }`}
                   >
                     <Icon size={16} strokeWidth={2} />
@@ -159,7 +159,7 @@ export function EquipmentDetailPanel({
             {action && (
               <form onSubmit={handleSubmit} className="mt-4 space-y-3">
                 <div>
-                  <label className="block text-xs text-ink/60 mb-1">
+                  <label className="block text-xs text-premium-text/60 mb-1">
                     {action === 'корректировка' ? 'Фактическое количество' : 'Количество'}
                   </label>
                   <input
@@ -167,13 +167,13 @@ export function EquipmentDetailPanel({
                     step="any"
                     value={qty}
                     onChange={(e) => setQty(e.target.value)}
-                    className="w-full rounded-lg border border-ink/10 px-3 py-2 text-sm outline-none focus:border-terracotta"
+                    className="w-full rounded-lg border border-premium-border bg-premium-bg px-3 py-2 text-sm text-premium-text outline-none focus:border-premium-gold"
                     required
                   />
                 </div>
                 {(action === 'приход' || action === 'поломка' || action === 'пропажа') && (
                   <div>
-                    <label className="block text-xs text-ink/60 mb-1">
+                    <label className="block text-xs text-premium-text/60 mb-1">
                       {action === 'приход' ? 'Цена (необязательно)' : 'Трата на ремонт/замену (необязательно)'}
                     </label>
                     <input
@@ -181,23 +181,23 @@ export function EquipmentDetailPanel({
                       step="any"
                       value={cost}
                       onChange={(e) => setCost(e.target.value)}
-                      className="w-full rounded-lg border border-ink/10 px-3 py-2 text-sm outline-none focus:border-terracotta"
+                      className="w-full rounded-lg border border-premium-border bg-premium-bg px-3 py-2 text-sm text-premium-text outline-none focus:border-premium-gold"
                     />
                   </div>
                 )}
                 <div>
-                  <label className="block text-xs text-ink/60 mb-1">Комментарий</label>
+                  <label className="block text-xs text-premium-text/60 mb-1">Комментарий</label>
                   <input
                     value={comment}
                     onChange={(e) => setComment(e.target.value)}
-                    className="w-full rounded-lg border border-ink/10 px-3 py-2 text-sm outline-none focus:border-terracotta"
+                    className="w-full rounded-lg border border-premium-border bg-premium-bg px-3 py-2 text-sm text-premium-text outline-none focus:border-premium-gold"
                   />
                 </div>
-                {error && <div className="text-sm text-red-600">{error}</div>}
+                {error && <div className="text-sm text-red-400">{error}</div>}
                 <button
                   type="submit"
                   disabled={submitting}
-                  className="w-full rounded-lg bg-terracotta py-2 text-sm font-medium text-white hover:bg-terracotta-dark disabled:opacity-60"
+                  className="w-full rounded-lg bg-premium-gold py-2 text-sm font-medium text-premium-bg hover:bg-premium-gold-hi disabled:opacity-60"
                 >
                   {submitting ? 'Сохраняем…' : 'Сохранить'}
                 </button>
@@ -206,25 +206,25 @@ export function EquipmentDetailPanel({
           </div>
 
           <div className="px-6 py-4">
-            <div className="text-sm font-medium text-ink/70 mb-3">Движение</div>
-            {loadingHistory && <div className="text-sm text-ink/40">Загрузка…</div>}
+            <div className="text-sm font-medium text-premium-text/70 mb-3">Движение</div>
+            {loadingHistory && <div className="text-sm text-premium-text/40">Загрузка…</div>}
             {!loadingHistory && transactions?.length === 0 && (
-              <div className="text-sm text-ink/40">Движений пока нет.</div>
+              <div className="text-sm text-premium-text/40">Движений пока нет.</div>
             )}
             <div className="space-y-2">
               {transactions?.map((tx) => (
-                <div key={tx.id} className="flex items-start justify-between text-sm border-b border-ink/5 pb-2">
-                  <div>
-                    <div className="capitalize">{tx['тип']}</div>
-                    <div className="text-xs text-ink/40">{formatDate(tx['дата'])}</div>
-                    {tx['комментарий'] && <div className="text-xs text-ink/50">{tx['комментарий']}</div>}
+                <div key={tx.id} className="flex items-start justify-between gap-3 text-sm border-b border-premium-border/60 pb-2">
+                  <div className="min-w-0">
+                    <div className="capitalize text-premium-text">{tx['тип']}</div>
+                    <div className="text-xs text-premium-text/40">{formatDate(tx['дата'])}</div>
+                    {tx['комментарий'] && <div className="text-xs text-premium-text/50">{tx['комментарий']}</div>}
                   </div>
-                  <div className="text-right">
-                    <div className="font-medium">
+                  <div className="shrink-0 whitespace-nowrap text-right">
+                    <div className="font-medium text-premium-text">
                       {tx['тип'] === 'поломка' || tx['тип'] === 'пропажа' ? '-' : '+'}
                       {Math.abs(Number(tx['кол-во']))} {item['ед.измерения']}
                     </div>
-                    {tx['трата'] !== '' && <div className="text-xs text-ink/50">{tx['трата']} ₽</div>}
+                    {tx['трата'] !== '' && <div className="text-xs text-premium-text/50">{tx['трата']} ₽</div>}
                   </div>
                 </div>
               ))}
