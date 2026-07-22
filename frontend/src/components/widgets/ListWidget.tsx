@@ -21,18 +21,21 @@ function formatDateTime(value: string) {
 function LowStockRows({ rows }: { rows: DashboardLowStockItem[] }) {
   if (rows.length === 0) return <Empty text="Все остатки в норме." />
   return (
-    <ul className="space-y-1.5">
-      {rows.map((r) => (
-        <li key={r.id} className="flex items-center justify-between gap-2 text-sm">
-          <span className="truncate text-premium-text">{r['название']}</span>
-          <span className="shrink-0 text-right">
+    <ul className="space-y-2">
+      {rows.map((r, i) => (
+        <li
+          key={r.id}
+          className={`text-sm ${i < rows.length - 1 ? 'border-b border-premium-border/60 pb-2' : ''}`}
+        >
+          <div className="truncate text-premium-text">{r['название']}</div>
+          <div className="mt-0.5 flex items-center gap-1.5">
             <span className="font-medium text-red-400">
               остаток {r['остаток']} {r['ед.измерения']}
             </span>
-            <span className="ml-1.5 text-xs text-premium-text-muted">
-              мин. {r['мин.остаток']} {r['ед.измерения']}
+            <span className="text-xs text-premium-text-muted">
+              · мин. {r['мин.остаток']} {r['ед.измерения']}
             </span>
-          </span>
+          </div>
         </li>
       ))}
     </ul>
