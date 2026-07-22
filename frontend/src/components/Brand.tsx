@@ -17,13 +17,13 @@ export function Brand({
   const name = user?.company_name || 'Мастерская'
   if (collapsed) {
     return (
-      <span className={`font-display text-2xl font-semibold italic tracking-wide ${className}`}>
+      <span className={`font-display text-3xl font-bold italic tracking-wide ${className}`}>
         {name.charAt(0).toUpperCase()}
       </span>
     )
   }
   return (
-    <span className={`font-display min-w-0 truncate text-xl font-semibold italic tracking-wide ${className}`}>
+    <span className={`font-display min-w-0 truncate text-2xl font-bold italic tracking-wide ${className}`}>
       {name}
     </span>
   )
