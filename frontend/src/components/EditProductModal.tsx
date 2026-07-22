@@ -64,10 +64,11 @@ export function EditProductModal({
 
         <div>
           <label className="block text-xs text-ink/60 mb-1">Название</label>
-          <input
+          <textarea
             value={name}
             onChange={(e) => setName(e.target.value)}
-            className="w-full rounded-lg border border-ink/10 px-3 py-2 text-sm outline-none focus:border-terracotta"
+            rows={2}
+            className="w-full resize-none rounded-lg border border-ink/10 px-3 py-2 text-sm outline-none focus:border-terracotta"
             required
           />
         </div>
