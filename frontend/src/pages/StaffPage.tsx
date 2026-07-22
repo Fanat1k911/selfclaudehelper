@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { apiFetch } from '../lib/api'
 import { usePremiumBackground } from '../lib/usePremiumBackground'
 import type { LoginLogEntry, StaffUser } from '../types'
@@ -22,6 +22,20 @@ function formatDateTime(value: string) {
   return `${date}, ${weekday}, ${time}`
 }
 
+const WEEKDAY_SHORT = ['Вс', 'Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб']
+
+// Короткий формат для карточки/таблицы сотрудника (2026-07-22, запрос Александра) —
+// чч:мм, ДН, дд.мм.гггг — компактнее, чем полный formatDateTime (используется в
+// "Истории входов" ниже, там формат оставлен как был).
+function formatLastLoginShort(value: string) {
+  const d = new Date(value)
+  if (Number.isNaN(d.getTime())) return null
+  const pad = (n: number) => String(n).padStart(2, '0')
+  const time = `${pad(d.getHours())}:${pad(d.getMinutes())}`
+  const date = `${pad(d.getDate())}.${pad(d.getMonth() + 1)}.${d.getFullYear()}`
+  return `${time}, ${WEEKDAY_SHORT[d.getDay()]}, ${date}`
+}
+
 export function StaffPage() {
   usePremiumBackground()
   const [staff, setStaff] = useState<StaffUser[]>([])
@@ -29,6 +43,18 @@ export function StaffPage() {
   const [showCreate, setShowCreate] = useState(false)
   const [selected, setSelected] = useState<StaffUser | null>(null)
   const [loginLog, setLoginLog] = useState<LoginLogEntry[]>([])
+
+  const lastLoginByLogin = useMemo(() => {
+    const map = new Map<string, string>()
+    for (const entry of loginLog) {
+      const login = entry['логин']
+      const existing = map.get(login)
+      if (!existing || new Date(entry['дата и время']) > new Date(existing)) {
+        map.set(login, entry['дата и время'])
+      }
+    }
+    return map
+  }, [loginLog])
 
   async function load() {
     setLoading(true)
@@ -99,7 +125,9 @@ export function StaffPage() {
               <span className="truncate">
                 {ROLE_LABEL[u.role]} · {u.login}
               </span>
-              <span className="shrink-0">{u.phone || '—'}</span>
+              <span className="shrink-0">
+                {lastLoginByLogin.has(u.login) ? formatLastLoginShort(lastLoginByLogin.get(u.login)!) : '—'}
+              </span>
             </div>
           </button>
         ))}
@@ -113,20 +141,21 @@ export function StaffPage() {
               <th className="px-4 py-3 font-medium">Логин</th>
               <th className="px-4 py-3 font-medium">Роль</th>
               <th className="px-4 py-3 font-medium">Телефон</th>
+              <th className="px-4 py-3 font-medium">Последний вход</th>
               <th className="px-4 py-3 font-medium">Статус</th>
             </tr>
           </thead>
           <tbody>
             {loading && (
               <tr>
-                <td colSpan={5} className="p-0">
+                <td colSpan={6} className="p-0">
                   <SkeletonRows />
                 </td>
               </tr>
             )}
             {!loading && staff.length === 0 && (
               <tr>
-                <td colSpan={5} className="px-4 py-6 text-center text-premium-text/40">
+                <td colSpan={6} className="px-4 py-6 text-center text-premium-text/40">
                   Сотрудников пока нет.
                 </td>
               </tr>
@@ -141,6 +170,9 @@ export function StaffPage() {
                 <td className="px-4 py-3 text-premium-text/60">{u.login}</td>
                 <td className="px-4 py-3 text-premium-text/60">{ROLE_LABEL[u.role]}</td>
                 <td className="px-4 py-3 text-premium-text/60">{u.phone || '—'}</td>
+                <td className="px-4 py-3 text-premium-text/60">
+                  {lastLoginByLogin.has(u.login) ? formatLastLoginShort(lastLoginByLogin.get(u.login)!) : '—'}
+                </td>
                 <td className="px-4 py-3">
                   <span
                     className={`inline-flex items-center gap-2 ${
