@@ -25,8 +25,13 @@ function LowStockRows({ rows }: { rows: DashboardLowStockItem[] }) {
       {rows.map((r) => (
         <li key={r.id} className="flex items-center justify-between gap-2 text-sm">
           <span className="truncate text-premium-text">{r['название']}</span>
-          <span className="shrink-0 font-medium text-red-400">
-            {r['остаток']} / {r['мин.остаток']} {r['ед.измерения']}
+          <span className="shrink-0 text-right">
+            <span className="font-medium text-red-400">
+              остаток {r['остаток']} {r['ед.измерения']}
+            </span>
+            <span className="ml-1.5 text-xs text-premium-text-muted">
+              мин. {r['мин.остаток']} {r['ед.измерения']}
+            </span>
           </span>
         </li>
       ))}
