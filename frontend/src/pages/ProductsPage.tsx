@@ -35,16 +35,16 @@ export function ProductsPage() {
         </h1>
         <div className="flex flex-wrap gap-2">
           <button
-            onClick={() => setShowImport(true)}
-            className="whitespace-nowrap rounded-lg bg-cream px-3 py-2 text-sm font-medium text-ink hover:bg-ink/5 sm:px-4"
-          >
-            Импорт из файла
-          </button>
-          <button
             onClick={() => setShowCreate(true)}
             className="whitespace-nowrap rounded-lg bg-accent-add px-3 py-2 text-sm font-medium text-white hover:bg-accent-add-dark sm:px-4"
           >
             + Новый продукт
+          </button>
+          <button
+            onClick={() => setShowImport(true)}
+            className="whitespace-nowrap rounded-lg bg-cream px-3 py-2 text-sm font-medium text-ink hover:bg-ink/5 sm:px-4"
+          >
+            Импорт из файла
           </button>
         </div>
       </div>
