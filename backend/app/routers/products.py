@@ -2,7 +2,7 @@
 Обязательные поля при создании — название/категория/GTIN, см. app.constants.PRODUCT_REQUIRED_FIELDS.
 Название рецепта в Product больше не хранится в БД — join при чтении.
 
-Мультитенантность: каждый запрос фильтруется по user["company_id"]. _ready_to_ship_by_recipe
+Мультитенантность: каждый запрос фильтруется по user["company_id"]. _packaged_by_product
 и _sold_by_product принимают company_id явно — их переиспользует sales.py."""
 
 import io
@@ -19,7 +19,7 @@ from app.constants import DEVELOPER, FOUNDER, PRODUCT_REQUIRED_FIELDS
 from app.costing import compute_active_lot_unit_costs, compute_product_costs
 
 from app.db import get_db
-from app.models import Product, ProductionLog, Recipe, RecipeItem, Sale
+from app.models import PackagingLog, Product, Recipe, RecipeItem, Sale
 from app.schemas import NewProductRequest, ProductImportCommitRequest, UpdateProductRequest
 from app.security import get_current_user, get_owned_or_404, require_roles
 
@@ -30,13 +30,17 @@ def _missing_required_fields(fields: dict[str, str]) -> list[str]:
     return [field for field in PRODUCT_REQUIRED_FIELDS if not fields.get(field, "").strip()]
 
 
-def _ready_to_ship_by_recipe(db: Session, company_id: str) -> dict[str, float]:
-    """Готово к отгрузке = произведено по журналу смен (кол-во продукта) минус брак,
-    минус то, что уже продано (см. CLAUDE.md — пока связь рецепт-продукт всегда 1:1)."""
-    produced: dict[str, float] = defaultdict(float)
-    for log in db.scalars(select(ProductionLog).where(ProductionLog.company_id == company_id)):
-        produced[log.recipe_id] += float(log.qty) - float(log.defects)
-    return produced
+def _packaged_by_product(db: Session, company_id: str) -> dict[str, float]:
+    """Готово к отгрузке = упаковано (PackagingLog.qty − брак упаковки) минус то, что уже
+    продано. До 2026-07-23 базой было ProductionLog (сырое изготовление по рецепту) —
+    переключено по решению Александра: реальный пайплайн — рецепт → производство →
+    упаковка → готово к отгрузке → отгрузка, товар физически готов к отгрузке только
+    после упаковки, не сразу после изготовления партии. PackagingLog хранит product_id
+    напрямую (не через recipe_id) — джойн через рецепт больше не нужен."""
+    packaged: dict[str, float] = defaultdict(float)
+    for log in db.scalars(select(PackagingLog).where(PackagingLog.company_id == company_id)):
+        packaged[log.product_id] += float(log.qty) - float(log.defects)
+    return packaged
 
 
 def _sold_by_product(db: Session, company_id: str) -> dict[str, float]:
@@ -64,12 +68,12 @@ def _inci_composition(db: Session, recipe_id: str | None) -> str | None:
 
 
 def _product_dict(
-    product: Product, produced_by_recipe: dict[str, float], sold_by_product: dict[str, float],
+    product: Product, packaged_by_product: dict[str, float], sold_by_product: dict[str, float],
     cost_per_batch: float | None, cost_per_unit: float | None, inci_composition: str | None,
 ) -> dict:
     ready = None
     if product.recipe_id:
-        ready = produced_by_recipe.get(product.recipe_id, 0.0) - sold_by_product.get(product.id, 0.0)
+        ready = packaged_by_product.get(product.id, 0.0) - sold_by_product.get(product.id, 0.0)
     return {
         "id": product.id,
         "название": product.name,
@@ -90,7 +94,7 @@ def _product_dict(
 
 @router.get("")
 def list_products(user: dict = Depends(get_current_user), db: Session = Depends(get_db)) -> list[dict]:
-    produced_by_recipe = _ready_to_ship_by_recipe(db, user["company_id"])
+    packaged_by_product = _packaged_by_product(db, user["company_id"])
     sold_by_product = _sold_by_product(db, user["company_id"])
     lot_unit_costs = compute_active_lot_unit_costs(db, user["company_id"])
     stmt = select(Product).where(Product.company_id == user["company_id"])
@@ -99,7 +103,7 @@ def list_products(user: dict = Depends(get_current_user), db: Session = Depends(
         cost_per_batch, cost_per_unit = compute_product_costs(db, user["company_id"], p, lot_unit_costs)
         inci_composition = _inci_composition(db, p.recipe_id)
         result.append(
-            _product_dict(p, produced_by_recipe, sold_by_product, cost_per_batch, cost_per_unit, inci_composition)
+            _product_dict(p, packaged_by_product, sold_by_product, cost_per_batch, cost_per_unit, inci_composition)
         )
     return result
 

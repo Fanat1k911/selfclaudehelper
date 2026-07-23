@@ -13,8 +13,8 @@ from sqlalchemy.orm import Session
 from app.constants import DEVELOPER, FOUNDER
 
 from app.db import get_db
-from app.models import Counterparty, Product, Recipe, Sale
-from app.routers.products import _ready_to_ship_by_recipe, _sold_by_product
+from app.models import Counterparty, Product, Sale
+from app.routers.products import _packaged_by_product, _sold_by_product
 from app.schemas import SaleRequest, SaleUpdateRequest
 from app.security import get_current_user, get_owned_or_404, require_roles
 
@@ -67,12 +67,13 @@ def create_sale(body: SaleRequest, user: dict = Depends(get_current_user), db: S
         get_owned_or_404(db, Counterparty, body.counterparty_id, user["company_id"], "Контрагент не найден.")
 
     if product.recipe_id:
-        # Блокируем строку рецепта на время проверки+записи — без этого два одновременных
+        # Блокируем строку продукта на время проверки+записи — без этого два одновременных
         # POST на один product могут оба увидеть один и тот же "остаток" до того, как
         # первый закоммитится, и вместе продать больше, чем реально готово (гонка, найдена
-        # на code-review 2026-07-21). Держится до db.commit() ниже.
-        db.execute(select(Recipe.id).where(Recipe.id == product.recipe_id).with_for_update())
-        ready = _ready_to_ship_by_recipe(db, user["company_id"]).get(product.recipe_id, 0.0) - _sold_by_product(
+        # на code-review 2026-07-21). Раньше лочили Recipe как прокси-мьютекс — с переходом
+        # на упаковку (2026-07-23) готовность больше не завязана на рецепт, лочим сам Product.
+        db.execute(select(Product.id).where(Product.id == product.id).with_for_update())
+        ready = _packaged_by_product(db, user["company_id"]).get(product.id, 0.0) - _sold_by_product(
             db, user["company_id"]
         ).get(product.id, 0.0)
         if body.qty > ready:
@@ -113,13 +114,13 @@ def update_sale(
         get_owned_or_404(db, Counterparty, updates["counterparty_id"], user["company_id"], "Контрагент не найден.")
 
     if product.recipe_id and (target_product_id != sale.product_id or target_qty != float(sale.qty)):
-        # Та же блокировка строки рецепта, что и в create_sale — см. комментарий там.
-        db.execute(select(Recipe.id).where(Recipe.id == product.recipe_id).with_for_update())
+        # Та же блокировка строки продукта, что и в create_sale — см. комментарий там.
+        db.execute(select(Product.id).where(Product.id == product.id).with_for_update())
         # "Готово к отгрузке" минус уже проданное ДРУГИМИ отгрузками (не этой — эту сейчас правим).
         sold_excluding_self: dict[str, float] = defaultdict(float)
         for s in db.scalars(select(Sale).where(Sale.company_id == user["company_id"], Sale.id != sale_id)):
             sold_excluding_self[s.product_id] += float(s.qty)
-        ready = _ready_to_ship_by_recipe(db, user["company_id"]).get(product.recipe_id, 0.0) - sold_excluding_self.get(
+        ready = _packaged_by_product(db, user["company_id"]).get(product.id, 0.0) - sold_excluding_self.get(
             target_product_id, 0.0
         )
         if target_qty > ready:

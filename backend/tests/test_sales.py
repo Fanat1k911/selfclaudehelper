@@ -1,11 +1,14 @@
 from datetime import datetime
 
 from app.constants import FOUNDER
-from app.models import Product, ProductionLog, Recipe, Sale
+from app.models import PackagingLog, Product, ProductionLog, Recipe, Sale
 from tests.conftest import auth_headers, default_company_id, make_user
 
 
 def _make_product_with_stock(db_session, *, batches=2.0, batch_yield=10.0, defects=0.0, login="prodworker"):
+    """"Готово к отгрузке" теперь считается от PackagingLog, не от ProductionLog
+    (2026-07-23, переход на "рецепт → производство → упаковка → готово к отгрузке") —
+    пишем оба журнала, как реальная форма "Производство" делает при packaged_qty>0."""
     company_id = default_company_id(db_session)
     recipe = Recipe(
         company_id=company_id, name="Свеча ароматическая", category="свечи", produces="свеча", batch_yield=batch_yield
@@ -29,6 +32,15 @@ def _make_product_with_stock(db_session, *, batches=2.0, batch_yield=10.0, defec
             batches=batches,
             started_at=datetime(2026, 7, 15, 9, 0),
             finished_at=datetime(2026, 7, 15, 10, 0),
+            defects=defects,
+        )
+    )
+    db_session.add(
+        PackagingLog(
+            company_id=company_id,
+            worker_id=worker.id,
+            product_id=product.id,
+            qty=batches * batch_yield,
             defects=defects,
         )
     )
@@ -61,6 +73,58 @@ def test_sale_succeeds_when_enough_ready(client, db_session):
     )
     assert resp.status_code == 200
     assert db_session.query(Sale).count() == 1
+
+
+def test_sale_rejected_when_produced_but_not_packaged(client, db_session):
+    """Ядро перехода 2026-07-23: изготовленное, но не упакованное — не «готово к
+    отгрузке». Раньше (база = ProductionLog) эта продажа прошла бы."""
+    company_id = default_company_id(db_session)
+    recipe = Recipe(company_id=company_id, name="Крем", category="крем", produces="крем", batch_yield=10.0)
+    db_session.add(recipe)
+    db_session.flush()
+    product = Product(company_id=company_id, name="Крем без упаковки", category="крем", gtin="500", recipe_id=recipe.id)
+    db_session.add(product)
+    db_session.flush()
+    worker = make_user(db_session, login="unpacked_worker", role="worker")
+    db_session.add(
+        ProductionLog(
+            company_id=company_id, worker_id=worker.id, recipe_id=recipe.id, qty=20, batches=2,
+            started_at=datetime(2026, 7, 15, 9, 0), finished_at=datetime(2026, 7, 15, 10, 0),
+        )
+    )
+    db_session.commit()
+
+    founder = make_user(db_session, login="f_unpacked", role=FOUNDER)
+    resp = client.post("/api/sales", json={"product_id": product.id, "qty": 1}, headers=auth_headers(founder))
+    assert resp.status_code == 400
+    assert "Недостаточно готового товара" in resp.json()["detail"]
+
+
+def test_sale_ready_qty_follows_packaged_not_produced(client, db_session):
+    """Изготовлено 20, упаковано только 15 — доступно к продаже 15, не 20."""
+    company_id = default_company_id(db_session)
+    recipe = Recipe(company_id=company_id, name="Свеча", category="свечи", produces="свеча", batch_yield=10.0)
+    db_session.add(recipe)
+    db_session.flush()
+    product = Product(company_id=company_id, name="Свеча частично упакована", category="свечи", gtin="501", recipe_id=recipe.id)
+    db_session.add(product)
+    db_session.flush()
+    worker = make_user(db_session, login="partial_pack_worker", role="worker")
+    db_session.add(
+        ProductionLog(
+            company_id=company_id, worker_id=worker.id, recipe_id=recipe.id, qty=20, batches=2,
+            started_at=datetime(2026, 7, 15, 9, 0), finished_at=datetime(2026, 7, 15, 10, 0),
+        )
+    )
+    db_session.add(PackagingLog(company_id=company_id, worker_id=worker.id, product_id=product.id, qty=15))
+    db_session.commit()
+
+    founder = make_user(db_session, login="f_partial_pack", role=FOUNDER)
+    resp = client.post("/api/sales", json={"product_id": product.id, "qty": 16}, headers=auth_headers(founder))
+    assert resp.status_code == 400
+
+    resp = client.post("/api/sales", json={"product_id": product.id, "qty": 15}, headers=auth_headers(founder))
+    assert resp.status_code == 200
 
 
 def test_sale_without_recipe_link_is_unrestricted(client, db_session):
