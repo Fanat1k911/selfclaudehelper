@@ -150,6 +150,20 @@ def test_patch_updates_purchase_attrs_partially(client, db_session):
     assert row["INCI"] == "Glycerin"
 
 
+def test_patch_renames_material(client, db_session):
+    founder = make_user(db_session, login="iw3b", role=FOUNDER)
+    headers = auth_headers(founder)
+    resp = client.post("/api/ingredients", json={"name": "Опечатка", "category": "косм", "unit": "г"}, headers=headers)
+    material_id = resp.json()["id"]
+
+    resp = client.patch(f"/api/ingredients/{material_id}", json={"name": "Исправлено"}, headers=headers)
+    assert resp.status_code == 200
+
+    resp = client.get("/api/ingredients", headers=headers)
+    row = next(r for r in resp.json() if r["id"] == material_id)
+    assert row["название"] == "Исправлено"
+
+
 def test_patch_rejects_foreign_material(client, db_session):
     from tests.conftest import make_company
 

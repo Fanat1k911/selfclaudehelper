@@ -57,6 +57,7 @@ class MaterialAttrsUpdate(BaseModel):
     через model_dump(exclude_unset=True) в роутере: пропущенное в запросе поле не
     трогается, явно присланный null — очищает."""
 
+    name: str | None = Field(default=None, min_length=1)
     unit_cost: float | None = Field(default=None, ge=0)
     min_purchase_batch_qty: float | None = Field(default=None, ge=0)
     min_purchase_batch_cost: float | None = Field(default=None, ge=0)
