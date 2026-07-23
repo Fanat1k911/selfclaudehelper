@@ -5,6 +5,7 @@ import 'react-grid-layout/css/styles.css'
 import 'react-resizable/css/styles.css'
 import { apiFetch } from '../lib/api'
 import { usePremiumBackground } from '../lib/usePremiumBackground'
+import { useIsMobile } from '../lib/useIsMobile'
 import type { WidgetCatalogItem, WidgetLayoutItem } from '../types'
 import { AddWidgetModal } from '../components/widgets/AddWidgetModal'
 import { WidgetFrame } from '../components/widgets/WidgetFrame'
@@ -25,6 +26,7 @@ export function DashboardPage() {
   const catalogByKey = Object.fromEntries(catalog.map((w) => [w.key, w]))
 
   usePremiumBackground()
+  const isMobile = useIsMobile()
 
   async function loadWidgetData(key: string) {
     const data = await apiFetch(`/dashboard/widgets/${key}/data`)
@@ -120,35 +122,60 @@ export function DashboardPage() {
         </div>
       )}
 
-      <ReactGridLayout
-        className="layout"
-        cols={COLS}
-        rowHeight={ROW_HEIGHT}
-        layout={layout.map((l) => {
-          const widget = catalogByKey[l.widget_key]
-          return { i: l.widget_key, x: l.x, y: l.y, w: l.w, h: l.h, minW: widget?.min_w ?? 2, minH: widget?.min_h ?? 2 }
-        })}
-        onLayoutChange={handleRglLayoutChange}
-        onDragStop={handleDragOrResizeStop}
-        onResizeStop={handleDragOrResizeStop}
-        isDraggable={editing}
-        isResizable={editing}
-        draggableHandle=".widget-drag-handle"
-        compactType="vertical"
-        margin={[12, 12]}
-      >
-        {layout.map((l) => {
-          const widget = catalogByKey[l.widget_key]
-          if (!widget) return null
-          return (
-            <div key={l.widget_key}>
-              <WidgetFrame title={widget.title} editing={editing} onRemove={() => handleRemove(l.widget_key)}>
-                <WidgetRenderer widget={widget} data={widgetData[l.widget_key]} />
-              </WidgetFrame>
-            </div>
-          )
-        })}
-      </ReactGridLayout>
+      {isMobile ? (
+        // Мобильный вид (2026-07-23, репорт Александра) — отдельный от десктопной сетки:
+        // react-grid-layout считает ширину колонки от viewport, на телефоне это давало
+        // ~30px/колонку и обрезанные в один символ заголовки виджетов. Вместо попытки
+        // ужать grid — просто стек full-width карточек в порядке y (drag/resize на тач-экране
+        // всё равно неудобны), высота каждой берётся из той же h-величины, что и на десктопе,
+        // чтобы графики (recharts ResponsiveContainer) не схлопывались без заданной высоты.
+        <div className="relative space-y-3">
+          {[...layout]
+            .sort((a, b) => a.y - b.y || a.x - b.x)
+            .map((l) => {
+              const widget = catalogByKey[l.widget_key]
+              if (!widget) return null
+              const height = Math.max(widget.min_h ?? 2, l.h) * ROW_HEIGHT
+              return (
+                <div key={l.widget_key} style={{ height }}>
+                  <WidgetFrame title={widget.title} editing={editing} onRemove={() => handleRemove(l.widget_key)}>
+                    <WidgetRenderer widget={widget} data={widgetData[l.widget_key]} />
+                  </WidgetFrame>
+                </div>
+              )
+            })}
+        </div>
+      ) : (
+        <ReactGridLayout
+          className="layout"
+          cols={COLS}
+          rowHeight={ROW_HEIGHT}
+          layout={layout.map((l) => {
+            const widget = catalogByKey[l.widget_key]
+            return { i: l.widget_key, x: l.x, y: l.y, w: l.w, h: l.h, minW: widget?.min_w ?? 2, minH: widget?.min_h ?? 2 }
+          })}
+          onLayoutChange={handleRglLayoutChange}
+          onDragStop={handleDragOrResizeStop}
+          onResizeStop={handleDragOrResizeStop}
+          isDraggable={editing}
+          isResizable={editing}
+          draggableHandle=".widget-drag-handle"
+          compactType="vertical"
+          margin={[12, 12]}
+        >
+          {layout.map((l) => {
+            const widget = catalogByKey[l.widget_key]
+            if (!widget) return null
+            return (
+              <div key={l.widget_key}>
+                <WidgetFrame title={widget.title} editing={editing} onRemove={() => handleRemove(l.widget_key)}>
+                  <WidgetRenderer widget={widget} data={widgetData[l.widget_key]} />
+                </WidgetFrame>
+              </div>
+            )
+          })}
+        </ReactGridLayout>
+      )}
 
       {showAdd && <AddWidgetModal available={available} onAdd={handleAdd} onClose={() => setShowAdd(false)} />}
     </div>
