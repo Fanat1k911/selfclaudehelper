@@ -36,6 +36,13 @@ class Company(Base):
     # не пользователь: все founder/worker этой компании по умолчанию на одном поясе
     # (физическая мастерская в одном месте). См. User.timezone для личного переопределения.
     timezone: Mapped[str] = mapped_column(String(64), default="Europe/Moscow")
+    # Ограничение входа worker'ов по сети мастерской (2026-07-23, запрос Александра) —
+    # DDNS-хостнейм (не голый IP — тот у большинства домашних провайдеров плавает, см.
+    # CLAUDE.md), при входе резолвится и сверяется с IP запроса (см.
+    # security.py::_enforce_workshop_network). NULL — ограничение выключено (дефолт,
+    # опционально по компании). Founder/Developer не ограничены — им может понадобиться
+    # доступ удалённо.
+    worker_network_hostname: Mapped[str | None] = mapped_column(String(255))
 
 
 class User(Base):

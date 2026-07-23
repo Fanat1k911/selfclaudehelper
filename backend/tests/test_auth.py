@@ -94,3 +94,81 @@ def test_worker_cannot_see_login_log(client, db_session):
     worker = make_user(db_session, login="worker5", role=WORKER, password="pass1234")
     resp = client.get("/api/auth/log", headers=auth_headers(worker))
     assert resp.status_code == 403
+
+
+def test_worker_login_unrestricted_when_network_not_configured(client, db_session):
+    make_user(db_session, login="netw1", role=WORKER, password="pass1234")
+    resp = client.post(
+        "/api/auth/login", json={"login": "netw1", "password": "pass1234"},
+        headers={"X-Forwarded-For": "10.0.0.99"},
+    )
+    assert resp.status_code == 200
+
+
+def test_worker_login_allowed_from_configured_network(client, db_session):
+    founder = make_user(db_session, login="netw_f1", role="founder", password="pass1234")
+    resp = client.put("/api/users/network-settings", json={"hostname": "localhost"}, headers=auth_headers(founder))
+    assert resp.status_code == 200
+    assert resp.json()["hostname"] == "localhost"
+
+    make_user(db_session, login="netw2", role=WORKER, password="pass1234")
+    resp = client.post(
+        "/api/auth/login", json={"login": "netw2", "password": "pass1234"},
+        headers={"X-Forwarded-For": "127.0.0.1"},  # "localhost" резолвится сюда
+    )
+    assert resp.status_code == 200
+
+
+def test_worker_login_rejected_from_other_network(client, db_session):
+    founder = make_user(db_session, login="netw_f2", role="founder", password="pass1234")
+    client.put("/api/users/network-settings", json={"hostname": "localhost"}, headers=auth_headers(founder))
+
+    make_user(db_session, login="netw3", role=WORKER, password="pass1234")
+    resp = client.post(
+        "/api/auth/login", json={"login": "netw3", "password": "pass1234"},
+        headers={"X-Forwarded-For": "203.0.113.5"},
+    )
+    assert resp.status_code == 403
+    assert "мастерской" in resp.json()["detail"]
+
+
+def test_founder_login_unrestricted_even_with_network_configured(client, db_session):
+    founder = make_user(db_session, login="netw_f3", role="founder", password="pass1234")
+    client.put("/api/users/network-settings", json={"hostname": "localhost"}, headers=auth_headers(founder))
+
+    resp = client.post(
+        "/api/auth/login", json={"login": "netw_f3", "password": "pass1234"},
+        headers={"X-Forwarded-For": "203.0.113.5"},
+    )
+    assert resp.status_code == 200
+
+
+def test_worker_login_rejected_when_hostname_unresolvable(client, db_session):
+    founder = make_user(db_session, login="netw_f4", role="founder", password="pass1234")
+    client.put(
+        "/api/users/network-settings", json={"hostname": "this-does-not-resolve.invalid"}, headers=auth_headers(founder)
+    )
+
+    make_user(db_session, login="netw4", role=WORKER, password="pass1234")
+    resp = client.post(
+        "/api/auth/login", json={"login": "netw4", "password": "pass1234"},
+        headers={"X-Forwarded-For": "127.0.0.1"},
+    )
+    assert resp.status_code == 403
+
+
+def test_network_settings_forbidden_for_worker(client, db_session):
+    worker = make_user(db_session, login="netw5", role=WORKER, password="pass1234")
+    resp = client.get("/api/users/network-settings", headers=auth_headers(worker))
+    assert resp.status_code == 403
+
+
+def test_network_settings_clear_with_null(client, db_session):
+    founder = make_user(db_session, login="netw_f5", role="founder", password="pass1234")
+    headers = auth_headers(founder)
+    client.put("/api/users/network-settings", json={"hostname": "localhost"}, headers=headers)
+    resp = client.put("/api/users/network-settings", json={"hostname": None}, headers=headers)
+    assert resp.json()["hostname"] is None
+
+    resp = client.get("/api/users/network-settings", headers=headers)
+    assert resp.json()["hostname"] is None

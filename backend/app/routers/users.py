@@ -23,8 +23,8 @@ from sqlalchemy.orm import Session, joinedload
 from app.constants import DEVELOPER, FOUNDER, USER_ROLES
 
 from app.db import get_db
-from app.models import CompanyMembership, User
-from app.schemas import NewUserRequest, ResetPasswordRequest, UpdateUserRequest
+from app.models import Company, CompanyMembership, User
+from app.schemas import NewUserRequest, ResetPasswordRequest, UpdateUserRequest, WorkerNetworkSettingsRequest
 from app.security import attach_or_create_membership, get_current_user, require_roles
 from app.timezone_utils import is_valid_tz_name
 
@@ -170,3 +170,21 @@ def user_companies(
     return [
         {"id": m.company_id, "name": m.company.name, "role": m.role} for m in db.scalars(stmt)
     ]
+
+
+@router.get("/network-settings")
+def get_network_settings(user: dict = Depends(get_current_user), db: Session = Depends(get_db)) -> dict:
+    """Ограничение входа worker'ов по сети мастерской (2026-07-23) — см.
+    security.py::enforce_workshop_network. hostname пуст/None = ограничение выключено."""
+    company = db.get(Company, user["company_id"])
+    return {"hostname": company.worker_network_hostname if company else None}
+
+
+@router.put("/network-settings")
+def update_network_settings(
+    body: WorkerNetworkSettingsRequest, user: dict = Depends(get_current_user), db: Session = Depends(get_db)
+) -> dict:
+    company = db.get(Company, user["company_id"])
+    company.worker_network_hostname = body.hostname.strip() if body.hostname and body.hostname.strip() else None
+    db.commit()
+    return {"hostname": company.worker_network_hostname}

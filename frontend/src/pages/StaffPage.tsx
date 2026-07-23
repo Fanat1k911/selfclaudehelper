@@ -1,10 +1,121 @@
-import { useEffect, useMemo, useState } from 'react'
-import { apiFetch } from '../lib/api'
+import { useEffect, useMemo, useState, type FormEvent } from 'react'
+import { Pencil } from 'lucide-react'
+import { apiFetch, ApiError } from '../lib/api'
 import { usePremiumBackground } from '../lib/usePremiumBackground'
-import type { LoginLogEntry, StaffUser } from '../types'
+import type { LoginLogEntry, StaffUser, WorkerNetworkSettings } from '../types'
 import { NewStaffModal } from '../components/NewStaffModal'
 import { StaffDetailPanel } from '../components/StaffDetailPanel'
 import { SkeletonRows } from '../components/SkeletonRows'
+
+function NetworkRestrictionSection() {
+  const [hostname, setHostname] = useState<string | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [editing, setEditing] = useState(false)
+  const [draft, setDraft] = useState('')
+  const [saving, setSaving] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    apiFetch<WorkerNetworkSettings>('/users/network-settings')
+      .then((s) => setHostname(s.hostname))
+      .finally(() => setLoading(false))
+  }, [])
+
+  async function handleSubmit(e: FormEvent) {
+    e.preventDefault()
+    setError(null)
+    setSaving(true)
+    try {
+      const resp = await apiFetch<WorkerNetworkSettings>('/users/network-settings', {
+        method: 'PUT',
+        body: JSON.stringify({ hostname: draft.trim() || null }),
+      })
+      setHostname(resp.hostname)
+      setEditing(false)
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : 'Не удалось сохранить.')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  if (loading) return null
+
+  return (
+    <div className="relative mt-8 max-w-xl">
+      <div className="mb-3 flex items-center justify-between">
+        <h2 className="font-display text-lg font-semibold italic text-premium-text">
+          Ограничение входа сотрудников по сети мастерской
+        </h2>
+        {!editing && (
+          <button
+            onClick={() => {
+              setDraft(hostname ?? '')
+              setEditing(true)
+            }}
+            className="flex items-center gap-1.5 text-xs text-premium-text/50 hover:text-premium-gold-hi"
+          >
+            <Pencil size={13} /> {hostname ? 'Изменить' : 'Настроить'}
+          </button>
+        )}
+      </div>
+
+      {!editing ? (
+        <div className="rounded-xl border border-premium-border bg-premium-surface p-4 text-sm">
+          {hostname ? (
+            <>
+              <div className="text-premium-text">
+                Включено — вход для роли «Сотрудник» разрешён только из сети мастерской.
+              </div>
+              <div className="mt-1 text-premium-text/50">DDNS-адрес: {hostname}</div>
+              <div className="mt-1 text-xs text-premium-text/40">
+                Founder и Developer не ограничены — им доступ разрешён из любой сети.
+              </div>
+            </>
+          ) : (
+            <div className="text-premium-text/50">
+              Выключено — сотрудники могут заходить откуда угодно.
+            </div>
+          )}
+        </div>
+      ) : (
+        <form
+          onSubmit={handleSubmit}
+          className="rounded-xl border border-premium-border bg-premium-surface p-4 space-y-3"
+        >
+          <div>
+            <label className="block text-xs text-premium-text/60 mb-1">
+              DDNS-адрес мастерской (пусто — ограничение выключено)
+            </label>
+            <input
+              value={draft}
+              onChange={(e) => setDraft(e.target.value)}
+              placeholder="oinarri-workshop.duckdns.org"
+              className="w-full rounded-lg border border-premium-border bg-premium-bg px-3 py-2 text-sm text-premium-text outline-none focus:border-premium-gold"
+            />
+          </div>
+          {error && <div className="text-sm text-red-400">{error}</div>}
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={() => setEditing(false)}
+              className="flex-1 rounded-lg border border-premium-border py-2 text-sm font-medium text-premium-text hover:bg-premium-surface-2"
+            >
+              Отмена
+            </button>
+            <button
+              type="submit"
+              disabled={saving}
+              className="flex-1 rounded-lg bg-premium-gold py-2 text-sm font-medium text-premium-bg hover:bg-premium-gold-hi disabled:opacity-60"
+            >
+              {saving ? 'Сохраняем…' : 'Сохранить'}
+            </button>
+          </div>
+        </form>
+      )}
+    </div>
+  )
+}
 
 const ROLE_LABEL: Record<StaffUser['role'], string> = {
   worker: 'Сотрудник',
@@ -196,6 +307,8 @@ export function StaffPage() {
           </tbody>
         </table>
       </div>
+
+      <NetworkRestrictionSection />
 
       <div className="relative mt-8">
         <h2 className="mb-3 font-display text-lg font-semibold italic text-premium-text">История входов</h2>

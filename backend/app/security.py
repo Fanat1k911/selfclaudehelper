@@ -1,6 +1,7 @@
 """Логин на bcrypt + JWT — сессия не st.session_state (сервер без состояния,
 клиент React), а подписанный токен, который фронт хранит и шлёт в Authorization header."""
 
+import socket
 import time
 from datetime import datetime, timedelta, timezone
 from typing import TypeVar
@@ -13,7 +14,7 @@ from sqlalchemy import func, select
 from sqlalchemy.orm import Session, selectinload
 
 from app.config import JWT_ALGORITHM, JWT_EXPIRE_MINUTES, JWT_SECRET
-from app.constants import FOUNDER, USER_STATUS_ACTIVE
+from app.constants import FOUNDER, USER_STATUS_ACTIVE, WORKER
 from app.db import Base, get_db
 from app.models import Company, CompanyMembership, User
 from app.timezone_utils import is_valid_tz_name, next_midnight_utc
@@ -79,6 +80,30 @@ def _effective_timezone(user: User, membership: CompanyMembership) -> str:
     """Личное User.timezone (2026-07-18) переопределяет часовой пояс компании, если
     заполнено — иначе действует Company.timezone (по умолчанию для всех её участников)."""
     return user.timezone or membership.company.timezone
+
+
+def enforce_workshop_network(user: dict, request_ip: str, db: Session) -> None:
+    """Ограничение входа worker'ов по сети мастерской (2026-07-23, запрос Александра) —
+    Company.worker_network_hostname (DDNS-имя, не голый IP — тот у домашних провайдеров
+    почти всегда плавает) резолвится на каждый вход и сверяется с IP запроса. NULL —
+    ограничение выключено (дефолт, компания должна явно его включить). Founder/Developer
+    не проверяются вообще — им может понадобиться доступ удалённо. DNS-резолв синхронный
+    (socket.gethostbyname) — это единственная сетевая операция на пути логина worker'а,
+    приемлемо (не батч-эндпоинт), таймаут ОС по умолчанию."""
+    if user["role"] != WORKER:
+        return
+    company = db.get(Company, user["company_id"])
+    if not company or not company.worker_network_hostname:
+        return
+    try:
+        allowed_ip = socket.gethostbyname(company.worker_network_hostname)
+    except OSError:
+        # DDNS-хост временно не резолвится (провайдер/роутер недоступен) — фейлимся в
+        # запрет, не в разрешение: молчаливое "не смог проверить — пускай" свело бы всю
+        # защиту на нет при любом сетевом сбое DDNS-провайдера.
+        raise HTTPException(status.HTTP_403_FORBIDDEN, "Вход возможен только из сети мастерской.")
+    if request_ip != allowed_ip:
+        raise HTTPException(status.HTTP_403_FORBIDDEN, "Вход возможен только из сети мастерской.")
 
 
 def _mint_pending_token(user_id: str) -> str:

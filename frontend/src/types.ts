@@ -258,6 +258,10 @@ export interface LoginLogEntry {
   'дата и время': string
 }
 
+export interface WorkerNetworkSettings {
+  hostname: string | null
+}
+
 export interface TopProduct {
   product_id: string
   'название': string

@@ -10,6 +10,7 @@ from app.schemas import LoginRequest, RegisterCompanyRequest, SelectCompanyReque
 from app.security import (
     authenticate,
     create_access_token,
+    enforce_workshop_network,
     get_current_user,
     register_company,
     require_roles,
@@ -32,12 +33,14 @@ _LOGIN_MAX_ATTEMPTS = 10
 _LOGIN_WINDOW_SECONDS = 300
 
 
-def _finalize(result: dict, db: Session) -> dict:
+def _finalize(result: dict, request: Request, db: Session) -> dict:
     """authenticate()/select_company()/register_company() уже отдали публичные поля юзера
     и эффективный часовой пояс (tz_name) — минтим токен (exp = следующая полночь по нему,
     см. app/timezone_utils.py) и пишем LoginLog. Общий хвост для однокомпанийного входа,
-    второго шага выбора и саморегистрации."""
+    второго шага выбора и саморегистрации. enforce_workshop_network — до записи LoginLog/
+    минтинга токена: если worker не в сети мастерской, вход не должен состояться вообще."""
     user = result["user"]
+    enforce_workshop_network(user, client_ip(request), db)
     db.add(LoginLog(company_id=user["company_id"], user_id=user["id"]))
     db.commit()
     token = create_access_token(user, tz_name=result.get("tz_name"))
@@ -53,33 +56,36 @@ def login(body: LoginRequest, request: Request, db: Session = Depends(get_db)) -
         # Несколько компаний у одного логина (2026-07-18) — не логиним сразу, фронт
         # показывает выбор компании и достучится через /select-company с pending_token.
         return {"needs_company_choice": True, "pending_token": result["pending_token"], "companies": result["companies"]}
-    return _finalize(result, db)
+    return _finalize(result, request, db)
 
 
 @router.post("/register")
 def register(body: RegisterCompanyRequest, request: Request, db: Session = Depends(get_db)) -> dict:
     check_rate_limit(f"register:{client_ip(request)}", _REGISTER_MAX_PER_HOUR, _REGISTER_WINDOW_SECONDS)
     result = register_company(body.company_name, body.fio, body.login, body.password, body.phone, body.timezone, db)
-    return _finalize(result, db)
+    return _finalize(result, request, db)
 
 
 @router.post("/select-company")
-def select_company_route(body: SelectCompanyRequest, db: Session = Depends(get_db)) -> dict:
+def select_company_route(body: SelectCompanyRequest, request: Request, db: Session = Depends(get_db)) -> dict:
     result = select_company(body.pending_token, body.company_id, db)
-    return _finalize(result, db)
+    return _finalize(result, request, db)
 
 
 @router.post("/switch-company")
 def switch_company_route(
-    body: SwitchCompanyRequest, user: dict = Depends(get_current_user), db: Session = Depends(get_db)
+    body: SwitchCompanyRequest, request: Request, user: dict = Depends(get_current_user), db: Session = Depends(get_db)
 ) -> dict:
     """Смена активной компании уже залогиненным пользователем — без повторного пароля,
     просто переиздаёт токен на другое его же членство (см. app/security.py::switch_company).
     Тоже пишет LoginLog (той компании, куда переключились) — иначе Founder/Developer той
     компании не видел бы в истории входов доступ через переключалку, только через прямой
-    логин (нашёл code-review 2026-07-18)."""
+    логин (нашёл code-review 2026-07-18). enforce_workshop_network — та же проверка, что и
+    в _finalize: переключение на компанию с сетевым ограничением для worker'а должно
+    подчиняться тому же правилу, не быть лазейкой в обход."""
     result = switch_company(user["id"], body.company_id, db)
     new_user = result["user"]
+    enforce_workshop_network(new_user, client_ip(request), db)
     db.add(LoginLog(company_id=new_user["company_id"], user_id=new_user["id"]))
     db.commit()
     token = create_access_token(new_user, tz_name=result.get("tz_name"))

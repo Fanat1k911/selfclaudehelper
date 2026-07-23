@@ -386,6 +386,10 @@ class ResetPasswordRequest(BaseModel):
     new_password: str
 
 
+class WorkerNetworkSettingsRequest(BaseModel):
+    hostname: str | None = Field(default=None, max_length=255)
+
+
 class ImportCommitRow(BaseModel):
     material_id: str
     new_qty: float
