@@ -59,6 +59,18 @@ a[href] {
   cursor: pointer;
 }
 
+/* Убирает нативные +/- стрелки у number-полей (2026-07-23, запрос Александра —
+   "убогий скролл"). Точечный класс, не глобальное правило на все number-инпуты —
+   в других местах (проценты, цены) стрелки никто не жаловался убирать. */
+.no-spinner::-webkit-outer-spin-button,
+.no-spinner::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+.no-spinner {
+  -moz-appearance: textfield;
+}
+
 /* iOS Safari/Chrome/Brave авто-зумят страницу при фокусе на любой input/select/textarea
    мельче 16px — фикс раньше поставили только на 2 поля логина (text-sm=14px→text-base),
    но тот же text-sm паттерн есть в ~15 других модалок/страниц (найдено retroactive

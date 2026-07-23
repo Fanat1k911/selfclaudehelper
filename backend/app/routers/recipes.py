@@ -121,6 +121,23 @@ def add_recipe_item(
     return {"ok": True}
 
 
+@router.delete("/{recipe_id}/items/{material_id}", dependencies=[Depends(require_roles(FOUNDER, DEVELOPER))])
+def delete_recipe_item(
+    recipe_id: str, material_id: str, user: dict = Depends(get_current_user), db: Session = Depends(get_db)
+) -> dict:
+    """Убрать компонент из состава (2026-07-23, запрос Александра — раньше состав рецепта
+    можно было только пополнять, не редактировать/убирать)."""
+    _get_own_recipe(db, recipe_id, user["company_id"])
+    item = db.scalar(
+        select(RecipeItem).where(RecipeItem.recipe_id == recipe_id, RecipeItem.material_id == material_id)
+    )
+    if not item:
+        raise HTTPException(404, "Компонент не найден в составе рецепта.")
+    db.delete(item)
+    db.commit()
+    return {"ok": True}
+
+
 @router.patch("/{recipe_id}", dependencies=[Depends(require_roles(FOUNDER, DEVELOPER))])
 def update_recipe(
     recipe_id: str, body: UpdateRecipeRequest, user: dict = Depends(get_current_user), db: Session = Depends(get_db)

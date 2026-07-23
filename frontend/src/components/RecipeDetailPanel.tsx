@@ -16,6 +16,7 @@ export function RecipeDetailPanel({
   const [items, setItems] = useState<RecipeItem[] | null>(null)
   const [ingredients, setIngredients] = useState<Ingredient[]>([])
   const [materialId, setMaterialId] = useState('')
+  const [materialName, setMaterialName] = useState('')
   const [qty, setQty] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
@@ -25,6 +26,10 @@ export function RecipeDetailPanel({
   const [lossPercent, setLossPercent] = useState(recipe['процент потерь'].toString())
   const [savingLoss, setSavingLoss] = useState(false)
   const [lossError, setLossError] = useState<string | null>(null)
+  const [editingItemId, setEditingItemId] = useState<string | null>(null)
+  const [editedQty, setEditedQty] = useState('')
+  const [savingItem, setSavingItem] = useState(false)
+  const [deletingItemId, setDeletingItemId] = useState<string | null>(null)
 
   function loadItems() {
     apiFetch<RecipeItem[]>(`/recipes/${recipe.id}/items`).then(setItems)
@@ -33,11 +38,18 @@ export function RecipeDetailPanel({
   useEffect(() => {
     loadItems()
     if (!canEdit) return
-    apiFetch<Ingredient[]>('/ingredients').then((data) => {
-      setIngredients(data)
-      if (data.length > 0) setMaterialId(data[0].id)
-    })
+    apiFetch<Ingredient[]>('/ingredients').then(setIngredients)
   }, [recipe.id, canEdit])
+
+  // Поиск компонента вводом текста (2026-07-23, запрос Александра — раньше был только
+  // <select>, приходилось скроллить весь список). datalist — тот же паттерн, что уже
+  // в NewRecipeModal.tsx: печатаешь, браузер подсказывает совпадения, выбор резолвится
+  // в materialId по точному совпадению названия.
+  function selectMaterialByName(value: string) {
+    const match = ingredients.find((ing) => ing['название'].toLowerCase() === value.toLowerCase())
+    setMaterialName(value)
+    setMaterialId(match ? match.id : '')
+  }
 
   async function toggleArchived() {
     setArchiving(true)
@@ -83,12 +95,52 @@ export function RecipeDetailPanel({
         body: JSON.stringify({ material_id: materialId, qty_per_batch: Number(qty) }),
       })
       setQty('')
+      setMaterialName('')
+      setMaterialId('')
       loadItems()
       onChanged()
     } catch (err) {
       setError(err instanceof ApiError ? err.message : 'Не удалось добавить компонент.')
     } finally {
       setSubmitting(false)
+    }
+  }
+
+  function startEditItem(item: RecipeItem) {
+    setEditingItemId(item.material_id)
+    setEditedQty(item['кол-во на 1 партию'].toString())
+    setError(null)
+  }
+
+  async function saveEditItem(materialIdToSave: string) {
+    setError(null)
+    setSavingItem(true)
+    try {
+      await apiFetch(`/recipes/${recipe.id}/items`, {
+        method: 'POST',
+        body: JSON.stringify({ material_id: materialIdToSave, qty_per_batch: Number(editedQty) }),
+      })
+      setEditingItemId(null)
+      loadItems()
+      onChanged()
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : 'Не удалось сохранить.')
+    } finally {
+      setSavingItem(false)
+    }
+  }
+
+  async function deleteItem(materialIdToDelete: string) {
+    setError(null)
+    setDeletingItemId(materialIdToDelete)
+    try {
+      await apiFetch(`/recipes/${recipe.id}/items/${materialIdToDelete}`, { method: 'DELETE' })
+      loadItems()
+      onChanged()
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : 'Не удалось убрать компонент.')
+    } finally {
+      setDeletingItemId(null)
     }
   }
 
@@ -177,17 +229,18 @@ export function RecipeDetailPanel({
               <>
                 <div className="text-sm font-medium text-premium-text/70">Добавить компонент в состав</div>
                 <form onSubmit={handleSubmit} className="space-y-3">
-                  <select
-                    value={materialId}
-                    onChange={(e) => setMaterialId(e.target.value)}
+                  <input
+                    list="recipe-detail-materials"
+                    value={materialName}
+                    onChange={(e) => selectMaterialByName(e.target.value)}
+                    placeholder="Начните вводить название компонента…"
                     className="w-full rounded-lg border border-premium-border bg-premium-bg px-3 py-2 text-sm text-premium-text outline-none focus:border-premium-gold"
-                  >
+                  />
+                  <datalist id="recipe-detail-materials">
                     {ingredients.map((ing) => (
-                      <option key={ing.id} value={ing.id}>
-                        {ing['название']}
-                      </option>
+                      <option key={ing.id} value={ing['название']} />
                     ))}
-                  </select>
+                  </datalist>
                   <div className="flex gap-2">
                     <input
                       type="number"
@@ -195,8 +248,8 @@ export function RecipeDetailPanel({
                       min="0"
                       value={qty}
                       onChange={(e) => setQty(e.target.value)}
-                      placeholder="Кол-во на 1 партию"
-                      className="flex-1 rounded-lg border border-premium-border bg-premium-bg px-3 py-2 text-sm text-premium-text outline-none focus:border-premium-gold"
+                      placeholder="Вес на 1 единицу продукта"
+                      className="no-spinner flex-1 rounded-lg border border-premium-border bg-premium-bg px-3 py-2 text-sm text-premium-text outline-none focus:border-premium-gold"
                       required
                     />
                     <button
@@ -219,10 +272,63 @@ export function RecipeDetailPanel({
           {items === null && <div className="text-sm text-premium-text/40">Загрузка…</div>}
           {items?.length === 0 && <div className="text-sm text-premium-text/40">Состав пока не задан.</div>}
           <div className="space-y-2">
-            {items?.map((item, i) => (
-              <div key={i} className="flex items-center justify-between text-sm border-b border-premium-border/60 pb-2 text-premium-text">
-                <span>{item['название материала']}</span>
-                <span className="font-medium">{item['кол-во на 1 партию']}</span>
+            {items?.map((item) => (
+              <div key={item.material_id} className="border-b border-premium-border/60 pb-2 text-sm text-premium-text">
+                {editingItemId === item.material_id ? (
+                  <div className="flex items-center gap-2">
+                    <span className="min-w-0 flex-1 truncate">{item['название материала']}</span>
+                    <input
+                      type="number"
+                      step="any"
+                      min="0"
+                      autoFocus
+                      value={editedQty}
+                      onChange={(e) => setEditedQty(e.target.value)}
+                      className="no-spinner w-20 shrink-0 rounded-lg border border-premium-border bg-premium-bg px-2 py-1 text-sm text-premium-text outline-none focus:border-premium-gold"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setEditingItemId(null)}
+                      className="shrink-0 rounded-lg border border-premium-border px-2 py-1 text-xs font-medium text-premium-text hover:bg-premium-surface-2"
+                    >
+                      Отмена
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => saveEditItem(item.material_id)}
+                      disabled={savingItem}
+                      className="shrink-0 rounded-lg bg-premium-gold px-2 py-1 text-xs font-medium text-premium-bg hover:bg-premium-gold-hi disabled:opacity-60"
+                    >
+                      {savingItem ? '…' : 'OK'}
+                    </button>
+                  </div>
+                ) : (
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="min-w-0 truncate">{item['название материала']}</span>
+                    <span className="flex shrink-0 items-center gap-2">
+                      <span className="font-medium">{item['кол-во на 1 партию']}</span>
+                      {canEdit && (
+                        <>
+                          <button
+                            type="button"
+                            onClick={() => startEditItem(item)}
+                            className="text-xs text-premium-text/40 hover:text-premium-gold-hi"
+                          >
+                            изменить
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => deleteItem(item.material_id)}
+                            disabled={deletingItemId === item.material_id}
+                            className="text-xs text-premium-text/40 hover:text-red-400 disabled:opacity-60"
+                          >
+                            {deletingItemId === item.material_id ? '…' : 'убрать'}
+                          </button>
+                        </>
+                      )}
+                    </span>
+                  </div>
+                )}
               </div>
             ))}
           </div>

@@ -170,3 +170,47 @@ def test_archived_recipe_items_still_resolvable(client, db_session):
     resp = client.get(f"/api/recipes/{recipe.id}/items", headers=auth_headers(founder))
     assert resp.status_code == 200
     assert resp.json()[0]["material_id"] == material.id
+
+
+def test_delete_recipe_item_removes_it(client, db_session):
+    founder = make_user(db_session, login="rf6", role=FOUNDER)
+    material = Material(company_id=founder.company_id, name="Воск", category="жидкое", unit="кг")
+    db_session.add(material)
+    db_session.flush()
+    recipe = Recipe(company_id=founder.company_id, name="Свеча", category="свечи", produces="свеча", batch_yield=5.0)
+    db_session.add(recipe)
+    db_session.flush()
+    db_session.add(RecipeItem(recipe_id=recipe.id, material_id=material.id, qty_per_batch=1.0))
+    db_session.commit()
+
+    resp = client.delete(f"/api/recipes/{recipe.id}/items/{material.id}", headers=auth_headers(founder))
+    assert resp.status_code == 200
+
+    items = client.get(f"/api/recipes/{recipe.id}/items", headers=auth_headers(founder)).json()
+    assert items == []
+
+
+def test_delete_recipe_item_404_when_missing(client, db_session):
+    founder = make_user(db_session, login="rf7", role=FOUNDER)
+    recipe = Recipe(company_id=founder.company_id, name="Крем", category="крем", produces="крем", batch_yield=5.0)
+    db_session.add(recipe)
+    db_session.commit()
+
+    resp = client.delete(f"/api/recipes/{recipe.id}/items/nonexistent", headers=auth_headers(founder))
+    assert resp.status_code == 404
+
+
+def test_worker_cannot_delete_recipe_item(client, db_session):
+    founder = make_user(db_session, login="rf8", role=FOUNDER)
+    worker = make_user(db_session, login="rw8", role=WORKER, company_id=founder.company_id)
+    material = Material(company_id=founder.company_id, name="Масло", category="жидкое", unit="кг")
+    db_session.add(material)
+    db_session.flush()
+    recipe = Recipe(company_id=founder.company_id, name="Мыло", category="мыло", produces="мыло", batch_yield=5.0)
+    db_session.add(recipe)
+    db_session.flush()
+    db_session.add(RecipeItem(recipe_id=recipe.id, material_id=material.id, qty_per_batch=1.0))
+    db_session.commit()
+
+    resp = client.delete(f"/api/recipes/{recipe.id}/items/{material.id}", headers=auth_headers(worker))
+    assert resp.status_code == 403
