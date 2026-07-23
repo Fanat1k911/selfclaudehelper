@@ -68,6 +68,7 @@ def list_recipe_items(
             "material_id": item.material_id,
             "название материала": item.material.name,
             "кол-во на 1 партию": float(item.qty_per_batch),
+            "ед.измерения": item.material.unit,
         }
         for item in rows
     ]

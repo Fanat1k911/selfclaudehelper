@@ -182,6 +182,7 @@ export interface RecipeItem {
   material_id: string
   'название материала': string
   'кол-во на 1 партию': number
+  'ед.измерения': string
 }
 
 export interface Product {

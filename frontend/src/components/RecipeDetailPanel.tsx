@@ -270,6 +270,7 @@ export function RecipeDetailPanel({
                       onChange={(e) => setEditedQty(e.target.value)}
                       className="no-spinner w-20 shrink-0 rounded-lg border border-premium-border bg-premium-bg px-2 py-1 text-sm text-premium-text outline-none focus:border-premium-gold"
                     />
+                    <span className="shrink-0 text-xs text-premium-text/40">{item['ед.измерения']}</span>
                     <button
                       type="button"
                       onClick={() => setEditingItemId(null)}
@@ -290,7 +291,9 @@ export function RecipeDetailPanel({
                   <div className="flex items-center justify-between gap-2">
                     <span className="min-w-0 truncate">{item['название материала']}</span>
                     <span className="flex shrink-0 items-center gap-2">
-                      <span className="font-medium">{item['кол-во на 1 партию']}</span>
+                      <span className="font-medium">
+                        {item['кол-во на 1 партию']} {item['ед.измерения']}
+                      </span>
                       {canEdit && (
                         <>
                           <button
