@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react'
 import Hls from 'hls.js'
-import { Camera, Pencil, Video, WifiOff } from 'lucide-react'
+import { Camera, ChevronDown, ChevronUp, Pencil, Video, WifiOff } from 'lucide-react'
 import { apiFetch, ApiError } from '../lib/api'
 import { useAuth } from '../lib/auth'
 import { usePremiumBackground } from '../lib/usePremiumBackground'
@@ -18,6 +18,27 @@ function formatDate(value: string) {
 // Tailscale Funnel), иначе — прямой HTTP/MJPEG-поток с самой камеры, если она такое отдаёт.
 function isHls(url: string) {
   return url.trim().toLowerCase().endsWith('.m3u8')
+}
+
+// Плоские hls.js-коды (data.details) в понятную причину — запрос Александра, 2026-07-23:
+// при отладке моста (DNS/Funnel) браузерная ошибка "поток недоступен" без деталей не даёт
+// понять, что чинить. Не исчерпывающий список — только частые случаи, остальное показываем
+// как есть (data.type: data.details), тоже полезно для диагностики даже без перевода.
+const HLS_ERROR_HINTS: Record<string, string> = {
+  manifestLoadError: 'не удалось загрузить плейлист — DNS не резолвится, сервер недоступен или неверный URL',
+  manifestLoadTimeOut: 'сервер не ответил вовремя — DNS/сеть нестабильны либо мост перегружен',
+  manifestParsingError: 'сервер ответил, но это не похоже на HLS-плейлист — проверь, тот ли URL указан',
+  levelLoadError: 'не удалось загрузить уровень качества потока — мост (ffmpeg) мог перестать писать файлы',
+  fragLoadError: 'не удалось загрузить кусочек видео — мост нестабилен или файлы уже удалены (ротация)',
+  bufferAppendError: 'браузер не смог декодировать видео — вероятно неподдерживаемый кодек (например HEVC/h265)',
+}
+
+function describeHlsError(type: string, details: string): string {
+  return HLS_ERROR_HINTS[details] ?? `${type}: ${details}`
+}
+
+function nowLabel() {
+  return new Date().toLocaleTimeString('ru-RU')
 }
 
 function SettingsForm({
@@ -99,6 +120,13 @@ export function SurveillancePage() {
   const [savingShot, setSavingShot] = useState(false)
   const [shotError, setShotError] = useState<string | null>(null)
   const [streamError, setStreamError] = useState(false)
+  const [streamErrorDetail, setStreamErrorDetail] = useState<string | null>(null)
+  const [errorLog, setErrorLog] = useState<{ time: string; message: string }[]>([])
+  const [showLog, setShowLog] = useState(false)
+
+  function logStreamEvent(message: string) {
+    setErrorLog((prev) => [{ time: nowLabel(), message }, ...prev].slice(0, 20))
+  }
 
   const videoRef = useRef<HTMLVideoElement>(null)
   const imgRef = useRef<HTMLImageElement>(null)
@@ -122,13 +150,21 @@ export function SurveillancePage() {
 
   useEffect(() => {
     setStreamError(false)
-    if (!streamUrl || !isHls(streamUrl)) return
+    setStreamErrorDetail(null)
+    setErrorLog([])
+    if (!streamUrl) return
+    if (!isHls(streamUrl)) return
     const video = videoRef.current
     if (!video) return
 
     if (video.canPlayType('application/vnd.apple.mpegurl')) {
-      // Safari — нативная поддержка HLS, hls.js не нужен.
+      // Safari — нативная поддержка HLS, hls.js не нужен, но и деталей ошибок браузер не даёт.
       video.src = streamUrl
+      video.addEventListener('error', () => {
+        setStreamError(true)
+        setStreamErrorDetail('Safari не смог проиграть поток (подробностей браузер не даёт)')
+        logStreamEvent('Safari: video error event')
+      })
       return
     }
     if (Hls.isSupported()) {
@@ -137,7 +173,12 @@ export function SurveillancePage() {
       hls.loadSource(streamUrl)
       hls.attachMedia(video)
       hls.on(Hls.Events.ERROR, (_evt, data) => {
-        if (data.fatal) setStreamError(true)
+        const reason = describeHlsError(data.type, data.details)
+        logStreamEvent(`${data.fatal ? 'ФАТАЛЬНО' : 'предупреждение'}: ${reason}`)
+        if (data.fatal) {
+          setStreamError(true)
+          setStreamErrorDetail(reason)
+        }
       })
       return () => {
         hls.destroy()
@@ -145,6 +186,7 @@ export function SurveillancePage() {
       }
     }
     setStreamError(true)
+    setStreamErrorDetail('Браузер не поддерживает HLS и не может использовать hls.js')
   }, [streamUrl])
 
   async function handleScreenshot() {
@@ -231,9 +273,10 @@ export function SurveillancePage() {
         <div className="relative mb-6 max-w-3xl space-y-3">
           <div className="relative aspect-video w-full overflow-hidden rounded-xl border border-premium-border bg-black">
             {streamError && (
-              <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-black/80 text-premium-text/60">
+              <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-black/80 px-6 text-center text-premium-text/60">
                 <WifiOff className="h-8 w-8" strokeWidth={1.5} />
-                <div className="text-sm">Поток недоступен</div>
+                <div className="text-sm font-medium">Поток недоступен</div>
+                {streamErrorDetail && <div className="max-w-md text-xs text-premium-text/50">{streamErrorDetail}</div>}
               </div>
             )}
             {isHls(streamUrl) ? (
@@ -244,8 +287,18 @@ export function SurveillancePage() {
                 ref={imgRef}
                 src={streamUrl}
                 crossOrigin="anonymous"
-                onError={() => setStreamError(true)}
-                onLoad={() => setStreamError(false)}
+                onError={() => {
+                  setStreamError(true)
+                  setStreamErrorDetail(
+                    'Не удалось загрузить изображение — проверь, что URL открывается напрямую в браузере ' +
+                      '(DNS/сеть моста, либо адрес не отдаёт картинку)',
+                  )
+                  logStreamEvent('img: не удалось загрузить ' + streamUrl)
+                }}
+                onLoad={() => {
+                  setStreamError(false)
+                  setStreamErrorDetail(null)
+                }}
                 className="h-full w-full object-contain"
               />
             )}
@@ -261,6 +314,28 @@ export function SurveillancePage() {
             </button>
             {shotError && <div className="text-sm text-red-400">{shotError}</div>}
           </div>
+
+          {errorLog.length > 0 && (
+            <div className="rounded-xl border border-premium-border bg-premium-surface">
+              <button
+                onClick={() => setShowLog((v) => !v)}
+                className="flex w-full items-center justify-between px-4 py-2.5 text-xs font-medium text-premium-text/50 hover:text-premium-text"
+              >
+                Журнал подключения ({errorLog.length})
+                {showLog ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+              </button>
+              {showLog && (
+                <div className="max-h-48 overflow-y-auto border-t border-premium-border px-4 py-2 text-xs">
+                  {errorLog.map((entry, i) => (
+                    <div key={i} className="border-b border-premium-border/60 py-1.5 last:border-0">
+                      <span className="text-premium-text/40">{entry.time}</span>{' '}
+                      <span className="text-premium-text/70">{entry.message}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
         </div>
       )}
 
