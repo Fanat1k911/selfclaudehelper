@@ -117,6 +117,7 @@ export function IngredientsPage() {
   }, [ingredients, search])
 
   const totalFiltered = belowMin.length + rest.length
+  const visibleCount = useMemo(() => ingredients.filter((i) => i['категория'] !== 'тара').length, [ingredients])
 
   function handleRowClick(ingredient: Ingredient) {
     setSelected(ingredient)
@@ -133,7 +134,7 @@ export function IngredientsPage() {
       <div className="relative mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <h1 className="flex items-baseline gap-2 font-display text-xl font-semibold italic text-premium-text sm:text-2xl">
           Компоненты
-          {!loading && <span className="font-sans text-sm font-normal not-italic text-premium-text/40">{ingredients.length}</span>}
+          {!loading && <span className="font-sans text-sm font-normal not-italic text-premium-text/40">{visibleCount}</span>}
         </h1>
         <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-end">
           {/* Два явных блока (Александр, 2026-07-21): служебное (Экспорт/Импорт/Архив —
@@ -174,7 +175,7 @@ export function IngredientsPage() {
             <div className="grid grid-cols-2 gap-2 sm:flex sm:gap-2">
               <button
                 onClick={() => setShowBatchIncome(true)}
-                disabled={ingredients.length === 0}
+                disabled={visibleCount === 0}
                 className="flex items-center justify-center gap-1.5 whitespace-nowrap rounded-lg bg-premium-gold px-3 py-2 text-sm font-medium text-premium-bg shadow-sm hover:bg-premium-gold-hi disabled:opacity-40 sm:w-auto sm:px-4"
               >
                 <Truck size={15} /> Поставка
@@ -285,7 +286,7 @@ export function IngredientsPage() {
 
       {showBatchIncome && (
         <BatchIncomeModal
-          ingredients={ingredients}
+          ingredients={ingredients.filter((i) => i['категория'] !== 'тара')}
           onClose={() => setShowBatchIncome(false)}
           onCreated={() => {
             setShowBatchIncome(false)
