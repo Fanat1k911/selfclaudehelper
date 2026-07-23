@@ -10,6 +10,7 @@ import { NewIngredientModal } from '../components/NewIngredientModal'
 import { ImportIngredientsModal } from '../components/ImportIngredientsModal'
 import { BatchIncomeModal } from '../components/BatchIncomeModal'
 import { SkeletonRows } from '../components/SkeletonRows'
+import { SearchInput } from '../components/SearchInput'
 
 const MANAGEMENT_ROLES: User['role'][] = ['founder', 'developer']
 
@@ -189,12 +190,7 @@ export function IngredientsPage() {
         </div>
       </div>
 
-      <input
-        value={search}
-        onChange={(e) => setSearch(e.target.value)}
-        placeholder="Поиск по названию…"
-        className="relative mb-4 w-full max-w-sm rounded-lg border border-premium-border bg-premium-surface px-3 py-2 text-sm text-premium-text outline-none placeholder:text-premium-text/40 focus:border-premium-gold"
-      />
+      <SearchInput value={search} onChange={setSearch} className="relative mb-4" />
 
       {loading && (
         <div className="relative overflow-hidden rounded-xl border border-premium-border bg-premium-surface">

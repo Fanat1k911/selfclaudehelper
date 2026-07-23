@@ -62,6 +62,7 @@ export function IngredientDetailPanel({
   })
   const [editingTara, setEditingTara] = useState(false)
   const [taraAttrs, setTaraAttrs] = useState({
+    name: ingredient['название'],
     packagingType: ingredient['тип тары'] ?? '',
     widthMm: ingredient['ширина, мм']?.toString() ?? '',
     heightMm: ingredient['высота, мм']?.toString() ?? '',
@@ -157,6 +158,7 @@ export function IngredientDetailPanel({
       await apiFetch(`/ingredients/${ingredient.id}`, {
         method: 'PATCH',
         body: JSON.stringify({
+          name: taraAttrs.name,
           packaging_type: taraAttrs.packagingType || null,
           width_mm: taraAttrs.widthMm === '' ? null : Number(taraAttrs.widthMm),
           height_mm: taraAttrs.heightMm === '' ? null : Number(taraAttrs.heightMm),
@@ -312,6 +314,15 @@ export function IngredientDetailPanel({
             ) : (
               <form onSubmit={handleSaveTara} className="space-y-3">
                 <div>
+                  <label className="block text-xs text-premium-text/60 mb-1">Название</label>
+                  <input
+                    value={taraAttrs.name}
+                    onChange={(e) => setTaraAttrs({ ...taraAttrs, name: e.target.value })}
+                    className="w-full rounded-lg border border-premium-border bg-premium-bg px-3 py-2 text-sm text-premium-text outline-none focus:border-premium-gold"
+                    required
+                  />
+                </div>
+                <div>
                   <label className="block text-xs text-premium-text/60 mb-1">Тип тары</label>
                   <select
                     value={taraAttrs.packagingType}
@@ -448,10 +459,12 @@ export function IngredientDetailPanel({
                 <span className="text-premium-text/60">Поставщик</span>
                 <span className="max-w-[60%] truncate text-right">{ingredient['поставщик'] || '—'}</span>
               </div>
-              <div className="flex items-center justify-between gap-2">
-                <span className="shrink-0 text-premium-text/60">INCI</span>
-                <span className="truncate text-right text-xs text-premium-text/70">{ingredient['INCI'] || '—'}</span>
-              </div>
+              {!isTara && (
+                <div className="flex items-center justify-between gap-2">
+                  <span className="shrink-0 text-premium-text/60">INCI</span>
+                  <span className="truncate text-right text-xs text-premium-text/70">{ingredient['INCI'] || '—'}</span>
+                </div>
+              )}
             </div>
           ) : (
             <form onSubmit={handleSaveAttrs} className="space-y-3">
@@ -497,14 +510,16 @@ export function IngredientDetailPanel({
                   className="w-full rounded-lg border border-premium-border bg-premium-bg px-3 py-2 text-sm text-premium-text outline-none focus:border-premium-gold"
                 />
               </div>
-              <div>
-                <label className="block text-xs text-premium-text/60 mb-1">INCI</label>
-                <input
-                  value={attrs.inci}
-                  onChange={(e) => setAttrs({ ...attrs, inci: e.target.value })}
-                  className="w-full rounded-lg border border-premium-border bg-premium-bg px-3 py-2 text-sm text-premium-text outline-none focus:border-premium-gold"
-                />
-              </div>
+              {!isTara && (
+                <div>
+                  <label className="block text-xs text-premium-text/60 mb-1">INCI</label>
+                  <input
+                    value={attrs.inci}
+                    onChange={(e) => setAttrs({ ...attrs, inci: e.target.value })}
+                    className="w-full rounded-lg border border-premium-border bg-premium-bg px-3 py-2 text-sm text-premium-text outline-none focus:border-premium-gold"
+                  />
+                </div>
+              )}
               {attrsError && <div className="text-sm text-red-400">{attrsError}</div>}
               <div className="flex gap-2">
                 <button

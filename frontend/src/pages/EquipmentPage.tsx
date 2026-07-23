@@ -5,6 +5,7 @@ import type { EquipmentItem } from '../types'
 import { EquipmentDetailPanel } from '../components/EquipmentDetailPanel'
 import { NewEquipmentModal } from '../components/NewEquipmentModal'
 import { SkeletonRows } from '../components/SkeletonRows'
+import { SearchInput } from '../components/SearchInput'
 
 const COLOR_DOT: Record<EquipmentItem['цвет'], string> = {
   'зелёный': 'bg-premium-sage-hi',
@@ -68,12 +69,7 @@ export function EquipmentPage() {
         </button>
       </div>
 
-      <input
-        value={search}
-        onChange={(e) => setSearch(e.target.value)}
-        placeholder="Поиск по названию…"
-        className="relative mb-4 w-full max-w-sm rounded-lg border border-premium-border bg-premium-surface px-3 py-2 text-sm text-premium-text outline-none placeholder:text-premium-text/40 focus:border-premium-gold"
-      />
+      <SearchInput value={search} onChange={setSearch} className="relative mb-4" />
 
       <div className="relative space-y-2 md:hidden">
         {loading && (

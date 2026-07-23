@@ -1,13 +1,15 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Outlet } from 'react-router-dom'
 import { Menu } from 'lucide-react'
 import { useAuth } from '../lib/auth'
 import { Brand } from './Brand'
 import { Sidebar } from './Sidebar'
+import { ScrollToTopButton } from './ScrollToTopButton'
 
 export function Layout() {
   const [mobileOpen, setMobileOpen] = useState(false)
   const { user } = useAuth()
+  const mainRef = useRef<HTMLElement>(null)
 
   useEffect(() => {
     document.title = user?.company_name || 'Мастерская'
@@ -43,8 +45,9 @@ export function Layout() {
             поэтому закрытие по тапу срабатывало через раз. Лочим именно этот элемент, не
             body/window — первая попытка (лочить body) была бы no-op, т.к. body и так не
             скроллящийся контейнер в этой раскладке. */}
-        <main className={`flex-1 ${mobileOpen ? 'overflow-hidden' : 'overflow-y-auto'}`}>
+        <main ref={mainRef} className={`flex-1 ${mobileOpen ? 'overflow-hidden' : 'overflow-y-auto'}`}>
           <Outlet />
+          <ScrollToTopButton containerRef={mainRef} />
         </main>
       </div>
     </div>
