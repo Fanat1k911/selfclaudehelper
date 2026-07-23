@@ -328,3 +328,15 @@ export interface TechLogEntry {
   logger: string
   message: string
 }
+
+export interface CameraSettings {
+  stream_url: string | null
+}
+
+export interface Screenshot {
+  id: string
+  'дата': string
+  'ФИО сотрудника': string
+  'изображение': string
+  'комментарий': string
+}

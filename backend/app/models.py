@@ -371,3 +371,37 @@ class Feedback(Base):
     author_role: Mapped[str] = mapped_column(String(20))
     message: Mapped[str] = mapped_column(Text)
     status: Mapped[str] = mapped_column(String(20), default="новое")
+
+
+class CameraSettings(Base):
+    """Раздел «Видеонаблюдение» (2026-07-23, Phase 1 — только лайв, без записи, см.
+    CLAUDE.md). Один URL на компанию — либо прямой HTTP/MJPEG-поток с камеры, либо
+    HLS (.m3u8) с моста ffmpeg (RTSP→HLS), опубликованного через Tailscale Funnel —
+    фронт сам определяет формат по расширению (SurveillancePage.tsx). Founder/developer
+    настраивают, остальные роли раздел вообще не видят (RequireRole на фронте + тут же
+    require_roles на бэке)."""
+
+    __tablename__ = "camera_settings"
+
+    company_id: Mapped[str] = mapped_column(ForeignKey("companies.id"), primary_key=True)
+    stream_url: Mapped[str | None] = mapped_column(String(500))
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+
+class SurveillanceScreenshot(Base):
+    """Phase 1 намеренно без записи потока — единственный способ сохранить кадр это
+    скриншот руками (кнопка в плеере), см. CLAUDE.md. image_base64 хранится прямо в
+    Postgres (data URI, PNG) — не в файловой системе Render (эфемерная, теряется при
+    рестарте контейнера) и не в отдельном object storage (не заведён, не нужен ради
+    редких ручных скриншотов, не видеопотока целиком)."""
+
+    __tablename__ = "surveillance_screenshots"
+
+    id: Mapped[str] = mapped_column(String(8), primary_key=True, default=_short_id)
+    company_id: Mapped[str] = mapped_column(ForeignKey("companies.id"))
+    user_id: Mapped[str] = mapped_column(ForeignKey("users.id"))
+    taken_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    image_base64: Mapped[str] = mapped_column(Text)
+    comment: Mapped[str | None] = mapped_column(String(255))
+
+    user: Mapped["User"] = relationship()

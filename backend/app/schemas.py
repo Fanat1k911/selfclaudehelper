@@ -394,3 +394,12 @@ class ImportCommitRow(BaseModel):
 class ImportCommitRequest(BaseModel):
     rows: list[ImportCommitRow]
     comment: str = "импорт из файла"
+
+
+class CameraSettingsRequest(BaseModel):
+    stream_url: str | None = Field(default=None, max_length=500)
+
+
+class NewScreenshotRequest(BaseModel):
+    image_base64: str = Field(max_length=8_000_000)
+    comment: str = ""
