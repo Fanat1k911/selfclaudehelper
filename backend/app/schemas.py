@@ -50,6 +50,16 @@ class NewMaterialRequest(BaseModel):
     unit: str
     initial_qty: float = 0.0
     min_stock: float = 0.0
+    # Подкатегория тары + типовые поля (2026-07-23) — см. PACKAGING_TYPES в constants.py.
+    # Осмысленны только при category="тара", но не валидируем это здесь (та же свобода,
+    # что у category в целом) — просто не показываются в UI для прочих категорий.
+    packaging_type: str | None = None
+    width_mm: float | None = Field(default=None, ge=0)
+    height_mm: float | None = Field(default=None, ge=0)
+    length_mm: float | None = Field(default=None, ge=0)
+    volume_ml: float | None = Field(default=None, ge=0)
+    material_finish: str | None = None
+    tape_feature: str | None = None
 
 
 class MaterialAttrsUpdate(BaseModel):
@@ -65,6 +75,13 @@ class MaterialAttrsUpdate(BaseModel):
     supplier: str | None = None
     inci: str | None = None
     archived: bool | None = None
+    packaging_type: str | None = None
+    width_mm: float | None = Field(default=None, ge=0)
+    height_mm: float | None = Field(default=None, ge=0)
+    length_mm: float | None = Field(default=None, ge=0)
+    volume_ml: float | None = Field(default=None, ge=0)
+    material_finish: str | None = None
+    tape_feature: str | None = None
 
 
 class TransactionRequest(BaseModel):
@@ -118,11 +135,21 @@ class ProductionRequest(BaseModel):
     сотрудника сегодня из LoginLog, finished_at = момент внесения записи), не приходят с
     фронта. Метрика скорости в KPI из них по-прежнему не считается (dashboard/leaderboard
     используют только qty−defects, см. ProductionLog.qty) — это задел на будущее, не
-    активная фича."""
+    активная фича.
 
+    product_id/packaged_qty/packaged_defects (2026-07-23, запрос Александра) — "Производство"
+    теперь одной формой покрывает и изготовление, и упаковку (раньше это была отдельная
+    вкладка/журнал PackagingLog). product_id обязателен — фронт уже знает его на форме
+    (выбор продукта, из которого выводится recipe_id), нужен только когда packaged_qty>0,
+    но передаётся всегда, чтобы не гадать на бэке. Пишет отдельную строку в PackagingLog
+    (модель/таблица не тронуты) — просто из одной формы вместо двух."""
+
+    product_id: str
     recipe_id: str
     qty: float
     defects: float = 0.0
+    packaged_qty: float = Field(default=0.0, ge=0)
+    packaged_defects: float = Field(default=0.0, ge=0)
     comment: str = ""
 
 

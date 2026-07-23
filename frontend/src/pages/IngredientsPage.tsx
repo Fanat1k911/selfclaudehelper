@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Download, Plus, Truck, Upload } from 'lucide-react'
+import { AlertTriangle, Download, Plus, Truck, Upload } from 'lucide-react'
 import { apiFetch, apiDownload } from '../lib/api'
 import { useAuth } from '../lib/auth'
 import { materialCategoryLabel } from '../lib/labels'
@@ -24,6 +24,53 @@ function formatDate(value: string | null) {
   const d = new Date(value)
   if (Number.isNaN(d.getTime())) return '—'
   return d.toLocaleDateString('ru-RU')
+}
+
+function MobileCard({ ing, onClick }: { ing: Ingredient; onClick: () => void }) {
+  return (
+    <button
+      onClick={onClick}
+      className="premium-card w-full rounded-xl border border-premium-border bg-premium-surface p-4 text-left active:bg-premium-surface-2"
+    >
+      <div className="flex items-start justify-between gap-2">
+        <div className="flex min-w-0 items-center gap-2">
+          <span className={`h-2 w-2 shrink-0 rounded-full ${COLOR_DOT[ing['цвет']]}`} />
+          <span className="truncate text-sm font-medium text-premium-text">{ing['название']}</span>
+        </div>
+        <span className="shrink-0 text-sm font-semibold text-premium-text">
+          {ing['остаток']} {ing['ед.измерения']}
+        </span>
+      </div>
+      <div className="mt-1.5 flex items-center justify-between text-xs text-premium-text/50">
+        <span className="truncate">{materialCategoryLabel(ing['категория']) || '—'}</span>
+        <span className="shrink-0">
+          мин. {ing['мин.остаток']} {ing['ед.измерения']} · {formatDate(ing['последнее движение'])}
+        </span>
+      </div>
+    </button>
+  )
+}
+
+function DeskRow({ ing, onClick }: { ing: Ingredient; onClick: () => void }) {
+  return (
+    <tr
+      onClick={onClick}
+      className="cursor-pointer border-b border-premium-border/60 transition-colors last:border-0 hover:bg-premium-surface-2"
+    >
+      <td className="px-4 py-3 flex items-center gap-2 text-premium-text">
+        <span className={`h-2 w-2 shrink-0 rounded-full ${COLOR_DOT[ing['цвет']]}`} />
+        {ing['название']}
+      </td>
+      <td className="px-4 py-3 text-premium-text/60">{materialCategoryLabel(ing['категория'])}</td>
+      <td className="px-4 py-3 text-right font-medium text-premium-text">
+        {ing['остаток']} {ing['ед.измерения']}
+      </td>
+      <td className="px-4 py-3 text-right text-premium-text/50">
+        {ing['мин.остаток']} {ing['ед.измерения']}
+      </td>
+      <td className="px-4 py-3 text-premium-text/50">{formatDate(ing['последнее движение'])}</td>
+    </tr>
+  )
 }
 
 export function IngredientsPage() {
@@ -53,11 +100,22 @@ export function IngredientsPage() {
     load(showArchived)
   }, [showArchived])
 
-  const filtered = useMemo(() => {
+  // Ниже минимума — обособленный блок наверху (не вперемешку с общим списком), остальное —
+  // по алфавиту (2026-07-23, запрос Александра: раньше "ниже минимума" просто всплывали
+  // наверх тем же списком, порядок внутри каждой группы был "как пришло из API").
+  const { belowMin, rest } = useMemo(() => {
     const q = search.trim().toLowerCase()
-    const rows = q ? ingredients.filter((i) => i['название'].toLowerCase().includes(q)) : ingredients
-    return [...rows].sort((a, b) => (a['ниже минимума'] === b['ниже минимума'] ? 0 : a['ниже минимума'] ? -1 : 1))
+    // Тара переехала в раздел «Упаковка» (2026-07-23) — здесь остаётся сырьё.
+    const notTara = ingredients.filter((i) => i['категория'] !== 'тара')
+    const rows = q ? notTara.filter((i) => i['название'].toLowerCase().includes(q)) : notTara
+    const byName = (a: Ingredient, b: Ingredient) => a['название'].localeCompare(b['название'], 'ru')
+    return {
+      belowMin: rows.filter((i) => i['ниже минимума']).sort(byName),
+      rest: rows.filter((i) => !i['ниже минимума']).sort(byName),
+    }
   }, [ingredients, search])
+
+  const totalFiltered = belowMin.length + rest.length
 
   function handleRowClick(ingredient: Ingredient) {
     setSelected(ingredient)
@@ -138,91 +196,68 @@ export function IngredientsPage() {
         className="relative mb-4 w-full max-w-sm rounded-lg border border-premium-border bg-premium-surface px-3 py-2 text-sm text-premium-text outline-none placeholder:text-premium-text/40 focus:border-premium-gold"
       />
 
-      <div className="relative space-y-2 md:hidden">
-        {loading && (
-          <div className="overflow-hidden rounded-xl border border-premium-border bg-premium-surface">
-            <SkeletonRows />
-          </div>
-        )}
-        {!loading && filtered.length === 0 && (
-          <div className="rounded-xl border border-premium-border bg-premium-surface px-4 py-6 text-center text-sm text-premium-text/40">
-            {showArchived ? 'Архив пуст.' : 'Ничего не найдено.'}
-          </div>
-        )}
-        {filtered.map((ing) => (
-          <button
-            key={ing.id}
-            onClick={() => handleRowClick(ing)}
-            className="premium-card w-full rounded-xl border border-premium-border bg-premium-surface p-4 text-left active:bg-premium-surface-2"
-          >
-            <div className="flex items-start justify-between gap-2">
-              <div className="flex min-w-0 items-center gap-2">
-                <span className={`h-2 w-2 shrink-0 rounded-full ${COLOR_DOT[ing['цвет']]}`} />
-                <span className="truncate text-sm font-medium text-premium-text">{ing['название']}</span>
-              </div>
-              <span className="shrink-0 text-sm font-semibold text-premium-text">
-                {ing['остаток']} {ing['ед.измерения']}
-              </span>
-            </div>
-            <div className="mt-1.5 flex items-center justify-between text-xs text-premium-text/50">
-              <span className="truncate">{materialCategoryLabel(ing['категория']) || '—'}</span>
-              <span className="shrink-0">
-                мин. {ing['мин.остаток']} {ing['ед.измерения']} · {formatDate(ing['последнее движение'])}
-              </span>
-            </div>
-          </button>
-        ))}
-      </div>
+      {loading && (
+        <div className="relative overflow-hidden rounded-xl border border-premium-border bg-premium-surface">
+          <SkeletonRows />
+        </div>
+      )}
 
-      <div className="relative hidden overflow-hidden rounded-xl border border-premium-border bg-premium-surface md:block">
-        <table className="w-full text-sm">
-          <thead>
-            <tr className="border-b border-premium-border text-left text-premium-text/50">
-              <th className="px-4 py-3 font-medium">Название</th>
-              <th className="px-4 py-3 font-medium">Категория</th>
-              <th className="px-4 py-3 font-medium text-right">Остаток</th>
-              <th className="px-4 py-3 font-medium text-right">Мин.</th>
-              <th className="px-4 py-3 font-medium">Обновлено</th>
-            </tr>
-          </thead>
-          <tbody>
-            {loading && (
-              <tr>
-                <td colSpan={5} className="p-0">
-                  <SkeletonRows />
-                </td>
-              </tr>
-            )}
-            {!loading && filtered.length === 0 && (
-              <tr>
-                <td colSpan={5} className="px-4 py-6 text-center text-premium-text/40">
-                  {showArchived ? 'Архив пуст.' : 'Ничего не найдено.'}
-                </td>
-              </tr>
-            )}
-            {filtered.map((ing) => (
-              <tr
-                key={ing.id}
-                onClick={() => handleRowClick(ing)}
-                className="cursor-pointer border-b border-premium-border/60 transition-colors last:border-0 hover:bg-premium-surface-2"
-              >
-                <td className="px-4 py-3 flex items-center gap-2 text-premium-text">
-                  <span className={`h-2 w-2 shrink-0 rounded-full ${COLOR_DOT[ing['цвет']]}`} />
-                  {ing['название']}
-                </td>
-                <td className="px-4 py-3 text-premium-text/60">{materialCategoryLabel(ing['категория'])}</td>
-                <td className="px-4 py-3 text-right font-medium text-premium-text">
-                  {ing['остаток']} {ing['ед.измерения']}
-                </td>
-                <td className="px-4 py-3 text-right text-premium-text/50">
-                  {ing['мин.остаток']} {ing['ед.измерения']}
-                </td>
-                <td className="px-4 py-3 text-premium-text/50">{formatDate(ing['последнее движение'])}</td>
-              </tr>
+      {!loading && totalFiltered === 0 && (
+        <div className="relative rounded-xl border border-premium-border bg-premium-surface px-4 py-6 text-center text-sm text-premium-text/40">
+          {showArchived ? 'Архив пуст.' : 'Ничего не найдено.'}
+        </div>
+      )}
+
+      {!loading && belowMin.length > 0 && (
+        <div className="relative mb-4 rounded-xl border border-red-500/40 bg-red-500/5 p-3">
+          <div className="mb-2 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-red-400">
+            <AlertTriangle size={13} /> Ниже минимума
+          </div>
+          <div className="space-y-2 md:hidden">
+            {belowMin.map((ing) => (
+              <MobileCard key={ing.id} ing={ing} onClick={() => handleRowClick(ing)} />
             ))}
-          </tbody>
-        </table>
-      </div>
+          </div>
+          <div className="hidden overflow-hidden rounded-lg border border-premium-border bg-premium-surface md:block">
+            <table className="w-full text-sm">
+              <tbody>
+                {belowMin.map((ing) => (
+                  <DeskRow key={ing.id} ing={ing} onClick={() => handleRowClick(ing)} />
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {!loading && rest.length > 0 && (
+        <>
+          <div className="relative space-y-2 md:hidden">
+            {rest.map((ing) => (
+              <MobileCard key={ing.id} ing={ing} onClick={() => handleRowClick(ing)} />
+            ))}
+          </div>
+
+          <div className="relative hidden overflow-hidden rounded-xl border border-premium-border bg-premium-surface md:block">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-premium-border text-left text-premium-text/50">
+                  <th className="px-4 py-3 font-medium">Название</th>
+                  <th className="px-4 py-3 font-medium">Категория</th>
+                  <th className="px-4 py-3 font-medium text-right">Остаток</th>
+                  <th className="px-4 py-3 font-medium text-right">Мин.</th>
+                  <th className="px-4 py-3 font-medium">Обновлено</th>
+                </tr>
+              </thead>
+              <tbody>
+                {rest.map((ing) => (
+                  <DeskRow key={ing.id} ing={ing} onClick={() => handleRowClick(ing)} />
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </>
+      )}
 
       {selected && (
         <IngredientDetailPanel

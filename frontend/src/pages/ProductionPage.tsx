@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { apiFetch } from '../lib/api'
 import { usePremiumBackground } from '../lib/usePremiumBackground'
-import type { LeaderboardRow, ProductionLogEntry } from '../types'
+import type { LeaderboardRow, PackagingLogEntry, ProductionLogEntry } from '../types'
 import { NewProductionModal } from '../components/NewProductionModal'
 import { SkeletonRows } from '../components/SkeletonRows'
 
@@ -15,6 +15,7 @@ function formatDate(value: string | null) {
 export function ProductionPage() {
   usePremiumBackground()
   const [log, setLog] = useState<ProductionLogEntry[]>([])
+  const [packagingLog, setPackagingLog] = useState<PackagingLogEntry[]>([])
   const [leaderboard, setLeaderboard] = useState<LeaderboardRow[]>([])
   const [loading, setLoading] = useState(true)
   const [showCreate, setShowCreate] = useState(false)
@@ -22,8 +23,12 @@ export function ProductionPage() {
   async function load() {
     setLoading(true)
     try {
-      const data = await apiFetch<ProductionLogEntry[]>('/production')
-      setLog(data)
+      const [production, packaging] = await Promise.all([
+        apiFetch<ProductionLogEntry[]>('/production'),
+        apiFetch<PackagingLogEntry[]>('/packaging'),
+      ])
+      setLog(production)
+      setPackagingLog(packaging)
     } finally {
       setLoading(false)
     }
@@ -145,6 +150,53 @@ export function ProductionPage() {
           </tbody>
         </table>
       </div>
+
+      {packagingLog.length > 0 && (
+        <div className="relative mt-6">
+          <h2 className="mb-3 font-display text-lg font-semibold italic text-premium-text">История упаковки</h2>
+
+          <div className="space-y-2 md:hidden">
+            {packagingLog.map((entry) => (
+              <div key={entry.id} className="premium-card rounded-xl border border-premium-border bg-premium-surface p-4">
+                <div className="flex items-start justify-between gap-2">
+                  <span className="truncate text-sm font-medium text-premium-text">{entry['название продукта']}</span>
+                  <span className="shrink-0 text-sm font-semibold text-premium-text">{entry['кол-во']} шт</span>
+                </div>
+                <div className="mt-1.5 flex items-center justify-between text-xs text-premium-text/50">
+                  <span className="truncate">{entry['ФИО сотрудника']}</span>
+                  <span className="shrink-0">{formatDate(entry['дата'])}</span>
+                </div>
+                {entry['брак'] > 0 && <div className="mt-1.5 text-xs text-red-400">брак: {entry['брак']}</div>}
+              </div>
+            ))}
+          </div>
+
+          <div className="hidden overflow-hidden rounded-xl border border-premium-border bg-premium-surface md:block">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-premium-border text-left text-premium-text/50">
+                  <th className="px-4 py-3 font-medium">Дата</th>
+                  <th className="px-4 py-3 font-medium">Продукт</th>
+                  <th className="px-4 py-3 font-medium">Сотрудник</th>
+                  <th className="px-4 py-3 font-medium text-right">Кол-во</th>
+                  <th className="px-4 py-3 font-medium text-right">Брак</th>
+                </tr>
+              </thead>
+              <tbody>
+                {packagingLog.map((entry) => (
+                  <tr key={entry.id} className="border-b border-premium-border/60 last:border-0">
+                    <td className="px-4 py-3 text-premium-text/50">{formatDate(entry['дата'])}</td>
+                    <td className="px-4 py-3 text-premium-text">{entry['название продукта']}</td>
+                    <td className="px-4 py-3 text-premium-text/60">{entry['ФИО сотрудника']}</td>
+                    <td className="px-4 py-3 text-right font-medium text-premium-text">{entry['кол-во']}</td>
+                    <td className="px-4 py-3 text-right text-premium-text/50">{entry['брак']}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
 
       {showCreate && (
         <NewProductionModal

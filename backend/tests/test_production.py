@@ -1,7 +1,7 @@
 from datetime import date, datetime, timedelta
 
 from app.constants import FOUNDER, TRANSACTION_INCOME, WORKER
-from app.models import LoginLog, Material, Product, ProductionLog, Recipe, RecipeItem, Transaction
+from app.models import LoginLog, Material, PackagingLog, Product, ProductionLog, Recipe, RecipeItem, Transaction
 from tests.conftest import auth_headers, default_company_id, make_user
 
 
@@ -19,12 +19,14 @@ def _make_recipe_with_material(db_session, *, qty_per_batch=2.0, batch_yield=10.
     db_session.flush()
 
     db_session.add(RecipeItem(recipe_id=recipe.id, material_id=material.id, qty_per_batch=qty_per_batch))
+    product = Product(company_id=company_id, name=f"Продукт {recipe.id}", category="мыло", gtin=recipe.id, recipe_id=recipe.id)
+    db_session.add(product)
     db_session.commit()
-    return material, recipe
+    return material, recipe, product
 
 
 def test_production_rejected_when_stock_insufficient(client, db_session):
-    material, recipe = _make_recipe_with_material(db_session, qty_per_batch=5.0)
+    material, recipe, product = _make_recipe_with_material(db_session, qty_per_batch=5.0)
     company_id = default_company_id(db_session)
     db_session.add(Transaction(company_id=company_id, material_id=material.id, type=TRANSACTION_INCOME, qty=3.0))
     db_session.commit()
@@ -33,6 +35,7 @@ def test_production_rejected_when_stock_insufficient(client, db_session):
     resp = client.post(
         "/api/production",
         json={
+            "product_id": product.id,
             "recipe_id": recipe.id,
             "qty": 10,  # 1 партия × batch_yield=10.0 (default _make_recipe_with_material)
         },
@@ -46,7 +49,7 @@ def test_production_rejected_when_stock_insufficient(client, db_session):
 
 
 def test_production_succeeds_when_stock_sufficient(client, db_session):
-    material, recipe = _make_recipe_with_material(db_session, qty_per_batch=5.0)
+    material, recipe, product = _make_recipe_with_material(db_session, qty_per_batch=5.0)
     company_id = default_company_id(db_session)
     db_session.add(Transaction(company_id=company_id, material_id=material.id, type=TRANSACTION_INCOME, qty=10.0))
     db_session.commit()
@@ -55,6 +58,7 @@ def test_production_succeeds_when_stock_sufficient(client, db_session):
     resp = client.post(
         "/api/production",
         json={
+            "product_id": product.id,
             "recipe_id": recipe.id,
             "qty": 10,  # 1 партия × batch_yield=10.0 (default _make_recipe_with_material)
         },
@@ -70,7 +74,7 @@ def test_production_succeeds_when_stock_sufficient(client, db_session):
 
 
 def test_production_worker_sees_only_own_log(client, db_session):
-    _, recipe = _make_recipe_with_material(db_session)
+    _, recipe, product = _make_recipe_with_material(db_session)
     w1 = make_user(db_session, login="w3", role=WORKER)
     w2 = make_user(db_session, login="w4", role=WORKER)
     founder = make_user(db_session, login="f1", role=FOUNDER)
@@ -84,11 +88,14 @@ def test_production_worker_sees_only_own_log(client, db_session):
         db_session.add(r)
         db_session.flush()
         db_session.add(RecipeItem(recipe_id=r.id, material_id=m.id, qty_per_batch=1.0))
+        p = Product(company_id=company_id, name=f"продукт {worker.id}", category="мыло", gtin=worker.id, recipe_id=r.id)
+        db_session.add(p)
         db_session.add(Transaction(company_id=company_id, material_id=m.id, type=TRANSACTION_INCOME, qty=material_qty))
         db_session.commit()
         client.post(
             "/api/production",
             json={
+                "product_id": p.id,
                 "recipe_id": r.id,
                 "qty": 1,  # batch_yield=1.0 здесь → 1 партия = qty 1
             },
@@ -104,7 +111,7 @@ def test_production_worker_sees_only_own_log(client, db_session):
 
 
 def test_production_rejected_for_archived_recipe(client, db_session):
-    material, recipe = _make_recipe_with_material(db_session, qty_per_batch=1.0)
+    material, recipe, product = _make_recipe_with_material(db_session, qty_per_batch=1.0)
     recipe.archived = True
     company_id = default_company_id(db_session)
     db_session.add(Transaction(company_id=company_id, material_id=material.id, type=TRANSACTION_INCOME, qty=10.0))
@@ -114,6 +121,7 @@ def test_production_rejected_for_archived_recipe(client, db_session):
     resp = client.post(
         "/api/production",
         json={
+            "product_id": product.id,
             "recipe_id": recipe.id,
             "qty": 10,  # 1 партия × batch_yield=10.0 (default _make_recipe_with_material)
         },
@@ -124,7 +132,7 @@ def test_production_rejected_for_archived_recipe(client, db_session):
 
 
 def test_production_recipes_list_excludes_archived(client, db_session):
-    _, recipe = _make_recipe_with_material(db_session)
+    _, recipe, product = _make_recipe_with_material(db_session)
     recipe.archived = True
     db_session.commit()
 
@@ -134,28 +142,24 @@ def test_production_recipes_list_excludes_archived(client, db_session):
 
 
 def test_production_products_list_only_producible(client, db_session):
-    material, recipe = _make_recipe_with_material(db_session)
-    archived_material, archived_recipe = _make_recipe_with_material(db_session)
+    material, recipe, product = _make_recipe_with_material(db_session)
+    archived_material, archived_recipe, archived_product = _make_recipe_with_material(db_session)
     archived_recipe.archived = True
     db_session.commit()
 
     company_id = default_company_id(db_session)
-    ready_product = Product(company_id=company_id, name="Мыло готовое", category="мыло", gtin="1", recipe_id=recipe.id)
-    archived_product = Product(
-        company_id=company_id, name="Мыло архивное", category="мыло", gtin="2", recipe_id=archived_recipe.id
-    )
     no_recipe_product = Product(company_id=company_id, name="Без рецепта", category="мыло", gtin="3")
-    db_session.add_all([ready_product, archived_product, no_recipe_product])
+    db_session.add(no_recipe_product)
     db_session.commit()
 
     worker = make_user(db_session, login="w7", role=WORKER)
     resp = client.get("/api/production/products", headers=auth_headers(worker))
     names = [p["название"] for p in resp.json()]
-    assert names == ["Мыло готовое"]
+    assert names == [product.name]
 
 
 def test_leaderboard_aggregates_today_and_month_only_quantity(client, db_session):
-    _, recipe = _make_recipe_with_material(db_session, batch_yield=10.0)
+    _, recipe, product = _make_recipe_with_material(db_session, batch_yield=10.0)
     worker = make_user(db_session, login="w8", role=WORKER, fio="Анна Смирнова")
     today = date.today()
     earlier_this_month = today.replace(day=1)
@@ -202,13 +206,13 @@ def test_leaderboard_visible_to_worker(client, db_session):
 def test_production_qty_scales_material_writeoff_by_batch_yield(client, db_session):
     """Ввод теперь — кол-во продукта, не партий (2026-07-18) — 20 шт при выходе партии 10
     должно списать сырьё как за 2 партии, не как за 20."""
-    material, recipe = _make_recipe_with_material(db_session, qty_per_batch=3.0, batch_yield=10.0)
+    material, recipe, product = _make_recipe_with_material(db_session, qty_per_batch=3.0, batch_yield=10.0)
     company_id = default_company_id(db_session)
     db_session.add(Transaction(company_id=company_id, material_id=material.id, type=TRANSACTION_INCOME, qty=100.0))
     db_session.commit()
 
     worker = make_user(db_session, login="qty_worker", role=WORKER)
-    resp = client.post("/api/production", json={"recipe_id": recipe.id, "qty": 20}, headers=auth_headers(worker))
+    resp = client.post("/api/production", json={"product_id": product.id, "recipe_id": recipe.id, "qty": 20}, headers=auth_headers(worker))
     assert resp.status_code == 200
 
     expense = db_session.query(Transaction).filter(Transaction.type != TRANSACTION_INCOME).one()
@@ -216,7 +220,7 @@ def test_production_qty_scales_material_writeoff_by_batch_yield(client, db_sessi
 
 
 def test_production_writeoff_includes_recipe_loss_percent(client, db_session):
-    material, recipe = _make_recipe_with_material(
+    material, recipe, product = _make_recipe_with_material(
         db_session, qty_per_batch=10.0, batch_yield=10.0, loss_percent=3.0
     )
     company_id = default_company_id(db_session)
@@ -224,7 +228,7 @@ def test_production_writeoff_includes_recipe_loss_percent(client, db_session):
     db_session.commit()
 
     worker = make_user(db_session, login="loss_worker", role=WORKER)
-    resp = client.post("/api/production", json={"recipe_id": recipe.id, "qty": 10}, headers=auth_headers(worker))
+    resp = client.post("/api/production", json={"product_id": product.id, "recipe_id": recipe.id, "qty": 10}, headers=auth_headers(worker))
     assert resp.status_code == 200
 
     expense = db_session.query(Transaction).filter(Transaction.type != TRANSACTION_INCOME).one()
@@ -232,7 +236,7 @@ def test_production_writeoff_includes_recipe_loss_percent(client, db_session):
 
 
 def test_production_loss_percent_counts_toward_shortage_check(client, db_session):
-    material, recipe = _make_recipe_with_material(
+    material, recipe, product = _make_recipe_with_material(
         db_session, qty_per_batch=10.0, batch_yield=10.0, loss_percent=3.0
     )
     company_id = default_company_id(db_session)
@@ -241,18 +245,18 @@ def test_production_loss_percent_counts_toward_shortage_check(client, db_session
     db_session.commit()
 
     worker = make_user(db_session, login="loss_worker2", role=WORKER)
-    resp = client.post("/api/production", json={"recipe_id": recipe.id, "qty": 10}, headers=auth_headers(worker))
+    resp = client.post("/api/production", json={"product_id": product.id, "recipe_id": recipe.id, "qty": 10}, headers=auth_headers(worker))
     assert resp.status_code == 400
 
 
 def test_production_response_returns_product_quantity_not_batches(client, db_session):
-    material, recipe = _make_recipe_with_material(db_session, qty_per_batch=1.0, batch_yield=5.0)
+    material, recipe, product = _make_recipe_with_material(db_session, qty_per_batch=1.0, batch_yield=5.0)
     company_id = default_company_id(db_session)
     db_session.add(Transaction(company_id=company_id, material_id=material.id, type=TRANSACTION_INCOME, qty=100.0))
     db_session.commit()
 
     worker = make_user(db_session, login="qty_display_worker", role=WORKER)
-    client.post("/api/production", json={"recipe_id": recipe.id, "qty": 15}, headers=auth_headers(worker))
+    client.post("/api/production", json={"product_id": product.id, "recipe_id": recipe.id, "qty": 15}, headers=auth_headers(worker))
 
     resp = client.get("/api/production", headers=auth_headers(worker))
     entry = resp.json()[0]
@@ -263,28 +267,28 @@ def test_production_response_returns_product_quantity_not_batches(client, db_ses
 
 
 def test_production_zero_batch_yield_rejected(client, db_session):
-    material, recipe = _make_recipe_with_material(db_session, batch_yield=0.0)
+    material, recipe, product = _make_recipe_with_material(db_session, batch_yield=0.0)
     company_id = default_company_id(db_session)
     db_session.add(Transaction(company_id=company_id, material_id=material.id, type=TRANSACTION_INCOME, qty=100.0))
     db_session.commit()
 
     worker = make_user(db_session, login="zero_yield_worker", role=WORKER)
-    resp = client.post("/api/production", json={"recipe_id": recipe.id, "qty": 10}, headers=auth_headers(worker))
+    resp = client.post("/api/production", json={"product_id": product.id, "recipe_id": recipe.id, "qty": 10}, headers=auth_headers(worker))
     assert resp.status_code == 400
     assert "выход партии" in resp.json()["detail"]
 
 
 def test_production_zero_qty_rejected(client, db_session):
-    _, recipe = _make_recipe_with_material(db_session)
+    _, recipe, product = _make_recipe_with_material(db_session)
     worker = make_user(db_session, login="zero_qty_worker", role=WORKER)
-    resp = client.post("/api/production", json={"recipe_id": recipe.id, "qty": 0}, headers=auth_headers(worker))
+    resp = client.post("/api/production", json={"product_id": product.id, "recipe_id": recipe.id, "qty": 0}, headers=auth_headers(worker))
     assert resp.status_code == 400
 
 
 def test_production_started_at_uses_first_login_today(client, db_session):
     """started_at теперь берётся с первого входа сотрудника сегодня (LoginLog), не с
     ручного ввода (2026-07-18, решение Founder)."""
-    material, recipe = _make_recipe_with_material(db_session)
+    material, recipe, product = _make_recipe_with_material(db_session)
     company_id = default_company_id(db_session)
     db_session.add(Transaction(company_id=company_id, material_id=material.id, type=TRANSACTION_INCOME, qty=100.0))
     worker = make_user(db_session, login="login_time_worker", role=WORKER)
@@ -295,7 +299,7 @@ def test_production_started_at_uses_first_login_today(client, db_session):
     db_session.add(LoginLog(company_id=company_id, user_id=worker.id, logged_in_at=today_2pm))
     db_session.commit()
 
-    resp = client.post("/api/production", json={"recipe_id": recipe.id, "qty": 10}, headers=auth_headers(worker))
+    resp = client.post("/api/production", json={"product_id": product.id, "recipe_id": recipe.id, "qty": 10}, headers=auth_headers(worker))
     assert resp.status_code == 200
 
     log = db_session.query(ProductionLog).filter(ProductionLog.worker_id == worker.id).one()
@@ -303,7 +307,7 @@ def test_production_started_at_uses_first_login_today(client, db_session):
 
 
 def test_production_started_at_falls_back_to_now_without_login_today(client, db_session):
-    material, recipe = _make_recipe_with_material(db_session)
+    material, recipe, product = _make_recipe_with_material(db_session)
     company_id = default_company_id(db_session)
     db_session.add(Transaction(company_id=company_id, material_id=material.id, type=TRANSACTION_INCOME, qty=100.0))
     worker = make_user(db_session, login="no_login_today_worker", role=WORKER)
@@ -312,9 +316,73 @@ def test_production_started_at_falls_back_to_now_without_login_today(client, db_
     db_session.commit()
 
     before = datetime.utcnow()
-    resp = client.post("/api/production", json={"recipe_id": recipe.id, "qty": 10}, headers=auth_headers(worker))
+    resp = client.post("/api/production", json={"product_id": product.id, "recipe_id": recipe.id, "qty": 10}, headers=auth_headers(worker))
     after = datetime.utcnow()
     assert resp.status_code == 200
 
     log = db_session.query(ProductionLog).filter(ProductionLog.worker_id == worker.id).one()
     assert before <= log.started_at <= after
+
+
+def test_production_with_packaged_qty_writes_packaging_log(client, db_session):
+    """2026-07-23: "Производство" одной формой пишет и ProductionLog, и (если указано
+    упаковано) отдельную строку в PackagingLog — раньше это была отдельная вкладка."""
+    material, recipe, product = _make_recipe_with_material(db_session)
+    company_id = default_company_id(db_session)
+    db_session.add(Transaction(company_id=company_id, material_id=material.id, type=TRANSACTION_INCOME, qty=100.0))
+    db_session.commit()
+
+    worker = make_user(db_session, login="pack_worker", role=WORKER)
+    resp = client.post(
+        "/api/production",
+        json={
+            "product_id": product.id,
+            "recipe_id": recipe.id,
+            "qty": 10,
+            "packaged_qty": 8,
+            "packaged_defects": 1,
+        },
+        headers=auth_headers(worker),
+    )
+    assert resp.status_code == 200
+
+    entry = db_session.query(PackagingLog).filter(PackagingLog.worker_id == worker.id).one()
+    assert entry.product_id == product.id
+    assert float(entry.qty) == 8.0
+    assert float(entry.defects) == 1.0
+
+
+def test_production_without_packaged_qty_skips_packaging_log(client, db_session):
+    material, recipe, product = _make_recipe_with_material(db_session)
+    company_id = default_company_id(db_session)
+    db_session.add(Transaction(company_id=company_id, material_id=material.id, type=TRANSACTION_INCOME, qty=100.0))
+    db_session.commit()
+
+    worker = make_user(db_session, login="no_pack_worker", role=WORKER)
+    resp = client.post(
+        "/api/production",
+        json={"product_id": product.id, "recipe_id": recipe.id, "qty": 10},
+        headers=auth_headers(worker),
+    )
+    assert resp.status_code == 200
+    assert db_session.query(PackagingLog).count() == 0
+
+
+def test_production_rejects_foreign_product(client, db_session):
+    from tests.conftest import make_company
+
+    material, recipe, _product = _make_recipe_with_material(db_session)
+    company_id = default_company_id(db_session)
+    db_session.add(Transaction(company_id=company_id, material_id=material.id, type=TRANSACTION_INCOME, qty=100.0))
+    other_company = make_company(db_session)
+    foreign_product = Product(company_id=other_company.id, name="Чужой продукт", category="мыло", gtin="999")
+    db_session.add(foreign_product)
+    db_session.commit()
+
+    worker = make_user(db_session, login="foreign_prod_worker", role=WORKER)
+    resp = client.post(
+        "/api/production",
+        json={"product_id": foreign_product.id, "recipe_id": recipe.id, "qty": 10},
+        headers=auth_headers(worker),
+    )
+    assert resp.status_code == 404

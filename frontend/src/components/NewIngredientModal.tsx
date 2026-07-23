@@ -4,8 +4,10 @@ import { apiFetch, ApiError } from '../lib/api'
 import { materialCategoryLabel } from '../lib/labels'
 
 // Базовый набор всегда доступен, даже пока /ingredients/categories не загрузился —
-// см. app.constants.DEFAULT_MATERIAL_CATEGORIES на бэке, держим синхронно.
-const DEFAULT_CATEGORIES = ['тара', 'косм', 'свеч']
+// см. app.constants.DEFAULT_MATERIAL_CATEGORIES на бэке, держим синхронно. "тара"
+// сюда не входит (2026-07-23) — тара переехала в отдельный раздел «Упаковка» со своей
+// формой создания (NewPackagingMaterialModal.tsx), здесь для неё нет смысла в поле.
+const DEFAULT_CATEGORIES = ['косм', 'свеч']
 
 function CategoryPicker({ value, onChange }: { value: string; onChange: (v: string) => void }) {
   const [categories, setCategories] = useState<string[]>(DEFAULT_CATEGORIES)
@@ -16,7 +18,7 @@ function CategoryPicker({ value, onChange }: { value: string; onChange: (v: stri
 
   useEffect(() => {
     apiFetch<string[]>('/ingredients/categories')
-      .then(setCategories)
+      .then((cats) => setCategories(cats.filter((c) => c !== 'тара')))
       .catch(() => {})
   }, [])
 
@@ -131,7 +133,7 @@ export function NewIngredientModal({
   onCreated: () => void
 }) {
   const [name, setName] = useState('')
-  const [category, setCategory] = useState('тара')
+  const [category, setCategory] = useState('косм')
   const [minStock, setMinStock] = useState('')
   const [initialQty, setInitialQty] = useState('')
   const [error, setError] = useState<string | null>(null)

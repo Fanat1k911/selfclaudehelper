@@ -14,7 +14,7 @@ from sqlalchemy.orm import Session
 from app.constants import DEVELOPER, FOUNDER, TRANSACTION_ADJUSTMENT, TRANSACTION_EXPENSE, TRANSACTION_INCOME
 
 from app.db import get_db
-from app.models import LoginLog, Material, Product, ProductionLog, Recipe, RecipeItem, Transaction
+from app.models import LoginLog, Material, PackagingLog, Product, ProductionLog, Recipe, RecipeItem, Transaction
 from app.schemas import ProductionRequest
 from app.security import get_current_user, get_owned_or_404
 
@@ -125,6 +125,7 @@ def create_production(
     if body.qty <= 0:
         raise HTTPException(400, "Количество продукта должно быть больше нуля.")
 
+    product = get_owned_or_404(db, Product, body.product_id, user["company_id"], "Продукт не найден.")
     recipe = get_owned_or_404(db, Recipe, body.recipe_id, user["company_id"], "Рецепт не найден.")
     if recipe.archived:
         raise HTTPException(400, "Рецепт в архиве, производство по нему недоступно.")
@@ -202,5 +203,22 @@ def create_production(
         comment=body.comment,
     )
     db.add(log)
+
+    # Упаковка (2026-07-23) — одна форма покрывает изготовление + упаковку, см.
+    # ProductionRequest. Пишет отдельной строкой в тот же PackagingLog, что и раньше
+    # использовал самостоятельный раздел «Упаковка» (POST /api/packaging) — модель не
+    # менялась, просто ещё одна точка создания записи.
+    if body.packaged_qty > 0:
+        db.add(
+            PackagingLog(
+                company_id=user["company_id"],
+                worker_id=user["id"],
+                product_id=product.id,
+                qty=body.packaged_qty,
+                defects=body.packaged_defects,
+                comment=body.comment,
+            )
+        )
+
     db.commit()
     return {"id": log.id}

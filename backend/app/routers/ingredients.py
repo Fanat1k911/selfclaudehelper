@@ -76,6 +76,13 @@ def _material_dict(material: Material, balance: float, last_movement: date | Non
         "поставщик": material.supplier or "",
         "INCI": material.inci or "",
         "архив": material.archived,
+        "тип тары": material.packaging_type,
+        "ширина, мм": float(material.width_mm) if material.width_mm is not None else None,
+        "высота, мм": float(material.height_mm) if material.height_mm is not None else None,
+        "длина, мм": float(material.length_mm) if material.length_mm is not None else None,
+        "объём, мл": float(material.volume_ml) if material.volume_ml is not None else None,
+        "материал исполнения": material.material_finish or "",
+        "особенность ленты": material.tape_feature or "",
     }
 
 
@@ -151,7 +158,10 @@ def create_ingredient(
     body: NewMaterialRequest, user: dict = Depends(get_current_user), db: Session = Depends(get_db)
 ) -> dict:
     material = Material(
-        company_id=user["company_id"], name=body.name, category=body.category, unit=body.unit, min_stock=body.min_stock
+        company_id=user["company_id"], name=body.name, category=body.category, unit=body.unit, min_stock=body.min_stock,
+        packaging_type=body.packaging_type, width_mm=body.width_mm, height_mm=body.height_mm,
+        length_mm=body.length_mm, volume_ml=body.volume_ml, material_finish=body.material_finish,
+        tape_feature=body.tape_feature,
     )
     db.add(material)
     db.flush()

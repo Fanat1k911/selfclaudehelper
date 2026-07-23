@@ -5,7 +5,7 @@ import { IngredientsPage } from './pages/IngredientsPage'
 import { EquipmentPage } from './pages/EquipmentPage'
 import { DashboardPage } from './pages/DashboardPage'
 import { ProductionPage } from './pages/ProductionPage'
-import { PackagingPage } from './pages/PackagingPage'
+import { PackagingMaterialsPage } from './pages/PackagingMaterialsPage'
 import { SalesPage } from './pages/SalesPage'
 import { RecipesPage } from './pages/RecipesPage'
 import { ProductsPage } from './pages/ProductsPage'
@@ -39,7 +39,7 @@ function App() {
         >
           <Route path="/ingredients" element={<IngredientsPage />} />
           <Route path="/production" element={<ProductionPage />} />
-          <Route path="/packaging" element={<PackagingPage />} />
+          <Route path="/packaging" element={<PackagingMaterialsPage />} />
           <Route
             path="/dashboard"
             element={

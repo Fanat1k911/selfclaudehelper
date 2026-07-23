@@ -120,6 +120,17 @@ class Material(Base):
     # попадает в список по умолчанию, но остаток/история движений/ссылки из RecipeItem
     # остаются нетронутыми, ничего не режем.
     archived: Mapped[bool] = mapped_column(Boolean, default=False, server_default="false")
+    # Подкатегория тары (2026-07-23) — только для category="тара", см. PACKAGING_TYPES
+    # в constants.py. Поля ниже общие для нескольких подтипов (короб/флакон делят
+    # width_mm/height_mm), не у каждого материала заполнены все — справочные, в расчёт
+    # себестоимости не входят (себестоимость по-прежнему только unit_cost/лоты).
+    packaging_type: Mapped[str | None] = mapped_column(String(20))
+    width_mm: Mapped[float | None] = mapped_column(Numeric(10, 2))
+    height_mm: Mapped[float | None] = mapped_column(Numeric(10, 2))
+    length_mm: Mapped[float | None] = mapped_column(Numeric(10, 2))
+    volume_ml: Mapped[float | None] = mapped_column(Numeric(10, 2))
+    material_finish: Mapped[str | None] = mapped_column(String(50))
+    tape_feature: Mapped[str | None] = mapped_column(String(255))
 
     transactions: Mapped[list["Transaction"]] = relationship(back_populates="material")
 

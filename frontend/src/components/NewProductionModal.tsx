@@ -13,6 +13,8 @@ export function NewProductionModal({
   const [productId, setProductId] = useState('')
   const [qty, setQty] = useState('1')
   const [defects, setDefects] = useState('0')
+  const [packagedQty, setPackagedQty] = useState('')
+  const [packagedDefects, setPackagedDefects] = useState('0')
   const [comment, setComment] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
@@ -58,9 +60,12 @@ export function NewProductionModal({
       await apiFetch('/production', {
         method: 'POST',
         body: JSON.stringify({
+          product_id: product.id,
           recipe_id: product.recipe_id,
           qty: Number(qty),
           defects: defects ? Number(defects) : 0,
+          packaged_qty: packagedQty ? Number(packagedQty) : 0,
+          packaged_defects: packagedDefects ? Number(packagedDefects) : 0,
           comment,
         }),
       })
@@ -120,6 +125,35 @@ export function NewProductionModal({
             onChange={(e) => setDefects(e.target.value)}
             className="w-full rounded-lg border border-premium-border bg-premium-bg px-3 py-2 text-sm text-premium-text outline-none focus:border-premium-gold"
           />
+        </div>
+
+        <div className="border-t border-premium-border pt-3">
+          <div className="mb-2 text-xs font-medium text-premium-text/50">Упаковка (необязательно)</div>
+          <div className="flex gap-2">
+            <div className="flex-1">
+              <label className="block text-xs text-premium-text/60 mb-1">Упаковано, шт</label>
+              <input
+                type="number"
+                step="any"
+                min="0"
+                value={packagedQty}
+                onChange={(e) => setPackagedQty(e.target.value)}
+                placeholder="0"
+                className="w-full rounded-lg border border-premium-border bg-premium-bg px-3 py-2 text-sm text-premium-text outline-none focus:border-premium-gold"
+              />
+            </div>
+            <div className="flex-1">
+              <label className="block text-xs text-premium-text/60 mb-1">Брак упаковки</label>
+              <input
+                type="number"
+                step="any"
+                min="0"
+                value={packagedDefects}
+                onChange={(e) => setPackagedDefects(e.target.value)}
+                className="w-full rounded-lg border border-premium-border bg-premium-bg px-3 py-2 text-sm text-premium-text outline-none focus:border-premium-gold"
+              />
+            </div>
+          </div>
         </div>
 
         <div>

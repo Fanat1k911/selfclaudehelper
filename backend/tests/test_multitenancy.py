@@ -209,7 +209,7 @@ def test_production_log_isolated_between_companies(client, db_session):
 
     resp = client.post(
         "/api/production",
-        json={"recipe_id": recipe_a.id, "qty": 10},
+        json={"product_id": "nonexistent", "recipe_id": recipe_a.id, "qty": 10},
         headers=auth_headers(founder_b),
     )
     assert resp.status_code == 404

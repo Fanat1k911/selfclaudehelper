@@ -52,6 +52,13 @@ export interface Ingredient {
   'поставщик': string
   'INCI': string
   'архив': boolean
+  'тип тары': string | null
+  'ширина, мм': number | null
+  'высота, мм': number | null
+  'длина, мм': number | null
+  'объём, мл': number | null
+  'материал исполнения': string
+  'особенность ленты': string
 }
 
 export interface Transaction {

@@ -164,6 +164,43 @@ def test_patch_renames_material(client, db_session):
     assert row["название"] == "Исправлено"
 
 
+def test_create_and_patch_packaging_fields(client, db_session):
+    """2026-07-23: тара (category="тара") получает типовые поля по подкатегории —
+    короб/флакон/наклейка/лента, см. PACKAGING_TYPES в constants.py."""
+    founder = make_user(db_session, login="iw3c", role=FOUNDER)
+    headers = auth_headers(founder)
+    resp = client.post(
+        "/api/ingredients",
+        json={
+            "name": "Короб крафт 100х100х60",
+            "category": "тара",
+            "unit": "шт",
+            "packaging_type": "короб",
+            "length_mm": 100,
+            "width_mm": 100,
+            "height_mm": 60,
+        },
+        headers=headers,
+    )
+    assert resp.status_code == 200
+    material_id = resp.json()["id"]
+
+    resp = client.get("/api/ingredients", headers=headers)
+    row = next(r for r in resp.json() if r["id"] == material_id)
+    assert row["тип тары"] == "короб"
+    assert row["длина, мм"] == 100.0
+    assert row["ширина, мм"] == 100.0
+    assert row["высота, мм"] == 60.0
+    assert row["объём, мл"] is None
+
+    resp = client.patch(f"/api/ingredients/{material_id}", json={"height_mm": 70}, headers=headers)
+    assert resp.status_code == 200
+    resp = client.get("/api/ingredients", headers=headers)
+    row = next(r for r in resp.json() if r["id"] == material_id)
+    assert row["высота, мм"] == 70.0
+    assert row["длина, мм"] == 100.0  # не тронуто
+
+
 def test_patch_rejects_foreign_material(client, db_session):
     from tests.conftest import make_company
 

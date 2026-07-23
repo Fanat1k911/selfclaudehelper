@@ -19,6 +19,9 @@ const ACTION_META: Record<Exclude<ActionKind, null>, { label: string; icon: type
   'корректировка': { label: 'Корректировка', icon: SlidersHorizontal },
 }
 
+// Держим синхронно с PACKAGING_TYPES в backend/app/constants.py.
+const PACKAGING_TYPES = ['короб', 'флакон', 'наклейка', 'лента', 'прочее']
+
 function formatDate(value: string | null) {
   if (!value) return '—'
   const d = new Date(value)
@@ -47,6 +50,7 @@ export function IngredientDetailPanel({
   const [transactions, setTransactions] = useState<Transaction[] | null>(null)
   const [loadingHistory, setLoadingHistory] = useState(false)
 
+  const isTara = ingredient['категория'] === 'тара'
   const [editingAttrs, setEditingAttrs] = useState(false)
   const [attrs, setAttrs] = useState({
     unitCost: ingredient['себестоимость 1 шт']?.toString() ?? '',
@@ -56,6 +60,18 @@ export function IngredientDetailPanel({
     supplier: ingredient['поставщик'],
     inci: ingredient['INCI'],
   })
+  const [editingTara, setEditingTara] = useState(false)
+  const [taraAttrs, setTaraAttrs] = useState({
+    packagingType: ingredient['тип тары'] ?? '',
+    widthMm: ingredient['ширина, мм']?.toString() ?? '',
+    heightMm: ingredient['высота, мм']?.toString() ?? '',
+    lengthMm: ingredient['длина, мм']?.toString() ?? '',
+    volumeMl: ingredient['объём, мл']?.toString() ?? '',
+    materialFinish: ingredient['материал исполнения'],
+    tapeFeature: ingredient['особенность ленты'],
+  })
+  const [savingTara, setSavingTara] = useState(false)
+  const [taraError, setTaraError] = useState<string | null>(null)
   const [savingAttrs, setSavingAttrs] = useState(false)
   const [attrsError, setAttrsError] = useState<string | null>(null)
   const [archiving, setArchiving] = useState(false)
@@ -133,6 +149,32 @@ export function IngredientDetailPanel({
     }
   }
 
+  async function handleSaveTara(e: FormEvent) {
+    e.preventDefault()
+    setTaraError(null)
+    setSavingTara(true)
+    try {
+      await apiFetch(`/ingredients/${ingredient.id}`, {
+        method: 'PATCH',
+        body: JSON.stringify({
+          packaging_type: taraAttrs.packagingType || null,
+          width_mm: taraAttrs.widthMm === '' ? null : Number(taraAttrs.widthMm),
+          height_mm: taraAttrs.heightMm === '' ? null : Number(taraAttrs.heightMm),
+          length_mm: taraAttrs.lengthMm === '' ? null : Number(taraAttrs.lengthMm),
+          volume_ml: taraAttrs.volumeMl === '' ? null : Number(taraAttrs.volumeMl),
+          material_finish: taraAttrs.materialFinish || null,
+          tape_feature: taraAttrs.tapeFeature || null,
+        }),
+      })
+      setEditingTara(false)
+      onChanged()
+    } catch (err) {
+      setTaraError(err instanceof ApiError ? err.message : 'Не удалось сохранить.')
+    } finally {
+      setSavingTara(false)
+    }
+  }
+
   async function handleSaveAttrs(e: FormEvent) {
     e.preventDefault()
     setAttrsError(null)
@@ -203,6 +245,173 @@ export function IngredientDetailPanel({
             </>
           )}
         </div>
+
+        {isTara && (
+          <div className="px-6 py-4 border-b border-premium-border">
+            <div className="mb-3 flex items-center justify-between">
+              <div className="text-sm font-medium text-premium-text/70">Тара</div>
+              {!editingTara && canEditAttrs && (
+                <button
+                  onClick={() => setEditingTara(true)}
+                  className="flex items-center gap-1 text-xs text-premium-text/50 hover:text-premium-gold-hi"
+                >
+                  <Pencil size={13} /> Редактировать
+                </button>
+              )}
+            </div>
+
+            {!editingTara || !canEditAttrs ? (
+              <div className="space-y-1.5 text-sm text-premium-text">
+                <div className="flex items-center justify-between">
+                  <span className="text-premium-text/60">Тип</span>
+                  <span>{ingredient['тип тары'] || '—'}</span>
+                </div>
+                {ingredient['тип тары'] === 'короб' && (
+                  <div className="flex items-center justify-between">
+                    <span className="text-premium-text/60">Размер, мм (ДхШхВ)</span>
+                    <span>
+                      {ingredient['длина, мм'] ?? '—'} × {ingredient['ширина, мм'] ?? '—'} × {ingredient['высота, мм'] ?? '—'}
+                    </span>
+                  </div>
+                )}
+                {ingredient['тип тары'] === 'флакон' && (
+                  <>
+                    <div className="flex items-center justify-between">
+                      <span className="text-premium-text/60">Объём</span>
+                      <span>{ingredient['объём, мл'] ?? '—'} мл</span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-premium-text/60">Размер, мм (ШхВ)</span>
+                      <span>{ingredient['ширина, мм'] ?? '—'} × {ingredient['высота, мм'] ?? '—'}</span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-premium-text/60">Материал исполнения</span>
+                      <span>{ingredient['материал исполнения'] || '—'}</span>
+                    </div>
+                  </>
+                )}
+                {ingredient['тип тары'] === 'наклейка' && (
+                  <div className="flex items-center justify-between">
+                    <span className="text-premium-text/60">Размер, мм (ДхШ)</span>
+                    <span>{ingredient['длина, мм'] ?? '—'} × {ingredient['ширина, мм'] ?? '—'}</span>
+                  </div>
+                )}
+                {ingredient['тип тары'] === 'лента' && (
+                  <>
+                    <div className="flex items-center justify-between">
+                      <span className="text-premium-text/60">Ширина, мм</span>
+                      <span>{ingredient['ширина, мм'] ?? '—'}</span>
+                    </div>
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="shrink-0 text-premium-text/60">Особенность</span>
+                      <span className="truncate text-right">{ingredient['особенность ленты'] || '—'}</span>
+                    </div>
+                  </>
+                )}
+              </div>
+            ) : (
+              <form onSubmit={handleSaveTara} className="space-y-3">
+                <div>
+                  <label className="block text-xs text-premium-text/60 mb-1">Тип тары</label>
+                  <select
+                    value={taraAttrs.packagingType}
+                    onChange={(e) => setTaraAttrs({ ...taraAttrs, packagingType: e.target.value })}
+                    className="w-full rounded-lg border border-premium-border bg-premium-bg px-3 py-2 text-sm text-premium-text outline-none focus:border-premium-gold"
+                  >
+                    <option value="">—</option>
+                    {PACKAGING_TYPES.map((t) => (
+                      <option key={t} value={t}>{t}</option>
+                    ))}
+                  </select>
+                </div>
+
+                {taraAttrs.packagingType === 'короб' && (
+                  <div className="grid grid-cols-3 gap-3">
+                    <div>
+                      <label className="block text-xs text-premium-text/60 mb-1">Длина, мм</label>
+                      <input type="number" step="any" value={taraAttrs.lengthMm} onChange={(e) => setTaraAttrs({ ...taraAttrs, lengthMm: e.target.value })} className="w-full rounded-lg border border-premium-border bg-premium-bg px-3 py-2 text-sm text-premium-text outline-none focus:border-premium-gold" />
+                    </div>
+                    <div>
+                      <label className="block text-xs text-premium-text/60 mb-1">Ширина, мм</label>
+                      <input type="number" step="any" value={taraAttrs.widthMm} onChange={(e) => setTaraAttrs({ ...taraAttrs, widthMm: e.target.value })} className="w-full rounded-lg border border-premium-border bg-premium-bg px-3 py-2 text-sm text-premium-text outline-none focus:border-premium-gold" />
+                    </div>
+                    <div>
+                      <label className="block text-xs text-premium-text/60 mb-1">Высота, мм</label>
+                      <input type="number" step="any" value={taraAttrs.heightMm} onChange={(e) => setTaraAttrs({ ...taraAttrs, heightMm: e.target.value })} className="w-full rounded-lg border border-premium-border bg-premium-bg px-3 py-2 text-sm text-premium-text outline-none focus:border-premium-gold" />
+                    </div>
+                  </div>
+                )}
+
+                {taraAttrs.packagingType === 'флакон' && (
+                  <>
+                    <div className="grid grid-cols-3 gap-3">
+                      <div>
+                        <label className="block text-xs text-premium-text/60 mb-1">Объём, мл</label>
+                        <input type="number" step="any" value={taraAttrs.volumeMl} onChange={(e) => setTaraAttrs({ ...taraAttrs, volumeMl: e.target.value })} className="w-full rounded-lg border border-premium-border bg-premium-bg px-3 py-2 text-sm text-premium-text outline-none focus:border-premium-gold" />
+                      </div>
+                      <div>
+                        <label className="block text-xs text-premium-text/60 mb-1">Ширина, мм</label>
+                        <input type="number" step="any" value={taraAttrs.widthMm} onChange={(e) => setTaraAttrs({ ...taraAttrs, widthMm: e.target.value })} className="w-full rounded-lg border border-premium-border bg-premium-bg px-3 py-2 text-sm text-premium-text outline-none focus:border-premium-gold" />
+                      </div>
+                      <div>
+                        <label className="block text-xs text-premium-text/60 mb-1">Высота, мм</label>
+                        <input type="number" step="any" value={taraAttrs.heightMm} onChange={(e) => setTaraAttrs({ ...taraAttrs, heightMm: e.target.value })} className="w-full rounded-lg border border-premium-border bg-premium-bg px-3 py-2 text-sm text-premium-text outline-none focus:border-premium-gold" />
+                      </div>
+                    </div>
+                    <div>
+                      <label className="block text-xs text-premium-text/60 mb-1">Материал исполнения (алюминий/стекло/пластик)</label>
+                      <input value={taraAttrs.materialFinish} onChange={(e) => setTaraAttrs({ ...taraAttrs, materialFinish: e.target.value })} className="w-full rounded-lg border border-premium-border bg-premium-bg px-3 py-2 text-sm text-premium-text outline-none focus:border-premium-gold" />
+                    </div>
+                  </>
+                )}
+
+                {taraAttrs.packagingType === 'наклейка' && (
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-xs text-premium-text/60 mb-1">Длина, мм</label>
+                      <input type="number" step="any" value={taraAttrs.lengthMm} onChange={(e) => setTaraAttrs({ ...taraAttrs, lengthMm: e.target.value })} className="w-full rounded-lg border border-premium-border bg-premium-bg px-3 py-2 text-sm text-premium-text outline-none focus:border-premium-gold" />
+                    </div>
+                    <div>
+                      <label className="block text-xs text-premium-text/60 mb-1">Ширина, мм</label>
+                      <input type="number" step="any" value={taraAttrs.widthMm} onChange={(e) => setTaraAttrs({ ...taraAttrs, widthMm: e.target.value })} className="w-full rounded-lg border border-premium-border bg-premium-bg px-3 py-2 text-sm text-premium-text outline-none focus:border-premium-gold" />
+                    </div>
+                  </div>
+                )}
+
+                {taraAttrs.packagingType === 'лента' && (
+                  <>
+                    <div>
+                      <label className="block text-xs text-premium-text/60 mb-1">Ширина, мм</label>
+                      <input type="number" step="any" value={taraAttrs.widthMm} onChange={(e) => setTaraAttrs({ ...taraAttrs, widthMm: e.target.value })} className="w-full rounded-lg border border-premium-border bg-premium-bg px-3 py-2 text-sm text-premium-text outline-none focus:border-premium-gold" />
+                    </div>
+                    <div>
+                      <label className="block text-xs text-premium-text/60 mb-1">Особенность</label>
+                      <input value={taraAttrs.tapeFeature} onChange={(e) => setTaraAttrs({ ...taraAttrs, tapeFeature: e.target.value })} className="w-full rounded-lg border border-premium-border bg-premium-bg px-3 py-2 text-sm text-premium-text outline-none focus:border-premium-gold" />
+                    </div>
+                  </>
+                )}
+
+                {taraError && <div className="text-sm text-red-400">{taraError}</div>}
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setEditingTara(false)}
+                    className="flex-1 rounded-lg border border-premium-border py-2 text-sm font-medium text-premium-text hover:bg-premium-surface-2"
+                  >
+                    Отмена
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={savingTara}
+                    className="flex-1 rounded-lg bg-premium-gold py-2 text-sm font-medium text-premium-bg hover:bg-premium-gold-hi disabled:opacity-60"
+                  >
+                    {savingTara ? 'Сохраняем…' : 'Сохранить'}
+                  </button>
+                </div>
+              </form>
+            )}
+          </div>
+        )}
 
         <div className="px-6 py-4 border-b border-premium-border">
           <div className="mb-3 flex items-center justify-between">
