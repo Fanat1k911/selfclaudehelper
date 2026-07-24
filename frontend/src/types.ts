@@ -313,6 +313,8 @@ export interface DefectRateRow {
 
 export interface ComponentCostValue {
   'сумма': number
+  'компоненты': number
+  'тара': number
   'материалов учтено': number
   'материалов без цены': number
 }

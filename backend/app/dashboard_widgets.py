@@ -193,7 +193,10 @@ def _component_cost_value(db: Session, company_id: str) -> dict:
     закупочной цены (ни одного прихода с ценой, или лот целиком израсходован) просто не
     участвуют в сумме — не показываем частично посчитанную цифру как "0", а честно считаем
     отдельно, сколько материалов пропущено, чтобы цифра не выглядела точнее, чем есть.
-    Архивные материалы не считаются — тот же фильтр видимости, что у "остатки ниже минимума"."""
+    Архивные материалы не считаются — тот же фильтр видимости, что у "остатки ниже минимума".
+    Разбивка на "компоненты"/"тара" (2026-07-24, уточнение Александра) — та же граница, что
+    у раздела «Упаковка» на фронте (`category == "тара"`), сумма разбивается по ней, чтобы
+    не смешивать сырьё и упаковку в одной цифре."""
     unit_costs = compute_active_lot_unit_costs(db, company_id)
     balances = _balances(db, company_id)
     materials = db.scalars(
@@ -201,6 +204,7 @@ def _component_cost_value(db: Session, company_id: str) -> dict:
     ).all()
 
     total = 0.0
+    packaging_total = 0.0
     priced_count = 0
     unpriced_count = 0
     for m in materials:
@@ -211,11 +215,16 @@ def _component_cost_value(db: Session, company_id: str) -> dict:
         if unit_cost is None:
             unpriced_count += 1
             continue
-        total += balance * unit_cost
+        value = balance * unit_cost
+        total += value
+        if m.category == "тара":
+            packaging_total += value
         priced_count += 1
 
     return {
         "сумма": round(total, 2),
+        "компоненты": round(total - packaging_total, 2),
+        "тара": round(packaging_total, 2),
         "материалов учтено": priced_count,
         "материалов без цены": unpriced_count,
     }

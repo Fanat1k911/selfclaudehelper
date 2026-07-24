@@ -7,19 +7,27 @@ function statusColor(pct: number) {
   return STATUS.critical
 }
 
+function money(v: number) {
+  return `${Math.round(v).toLocaleString('ru-RU')} ₽`
+}
+
 function ComponentCostStat({ data }: { data: ComponentCostValue }) {
   const sum = data['сумма']
+  const components = data['компоненты']
+  const packaging = data['тара']
   const priced = data['материалов учтено']
   const unpriced = data['материалов без цены']
   return (
     <div
-      className="premium-stat flex h-full flex-col items-center justify-center gap-1 rounded-lg text-center"
-      data-watermark={`${Math.round(sum).toLocaleString('ru-RU')} ₽`}
+      className="premium-stat flex h-full flex-col items-center justify-center gap-1.5 rounded-lg text-center"
+      data-watermark={money(sum)}
     >
-      <div className="font-display text-4xl font-semibold italic tabular-nums text-premium-gold-hi">
-        {Math.round(sum).toLocaleString('ru-RU')} ₽
+      <div className="font-display text-4xl font-semibold italic tabular-nums text-premium-gold-hi">{money(sum)}</div>
+      <div className="text-xs text-premium-text-muted">заморожено в остатках</div>
+      <div className="flex gap-4 text-xs text-premium-text-muted">
+        <span>сырьё: {money(components)}</span>
+        <span>тара: {money(packaging)}</span>
       </div>
-      <div className="text-xs text-premium-text-muted">заморожено в остатках сырья</div>
       {unpriced > 0 && (
         <div className="text-xs text-premium-text-muted">
           {priced} из {priced + unpriced} компонентов с известной ценой

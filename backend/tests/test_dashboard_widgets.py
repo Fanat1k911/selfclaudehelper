@@ -237,16 +237,19 @@ def test_recent_transactions_widget_includes_unit(client, db_session):
 def test_component_cost_value_widget(client, db_session):
     company_id = default_company_id(db_session)
     priced = Material(company_id=company_id, name="Масло", category="жидкое", unit="кг")
+    packaging = Material(company_id=company_id, name="Флакон", category="тара", unit="шт")
     unpriced = Material(company_id=company_id, name="Сода", category="сыпучее", unit="кг")
     depleted = Material(company_id=company_id, name="Воск", category="сыпучее", unit="кг")
     zero_balance = Material(company_id=company_id, name="Пустой", category="сыпучее", unit="кг")
     archived = Material(company_id=company_id, name="Архивный", category="сыпучее", unit="кг", archived=True)
-    db_session.add_all([priced, unpriced, depleted, zero_balance, archived])
+    db_session.add_all([priced, packaging, unpriced, depleted, zero_balance, archived])
     db_session.flush()
     db_session.add_all(
         [
             # 10 кг по 100 = остаток 10, себестоимость 1000
             Transaction(company_id=company_id, material_id=priced.id, type=TRANSACTION_INCOME, qty=10, price=100),
+            # тара: 50 шт по 6 = остаток 50, себестоимость 300
+            Transaction(company_id=company_id, material_id=packaging.id, type=TRANSACTION_INCOME, qty=50, price=6),
             # приход без цены — не участвует в сумме, считается "без цены"
             Transaction(company_id=company_id, material_id=unpriced.id, type=TRANSACTION_INCOME, qty=5),
             # приход с ценой, но лот полностью израсходован — тоже "без цены" (нет активного лота)
@@ -265,8 +268,10 @@ def test_component_cost_value_widget(client, db_session):
     resp = client.get("/api/dashboard/widgets/component_cost_value/data", headers=auth_headers(founder))
     assert resp.status_code == 200
     body = resp.json()
-    assert body["сумма"] == 1000.0
-    assert body["материалов учтено"] == 1
+    assert body["сумма"] == 1300.0
+    assert body["компоненты"] == 1000.0
+    assert body["тара"] == 300.0
+    assert body["материалов учтено"] == 2
     assert body["материалов без цены"] == 1
 
 
