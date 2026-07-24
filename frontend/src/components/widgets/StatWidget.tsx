@@ -25,7 +25,7 @@ function ComponentCostStat({ data }: { data: ComponentCostValue }) {
       <div className="font-display text-4xl font-semibold italic tabular-nums text-premium-gold-hi">{money(sum)}</div>
       <div className="text-xs text-premium-text-muted">заморожено в остатках</div>
       <div className="flex gap-4 text-xs text-premium-text-muted">
-        <span>сырьё: {money(components)}</span>
+        <span>компоненты: {money(components)}</span>
         <span>тара: {money(packaging)}</span>
       </div>
       {unpriced > 0 && (
