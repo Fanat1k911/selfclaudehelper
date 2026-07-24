@@ -158,7 +158,7 @@ export function Sidebar({ mobileOpen = false, onCloseMobile }: { mobileOpen?: bo
           >
             {otherCompanies.length > 0 && (
               <div className="border-b border-premium-border pb-1 mb-1">
-                <div className="px-4 pt-2 pb-1 text-[10px] font-medium uppercase tracking-wider text-premium-text/40">
+                <div className="px-4 pt-2 pb-1 text-xs font-medium uppercase tracking-wider text-premium-text-muted">
                   Другие компании
                 </div>
                 {otherCompanies.map((c) => (
