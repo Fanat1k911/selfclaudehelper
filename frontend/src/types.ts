@@ -311,6 +311,12 @@ export interface DefectRateRow {
   'брак_процент': number
 }
 
+export interface ComponentCostValue {
+  'сумма': number
+  'материалов учтено': number
+  'материалов без цены': number
+}
+
 export interface DashboardEvent {
   'время': string
   'тип': string

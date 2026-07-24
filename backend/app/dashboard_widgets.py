@@ -13,6 +13,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.constants import TRANSACTION_ADJUSTMENT, TRANSACTION_EXPENSE, TRANSACTION_INCOME
+from app.costing import compute_active_lot_unit_costs
 from app.models import Material, PackagingLog, ProductionLog, Sale, Transaction
 
 _SIGN_BY_TYPE = {TRANSACTION_INCOME: 1, TRANSACTION_EXPENSE: -1, TRANSACTION_ADJUSTMENT: 1}
@@ -184,6 +185,42 @@ def _stock_by_category(db: Session, company_id: str) -> list[dict]:
     return [{"категория": cat, "остаток": round(v, 2)} for cat, v in sorted(by_category.items())]
 
 
+def _component_cost_value(db: Session, company_id: str) -> dict:
+    """Себестоимость компонентов (2026-07-24, запрос Александра) — сколько денег
+    "заморожено" в текущих остатках сырья: остаток каждого материала × его себестоимость
+    из самого дешёвого ещё не израсходованного лота (та же система, что считает
+    себестоимость продукта, см. costing.py — "дешёвый лот первым"). Материалы без известной
+    закупочной цены (ни одного прихода с ценой, или лот целиком израсходован) просто не
+    участвуют в сумме — не показываем частично посчитанную цифру как "0", а честно считаем
+    отдельно, сколько материалов пропущено, чтобы цифра не выглядела точнее, чем есть.
+    Архивные материалы не считаются — тот же фильтр видимости, что у "остатки ниже минимума"."""
+    unit_costs = compute_active_lot_unit_costs(db, company_id)
+    balances = _balances(db, company_id)
+    materials = db.scalars(
+        select(Material).where(Material.company_id == company_id, Material.archived.is_(False))
+    ).all()
+
+    total = 0.0
+    priced_count = 0
+    unpriced_count = 0
+    for m in materials:
+        balance = balances.get(m.id, 0.0)
+        if balance <= 0:
+            continue
+        unit_cost = unit_costs.get(m.id)
+        if unit_cost is None:
+            unpriced_count += 1
+            continue
+        total += balance * unit_cost
+        priced_count += 1
+
+    return {
+        "сумма": round(total, 2),
+        "материалов учтено": priced_count,
+        "материалов без цены": unpriced_count,
+    }
+
+
 def _recent_events(db: Session, company_id: str, limit: int = 5) -> list[dict]:
     """5 последних событий по всей системе (2026-07-19, запрос Founder) — движения
     компонентов, производство, упаковка, продажи, смёрженные по времени. Каждый
@@ -282,6 +319,8 @@ WIDGET_CATALOG: list[dict] = [
      "w": 6, "h": 6, "min_w": 4, "min_h": 4, "compute": _stock_by_category},
     {"key": "recent_events", "title": "5 последних событий", "kind": "list",
      "w": 6, "h": 6, "min_w": 4, "min_h": 4, "compute": _recent_events},
+    {"key": "component_cost_value", "title": "Себестоимость компонентов", "kind": "stat",
+     "w": 4, "h": 4, "min_w": 3, "min_h": 3, "compute": _component_cost_value},
 ]
 
 WIDGET_BY_KEY = {w["key"]: w for w in WIDGET_CATALOG}

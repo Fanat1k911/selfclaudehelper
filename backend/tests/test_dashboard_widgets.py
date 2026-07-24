@@ -14,6 +14,7 @@ def test_widget_catalog_lists_all_keys(client, db_session):
         "low_stock", "recent_transactions", "top_expense_materials", "monthly_spend",
         "kpi_by_worker", "top_products", "production_leaderboard", "monthly_revenue",
         "top_counterparties", "defect_rate", "stock_by_category", "recent_events",
+        "component_cost_value",
     }
 
 
@@ -231,6 +232,42 @@ def test_recent_transactions_widget_includes_unit(client, db_session):
     resp = client.get("/api/dashboard/widgets/recent_transactions/data", headers=auth_headers(founder))
     row = resp.json()[0]
     assert row["ед.измерения"] == "кг"
+
+
+def test_component_cost_value_widget(client, db_session):
+    company_id = default_company_id(db_session)
+    priced = Material(company_id=company_id, name="Масло", category="жидкое", unit="кг")
+    unpriced = Material(company_id=company_id, name="Сода", category="сыпучее", unit="кг")
+    depleted = Material(company_id=company_id, name="Воск", category="сыпучее", unit="кг")
+    zero_balance = Material(company_id=company_id, name="Пустой", category="сыпучее", unit="кг")
+    archived = Material(company_id=company_id, name="Архивный", category="сыпучее", unit="кг", archived=True)
+    db_session.add_all([priced, unpriced, depleted, zero_balance, archived])
+    db_session.flush()
+    db_session.add_all(
+        [
+            # 10 кг по 100 = остаток 10, себестоимость 1000
+            Transaction(company_id=company_id, material_id=priced.id, type=TRANSACTION_INCOME, qty=10, price=100),
+            # приход без цены — не участвует в сумме, считается "без цены"
+            Transaction(company_id=company_id, material_id=unpriced.id, type=TRANSACTION_INCOME, qty=5),
+            # приход с ценой, но лот полностью израсходован — тоже "без цены" (нет активного лота)
+            Transaction(company_id=company_id, material_id=depleted.id, type=TRANSACTION_INCOME, qty=5, price=50),
+            Transaction(company_id=company_id, material_id=depleted.id, type="расход", qty=5),
+            # приход с ценой, но остаток 0 — не должен ни считаться, ни попадать в "без цены"
+            Transaction(company_id=company_id, material_id=zero_balance.id, type=TRANSACTION_INCOME, qty=3, price=20),
+            Transaction(company_id=company_id, material_id=zero_balance.id, type="расход", qty=3),
+            # архивный материал с остатком и ценой — не должен считаться вообще
+            Transaction(company_id=company_id, material_id=archived.id, type=TRANSACTION_INCOME, qty=100, price=1000),
+        ]
+    )
+    db_session.commit()
+
+    founder = make_user(db_session, login="wd10", role=FOUNDER, company_id=company_id)
+    resp = client.get("/api/dashboard/widgets/component_cost_value/data", headers=auth_headers(founder))
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body["сумма"] == 1000.0
+    assert body["материалов учтено"] == 1
+    assert body["материалов без цены"] == 1
 
 
 def test_worker_cannot_access_widgets(client, db_session):

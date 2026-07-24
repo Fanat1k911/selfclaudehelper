@@ -1,5 +1,5 @@
 import { STATUS } from '../../lib/vizColors'
-import type { DefectRateRow } from '../../types'
+import type { ComponentCostValue, DefectRateRow } from '../../types'
 
 function statusColor(pct: number) {
   if (pct < 5) return STATUS.good
@@ -7,7 +7,32 @@ function statusColor(pct: number) {
   return STATUS.critical
 }
 
+function ComponentCostStat({ data }: { data: ComponentCostValue }) {
+  const sum = data['сумма']
+  const priced = data['материалов учтено']
+  const unpriced = data['материалов без цены']
+  return (
+    <div
+      className="premium-stat flex h-full flex-col items-center justify-center gap-1 rounded-lg text-center"
+      data-watermark={`${Math.round(sum).toLocaleString('ru-RU')} ₽`}
+    >
+      <div className="font-display text-4xl font-semibold italic tabular-nums text-premium-gold-hi">
+        {Math.round(sum).toLocaleString('ru-RU')} ₽
+      </div>
+      <div className="text-xs text-premium-text-muted">заморожено в остатках сырья</div>
+      {unpriced > 0 && (
+        <div className="text-xs text-premium-text-muted">
+          {priced} из {priced + unpriced} компонентов с известной ценой
+        </div>
+      )}
+    </div>
+  )
+}
+
 export function StatWidget({ widgetKey, data }: { widgetKey: string; data: unknown }) {
+  if (widgetKey === 'component_cost_value') {
+    return <ComponentCostStat data={data as ComponentCostValue} />
+  }
   if (widgetKey !== 'defect_rate') return null
 
   const rows = data as DefectRateRow[]
