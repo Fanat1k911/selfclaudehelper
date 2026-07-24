@@ -59,11 +59,11 @@ function NetworkRestrictionSection() {
           disabled={saving}
           className={`whitespace-nowrap rounded-lg px-3 py-1.5 text-xs font-medium disabled:opacity-60 ${
             settings.enabled
-              ? 'bg-premium-gold text-premium-bg'
-              : 'border border-premium-border text-premium-text hover:bg-premium-surface-2'
+              ? 'bg-red-500/15 text-red-400 hover:bg-red-500/25'
+              : 'bg-premium-sage-hi/15 text-premium-sage-hi hover:bg-premium-sage-hi/25'
           }`}
         >
-          {settings.enabled ? 'Включено' : 'Выключено'}
+          {settings.enabled ? 'Выключить' : 'Включить'}
         </button>
       </div>
 
