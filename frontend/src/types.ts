@@ -287,6 +287,7 @@ export interface WidgetLayoutItem {
   y: number
   w: number
   h: number
+  mobile_w?: number | null
 }
 
 export interface WidgetKpiRow {

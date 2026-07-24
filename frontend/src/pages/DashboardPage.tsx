@@ -14,6 +14,10 @@ import { WidgetRenderer } from '../components/widgets/WidgetRenderer'
 const ReactGridLayout = WidthProvider(GridLayout)
 const COLS = 12
 const ROW_HEIGHT = 36
+// Отдельная от десктопной шкала ширины на мобильном (см. mobile_w) — 12 = во всю ширину,
+// 6 = половина (два виджета в ряд).
+const MOBILE_COLS = 12
+const MOBILE_HALF = 6
 
 export function DashboardPage() {
   const [catalog, setCatalog] = useState<WidgetCatalogItem[]>([])
@@ -53,15 +57,23 @@ export function DashboardPage() {
     apiFetch('/dashboard/widgets/layout', { method: 'PUT', body: JSON.stringify(next) })
   }
 
+  // RGL (десктоп) не знает про mobile_w — реконструирует layout с нуля из своих x/y/w/h,
+  // поэтому подтягиваем mobile_w из текущего state по widget_key, иначе drag/resize на
+  // десктопе тихо стирал бы ширину, настроенную кнопками на мобильном.
+  function mergeMobileW(next: Omit<WidgetLayoutItem, 'mobile_w'>[]): WidgetLayoutItem[] {
+    const byKey = Object.fromEntries(layout.map((l) => [l.widget_key, l.mobile_w]))
+    return next.map((l) => ({ ...l, mobile_w: byKey[l.widget_key] ?? null }))
+  }
+
   function handleRglLayoutChange(rglLayout: Layout) {
-    const next = rglLayout.map((l) => ({ widget_key: l.i, x: l.x, y: l.y, w: l.w, h: l.h }))
+    const next = mergeMobileW(rglLayout.map((l) => ({ widget_key: l.i, x: l.x, y: l.y, w: l.w, h: l.h })))
     setLayout(next)
   }
 
   // onDragStop/onResizeStop получают финальную раскладку первым аргументом — брать её
   // напрямую, а не читать React-state, который onLayoutChange мог ещё не успеть обновить.
   function handleDragOrResizeStop(rglLayout: Layout) {
-    const next = rglLayout.map((l) => ({ widget_key: l.i, x: l.x, y: l.y, w: l.w, h: l.h }))
+    const next = mergeMobileW(rglLayout.map((l) => ({ widget_key: l.i, x: l.x, y: l.y, w: l.w, h: l.h })))
     setLayout(next)
     persistLayout(next)
   }
@@ -96,6 +108,33 @@ export function DashboardPage() {
       setSelectedForMove(null)
       lastTapRef.current = null
     }
+  }
+
+  // Кнопки +/- высоты на мобильном (2026-07-24) — шаг 1 строка (ROW_HEIGHT), пол —
+  // min_h из каталога виджета (те же ограничения, что у desktop resize через RGL).
+  function handleHeightStep(key: string, delta: number) {
+    const widget = catalogByKey[key]
+    const minH = widget?.min_h ?? 2
+    const next = layout.map((l) => {
+      if (l.widget_key !== key) return l
+      return { ...l, h: Math.max(minH, l.h + delta) }
+    })
+    setLayout(next)
+    persistLayout(next)
+  }
+
+  // Кнопки +/- ширины на мобильном (2026-07-24, запрос Александра) — отдельная от desktop
+  // сетки шкала (см. mobile_w в models.py): 12 = во всю ширину (дефолт, ничего не меняется
+  // визуально для тех, кто не трогал), 6 = половина, тогда рядом умещается второй виджет
+  // (см. isMobile-ветку рендера, grid-cols-12 + gridColumn span).
+  function handleWidthStep(key: string, delta: number) {
+    const next = layout.map((l) => {
+      if (l.widget_key !== key) return l
+      const current = l.mobile_w ?? MOBILE_COLS
+      return { ...l, mobile_w: Math.min(MOBILE_COLS, Math.max(MOBILE_HALF, current + delta)) }
+    })
+    setLayout(next)
+    persistLayout(next)
   }
 
   function handleRemove(key: string) {
@@ -163,12 +202,14 @@ export function DashboardPage() {
         // Мобильный вид (2026-07-23, репорт Александра) — отдельный от десктопной сетки:
         // react-grid-layout считает ширину колонки от viewport, на телефоне это давало
         // ~30px/колонку и обрезанные в один символ заголовки виджетов. Вместо попытки
-        // ужать grid — просто стек full-width карточек в порядке y (drag/resize на тач-экране
-        // всё равно неудобны), высота каждой берётся из той же h-величины, что и на десктопе,
-        // чтобы графики (recharts ResponsiveContainer) не схлопывались без заданной высоты.
-        <div className="relative space-y-3">
+        // ужать grid — просто стек full-width карточек в порядке y, высота каждой берётся из
+        // той же h-величины, что и на десктопе, чтобы графики (recharts ResponsiveContainer)
+        // не схлопывались без заданной высоты. Перемещение — тап-свап, резайз — кнопки +/-
+        // в WidgetFrame (см. handleWidgetHeaderTap/handleHeightStep) — тач-драг для обоих
+        // ненадёжен на мобильных браузерах, кнопки/тап работают всегда.
+        <div className="relative grid grid-cols-12 gap-3">
           {editing && selectedForMove && (
-            <div className="rounded-lg border border-premium-gold bg-premium-gold/10 px-3 py-2 text-sm text-premium-gold">
+            <div className="col-span-12 rounded-lg border border-premium-gold bg-premium-gold/10 px-3 py-2 text-sm text-premium-gold">
               Виджет выбран — нажми на другой, чтобы поменять местами.
             </div>
           )}
@@ -178,14 +219,22 @@ export function DashboardPage() {
               const widget = catalogByKey[l.widget_key]
               if (!widget) return null
               const height = Math.max(widget.min_h ?? 2, l.h) * ROW_HEIGHT
+              const mobileW = l.mobile_w ?? MOBILE_COLS
               return (
-                <div key={l.widget_key} style={{ height }}>
+                <div key={l.widget_key} style={{ height, gridColumn: `span ${mobileW} / span ${mobileW}` }}>
                   <WidgetFrame
                     title={widget.title}
                     editing={editing}
                     onRemove={() => handleRemove(l.widget_key)}
                     onHeaderTap={editing ? () => handleWidgetHeaderTap(l.widget_key) : undefined}
                     selectedForMove={selectedForMove === l.widget_key}
+                    onGrow={() => handleHeightStep(l.widget_key, 1)}
+                    onShrink={() => handleHeightStep(l.widget_key, -1)}
+                    canShrink={l.h > (widget.min_h ?? 2)}
+                    onWiden={() => handleWidthStep(l.widget_key, MOBILE_HALF)}
+                    onNarrow={() => handleWidthStep(l.widget_key, -MOBILE_HALF)}
+                    canWiden={mobileW < MOBILE_COLS}
+                    canNarrow={mobileW > MOBILE_HALF}
                   >
                     <WidgetRenderer widget={widget} data={widgetData[l.widget_key]} />
                   </WidgetFrame>

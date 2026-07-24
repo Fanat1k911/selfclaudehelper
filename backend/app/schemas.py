@@ -42,6 +42,7 @@ class DashboardLayoutItem(BaseModel):
     y: int
     w: int
     h: int
+    mobile_w: int | None = None
 
 
 class NewMaterialRequest(BaseModel):

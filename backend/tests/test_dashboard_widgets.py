@@ -34,6 +34,23 @@ def test_layout_save_and_load_roundtrip(client, db_session):
     assert saved["monthly_spend"]["x"] == 4
 
 
+def test_layout_mobile_w_roundtrip(client, db_session):
+    """mobile_w (2026-07-24, кнопки ширины на мобильном) — отдельное от desktop `w` поле,
+    NULL по умолчанию (не задано = во всю ширину), сохраняется/читается как есть."""
+    founder = make_user(db_session, login="wl6", role=FOUNDER)
+    layout = [
+        {"widget_key": "low_stock", "x": 0, "y": 0, "w": 4, "h": 5, "mobile_w": 6},
+        {"widget_key": "monthly_spend", "x": 4, "y": 0, "w": 8, "h": 6},
+    ]
+    resp = client.put("/api/dashboard/widgets/layout", json=layout, headers=auth_headers(founder))
+    assert resp.status_code == 200
+
+    resp = client.get("/api/dashboard/widgets/layout", headers=auth_headers(founder))
+    saved = {row["widget_key"]: row for row in resp.json()}
+    assert saved["low_stock"]["mobile_w"] == 6
+    assert saved["monthly_spend"]["mobile_w"] is None
+
+
 def test_layout_save_replaces_previous(client, db_session):
     founder = make_user(db_session, login="wl2", role=FOUNDER)
     client.put(

@@ -177,7 +177,10 @@ def get_widget_layout(user: dict = Depends(get_current_user), db: Session = Depe
         DashboardWidgetLayout.company_id == user["company_id"], DashboardWidgetLayout.user_id == user["id"]
     )
     rows = db.scalars(stmt).all()
-    return [{"widget_key": r.widget_key, "x": r.x, "y": r.y, "w": r.w, "h": r.h} for r in rows]
+    return [
+        {"widget_key": r.widget_key, "x": r.x, "y": r.y, "w": r.w, "h": r.h, "mobile_w": r.mobile_w}
+        for r in rows
+    ]
 
 
 @router.put("/widgets/layout")
@@ -195,7 +198,7 @@ def save_widget_layout(
         db.add(
             DashboardWidgetLayout(
                 company_id=user["company_id"], user_id=user["id"], widget_key=i.widget_key,
-                x=i.x, y=i.y, w=i.w, h=i.h,
+                x=i.x, y=i.y, w=i.w, h=i.h, mobile_w=i.mobile_w,
             )
         )
     db.commit()

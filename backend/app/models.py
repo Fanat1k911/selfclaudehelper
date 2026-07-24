@@ -358,6 +358,12 @@ class DashboardWidgetLayout(Base):
     y: Mapped[int] = mapped_column(Integer)
     w: Mapped[int] = mapped_column(Integer)
     h: Mapped[int] = mapped_column(Integer)
+    # Ширина на мобильном (2026-07-24, запрос Александра — тач-резайз ненадёжен, кнопки +/-
+    # вместо drag) — НЕ переиспользует `w` (тот же столбец рулит desktop-сеткой; большинство
+    # каталожных виджетов имеют w<12 не потому что узкие специально, а из-за desktop-сетки —
+    # переиспользование сломало бы дефолтный вид на телефоне). NULL = не настроено = во всю
+    # ширину (текущее поведение без изменений); 12 = во всю ширину, 6 = половина.
+    mobile_w: Mapped[int | None] = mapped_column(Integer, nullable=True)
 
 
 class TechLog(Base):
