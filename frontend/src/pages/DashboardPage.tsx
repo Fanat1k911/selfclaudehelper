@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import GridLayout, { WidthProvider } from 'react-grid-layout/legacy'
 import type { Layout } from 'react-grid-layout/legacy'
 import 'react-grid-layout/css/styles.css'
@@ -22,6 +22,8 @@ export function DashboardPage() {
   const [loading, setLoading] = useState(true)
   const [editing, setEditing] = useState(false)
   const [showAdd, setShowAdd] = useState(false)
+  const [selectedForMove, setSelectedForMove] = useState<string | null>(null)
+  const lastTapRef = useRef<{ key: string; time: number } | null>(null)
 
   const catalogByKey = Object.fromEntries(catalog.map((w) => [w.key, w]))
 
@@ -64,6 +66,34 @@ export function DashboardPage() {
     persistLayout(next)
   }
 
+  // Двойной тап по виджету "берёт" его (см. WidgetFrame), одиночный тап по другому виджету
+  // меняет их местами — свап widget_key у двух записей layout, x/y/w/h каждой не трогаем,
+  // поэтому размеры виджетов после свапа не съезжают.
+  function handleWidgetHeaderTap(key: string) {
+    const now = Date.now()
+    const last = lastTapRef.current
+    const isDoubleTap = !!last && last.key === key && now - last.time < 400
+
+    if (isDoubleTap) {
+      lastTapRef.current = null
+      setSelectedForMove((prev) => (prev === key ? null : key))
+      return
+    }
+    lastTapRef.current = { key, time: now }
+
+    if (selectedForMove && selectedForMove !== key) {
+      const next = layout.map((l) => {
+        if (l.widget_key === selectedForMove) return { ...l, widget_key: key }
+        if (l.widget_key === key) return { ...l, widget_key: selectedForMove }
+        return l
+      })
+      setLayout(next)
+      persistLayout(next)
+      setSelectedForMove(null)
+      lastTapRef.current = null
+    }
+  }
+
   function handleRemove(key: string) {
     const next = layout.filter((l) => l.widget_key !== key)
     setLayout(next)
@@ -104,7 +134,10 @@ export function DashboardPage() {
             </button>
           )}
           <button
-            onClick={() => setEditing((v) => !v)}
+            onClick={() => {
+              setEditing((v) => !v)
+              setSelectedForMove(null)
+            }}
             className={`whitespace-nowrap rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
               editing
                 ? 'bg-premium-gold text-premium-bg hover:bg-premium-gold-hi'
@@ -130,6 +163,11 @@ export function DashboardPage() {
         // всё равно неудобны), высота каждой берётся из той же h-величины, что и на десктопе,
         // чтобы графики (recharts ResponsiveContainer) не схлопывались без заданной высоты.
         <div className="relative space-y-3">
+          {editing && selectedForMove && (
+            <div className="rounded-lg border border-premium-gold bg-premium-gold/10 px-3 py-2 text-sm text-premium-gold">
+              Виджет выбран — нажми на другой, чтобы поменять местами.
+            </div>
+          )}
           {[...layout]
             .sort((a, b) => a.y - b.y || a.x - b.x)
             .map((l) => {
@@ -138,7 +176,13 @@ export function DashboardPage() {
               const height = Math.max(widget.min_h ?? 2, l.h) * ROW_HEIGHT
               return (
                 <div key={l.widget_key} style={{ height }}>
-                  <WidgetFrame title={widget.title} editing={editing} onRemove={() => handleRemove(l.widget_key)}>
+                  <WidgetFrame
+                    title={widget.title}
+                    editing={editing}
+                    onRemove={() => handleRemove(l.widget_key)}
+                    onHeaderTap={editing ? () => handleWidgetHeaderTap(l.widget_key) : undefined}
+                    selectedForMove={selectedForMove === l.widget_key}
+                  >
                     <WidgetRenderer widget={widget} data={widgetData[l.widget_key]} />
                   </WidgetFrame>
                 </div>
