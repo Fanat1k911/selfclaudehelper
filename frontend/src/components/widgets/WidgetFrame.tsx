@@ -14,7 +14,10 @@ export function WidgetFrame({
 }) {
   return (
     <div className="premium-card flex h-full flex-col overflow-hidden rounded-xl border border-premium-border bg-premium-surface shadow-sm">
-      <div className="widget-drag-handle flex shrink-0 items-center justify-between gap-2 border-b border-premium-border px-3 py-2">
+      <div
+        className="widget-drag-handle flex shrink-0 items-center justify-between gap-2 border-b border-premium-border px-3 py-2"
+        style={editing ? { touchAction: 'none' } : undefined}
+      >
         <div className="flex min-w-0 items-center gap-1.5">
           {editing && <GripVertical className="h-4 w-4 shrink-0 cursor-grab text-premium-text-muted/60" />}
           <span className="truncate text-sm font-medium text-premium-text-muted">{title}</span>
