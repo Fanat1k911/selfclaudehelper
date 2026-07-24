@@ -259,7 +259,10 @@ export interface LoginLogEntry {
 }
 
 export interface WorkerNetworkSettings {
-  hostname: string | null
+  enabled: boolean
+  token: string | null
+  ip: string | null
+  updated_at: string | null
 }
 
 export interface TopProduct {

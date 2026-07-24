@@ -96,7 +96,7 @@ def test_worker_cannot_see_login_log(client, db_session):
     assert resp.status_code == 403
 
 
-def test_worker_login_unrestricted_when_network_not_configured(client, db_session):
+def test_worker_login_unrestricted_when_network_not_enabled(client, db_session):
     make_user(db_session, login="netw1", role=WORKER, password="pass1234")
     resp = client.post(
         "/api/auth/login", json={"login": "netw1", "password": "pass1234"},
@@ -105,23 +105,29 @@ def test_worker_login_unrestricted_when_network_not_configured(client, db_sessio
     assert resp.status_code == 200
 
 
-def test_worker_login_allowed_from_configured_network(client, db_session):
+def test_worker_login_allowed_after_workshop_ping(client, db_session):
     founder = make_user(db_session, login="netw_f1", role="founder", password="pass1234")
-    resp = client.put("/api/users/network-settings", json={"hostname": "localhost"}, headers=auth_headers(founder))
+    resp = client.put("/api/users/network-settings", json={"enabled": True}, headers=auth_headers(founder))
     assert resp.status_code == 200
-    assert resp.json()["hostname"] == "localhost"
+    token = resp.json()["token"]
+    assert token
+
+    ping = client.post(f"/api/public/workshop-ping/{token}", headers={"X-Forwarded-For": "91.107.23.45"})
+    assert ping.status_code == 200
 
     make_user(db_session, login="netw2", role=WORKER, password="pass1234")
     resp = client.post(
         "/api/auth/login", json={"login": "netw2", "password": "pass1234"},
-        headers={"X-Forwarded-For": "127.0.0.1"},  # "localhost" резолвится сюда
+        headers={"X-Forwarded-For": "91.107.23.45"},
     )
     assert resp.status_code == 200
 
 
 def test_worker_login_rejected_from_other_network(client, db_session):
     founder = make_user(db_session, login="netw_f2", role="founder", password="pass1234")
-    client.put("/api/users/network-settings", json={"hostname": "localhost"}, headers=auth_headers(founder))
+    resp = client.put("/api/users/network-settings", json={"enabled": True}, headers=auth_headers(founder))
+    token = resp.json()["token"]
+    client.post(f"/api/public/workshop-ping/{token}", headers={"X-Forwarded-For": "91.107.23.45"})
 
     make_user(db_session, login="netw3", role=WORKER, password="pass1234")
     resp = client.post(
@@ -132,9 +138,11 @@ def test_worker_login_rejected_from_other_network(client, db_session):
     assert "мастерской" in resp.json()["detail"]
 
 
-def test_founder_login_unrestricted_even_with_network_configured(client, db_session):
+def test_founder_login_unrestricted_even_with_network_enabled(client, db_session):
     founder = make_user(db_session, login="netw_f3", role="founder", password="pass1234")
-    client.put("/api/users/network-settings", json={"hostname": "localhost"}, headers=auth_headers(founder))
+    resp = client.put("/api/users/network-settings", json={"enabled": True}, headers=auth_headers(founder))
+    token = resp.json()["token"]
+    client.post(f"/api/public/workshop-ping/{token}", headers={"X-Forwarded-For": "91.107.23.45"})
 
     resp = client.post(
         "/api/auth/login", json={"login": "netw_f3", "password": "pass1234"},
@@ -143,18 +151,42 @@ def test_founder_login_unrestricted_even_with_network_configured(client, db_sess
     assert resp.status_code == 200
 
 
-def test_worker_login_rejected_when_hostname_unresolvable(client, db_session):
+def test_worker_login_rejected_when_never_pinged(client, db_session):
     founder = make_user(db_session, login="netw_f4", role="founder", password="pass1234")
-    client.put(
-        "/api/users/network-settings", json={"hostname": "this-does-not-resolve.invalid"}, headers=auth_headers(founder)
-    )
+    client.put("/api/users/network-settings", json={"enabled": True}, headers=auth_headers(founder))
 
     make_user(db_session, login="netw4", role=WORKER, password="pass1234")
     resp = client.post(
         "/api/auth/login", json={"login": "netw4", "password": "pass1234"},
-        headers={"X-Forwarded-For": "127.0.0.1"},
+        headers={"X-Forwarded-For": "91.107.23.45"},
     )
     assert resp.status_code == 403
+
+
+def test_worker_login_rejected_when_ping_stale(client, db_session):
+    from app.models import Company
+
+    founder = make_user(db_session, login="netw_f6", role="founder", password="pass1234")
+    resp = client.put("/api/users/network-settings", json={"enabled": True}, headers=auth_headers(founder))
+    token = resp.json()["token"]
+    client.post(f"/api/public/workshop-ping/{token}", headers={"X-Forwarded-For": "91.107.23.45"})
+
+    # Пинг был, но давно — роутер мог упасть/сеть лечь, не доверяем старому IP.
+    company = db_session.query(Company).filter(Company.worker_network_token == token).one()
+    company.worker_network_ip_updated_at = datetime.now(timezone.utc) - timedelta(minutes=30)
+    db_session.commit()
+
+    make_user(db_session, login="netw6", role=WORKER, password="pass1234")
+    resp = client.post(
+        "/api/auth/login", json={"login": "netw6", "password": "pass1234"},
+        headers={"X-Forwarded-For": "91.107.23.45"},
+    )
+    assert resp.status_code == 403
+
+
+def test_workshop_ping_invalid_token_404(client, db_session):
+    resp = client.post("/api/public/workshop-ping/not-a-real-token")
+    assert resp.status_code == 404
 
 
 def test_network_settings_forbidden_for_worker(client, db_session):
@@ -163,12 +195,27 @@ def test_network_settings_forbidden_for_worker(client, db_session):
     assert resp.status_code == 403
 
 
-def test_network_settings_clear_with_null(client, db_session):
+def test_network_settings_disable_clears_restriction(client, db_session):
     founder = make_user(db_session, login="netw_f5", role="founder", password="pass1234")
     headers = auth_headers(founder)
-    client.put("/api/users/network-settings", json={"hostname": "localhost"}, headers=headers)
-    resp = client.put("/api/users/network-settings", json={"hostname": None}, headers=headers)
-    assert resp.json()["hostname"] is None
+    resp = client.put("/api/users/network-settings", json={"enabled": True}, headers=headers)
+    token = resp.json()["token"]
+    client.post(f"/api/public/workshop-ping/{token}", headers={"X-Forwarded-For": "91.107.23.45"})
 
-    resp = client.get("/api/users/network-settings", headers=headers)
-    assert resp.json()["hostname"] is None
+    resp = client.put("/api/users/network-settings", json={"enabled": False}, headers=headers)
+    assert resp.json()["enabled"] is False
+
+    make_user(db_session, login="netw7", role=WORKER, password="pass1234")
+    resp = client.post(
+        "/api/auth/login", json={"login": "netw7", "password": "pass1234"},
+        headers={"X-Forwarded-For": "203.0.113.5"},  # заведомо не совпадает с записанным IP
+    )
+    assert resp.status_code == 200
+
+
+def test_enabling_twice_keeps_same_token(client, db_session):
+    founder = make_user(db_session, login="netw_f7", role="founder", password="pass1234")
+    headers = auth_headers(founder)
+    first = client.put("/api/users/network-settings", json={"enabled": True}, headers=headers)
+    second = client.put("/api/users/network-settings", json={"enabled": True}, headers=headers)
+    assert first.json()["token"] == second.json()["token"]

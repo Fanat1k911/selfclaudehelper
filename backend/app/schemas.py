@@ -387,7 +387,7 @@ class ResetPasswordRequest(BaseModel):
 
 
 class WorkerNetworkSettingsRequest(BaseModel):
-    hostname: str | None = Field(default=None, max_length=255)
+    enabled: bool
 
 
 class ImportCommitRow(BaseModel):

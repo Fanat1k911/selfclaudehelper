@@ -1,7 +1,6 @@
 """Логин на bcrypt + JWT — сессия не st.session_state (сервер без состояния,
 клиент React), а подписанный токен, который фронт хранит и шлёт в Authorization header."""
 
-import socket
 import time
 from datetime import datetime, timedelta, timezone
 from typing import TypeVar
@@ -82,27 +81,32 @@ def _effective_timezone(user: User, membership: CompanyMembership) -> str:
     return user.timezone or membership.company.timezone
 
 
+_WORKSHOP_PING_STALE_MINUTES = 15
+
+
 def enforce_workshop_network(user: dict, request_ip: str, db: Session) -> None:
-    """Ограничение входа worker'ов по сети мастерской (2026-07-23, запрос Александра) —
-    Company.worker_network_hostname (DDNS-имя, не голый IP — тот у домашних провайдеров
-    почти всегда плавает) резолвится на каждый вход и сверяется с IP запроса. NULL —
-    ограничение выключено (дефолт, компания должна явно его включить). Founder/Developer
-    не проверяются вообще — им может понадобиться доступ удалённо. DNS-резолв синхронный
-    (socket.gethostbyname) — это единственная сетевая операция на пути логина worker'а,
-    приемлемо (не батч-эндпоинт), таймаут ОС по умолчанию."""
+    """Ограничение входа worker'ов по сети мастерской (2026-07-23/24, запрос Александра) —
+    call-home/heartbeat, не DDNS (см. Company в models.py — заменено 2026-07-24, DDNS-
+    провайдеры типа DuckDNS бывают недоступны из РФ). Роутер мастерской сам стучится на
+    POST /api/public/workshop-ping/{token} раз в несколько минут; сервер запоминает IP
+    звонившего. Тут просто сверяем текущий IP входа с последним записанным — без DNS.
+    worker_network_enabled — явный тумблер (может быть включён раньше первого пинга).
+    Fail-closed, не fail-open: нет IP, или последний пинг устарел (роутер недоступен/сеть
+    легла) — отклоняем, не пропускаем молча, иначе сбой пинга свёл бы защиту на нет.
+    Founder/Developer не проверяются вообще — им может понадобиться доступ удалённо."""
     if user["role"] != WORKER:
         return
     company = db.get(Company, user["company_id"])
-    if not company or not company.worker_network_hostname:
+    if not company or not company.worker_network_enabled:
         return
-    try:
-        allowed_ip = socket.gethostbyname(company.worker_network_hostname)
-    except OSError:
-        # DDNS-хост временно не резолвится (провайдер/роутер недоступен) — фейлимся в
-        # запрет, не в разрешение: молчаливое "не смог проверить — пускай" свело бы всю
-        # защиту на нет при любом сетевом сбое DDNS-провайдера.
+    stale_cutoff = datetime.now(timezone.utc) - timedelta(minutes=_WORKSHOP_PING_STALE_MINUTES)
+    ping_age_ok = (
+        company.worker_network_ip_updated_at is not None
+        and company.worker_network_ip_updated_at.replace(tzinfo=timezone.utc) >= stale_cutoff
+    )
+    if not company.worker_network_ip or not ping_age_ok:
         raise HTTPException(status.HTTP_403_FORBIDDEN, "Вход возможен только из сети мастерской.")
-    if request_ip != allowed_ip:
+    if request_ip != company.worker_network_ip:
         raise HTTPException(status.HTTP_403_FORBIDDEN, "Вход возможен только из сети мастерской.")
 
 

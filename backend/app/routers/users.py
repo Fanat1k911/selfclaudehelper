@@ -15,6 +15,8 @@ USER_STATUS_FIRED: security.get_current_user перепроверяет стат
 и т.п. из формы игнорируются, только пароль подтверждает личность). Тот же принцип
 в companies.py и create_founder.py — общий helper, не три копии."""
 
+import secrets
+
 import bcrypt
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import select
@@ -172,12 +174,26 @@ def user_companies(
     ]
 
 
+def _network_settings_dict(company: Company) -> dict:
+    return {
+        "enabled": company.worker_network_enabled,
+        "token": company.worker_network_token,
+        "ip": company.worker_network_ip,
+        "updated_at": (
+            company.worker_network_ip_updated_at.isoformat() + "Z"
+            if company.worker_network_ip_updated_at
+            else None
+        ),
+    }
+
+
 @router.get("/network-settings")
 def get_network_settings(user: dict = Depends(get_current_user), db: Session = Depends(get_db)) -> dict:
-    """Ограничение входа worker'ов по сети мастерской (2026-07-23) — см.
-    security.py::enforce_workshop_network. hostname пуст/None = ограничение выключено."""
+    """Ограничение входа worker'ов по сети мастерской (2026-07-23/24) — см.
+    security.py::enforce_workshop_network. token нужен для настройки "звонка домой" на
+    роутере мастерской (см. POST /api/public/workshop-ping/{token})."""
     company = db.get(Company, user["company_id"])
-    return {"hostname": company.worker_network_hostname if company else None}
+    return _network_settings_dict(company)
 
 
 @router.put("/network-settings")
@@ -185,6 +201,11 @@ def update_network_settings(
     body: WorkerNetworkSettingsRequest, user: dict = Depends(get_current_user), db: Session = Depends(get_db)
 ) -> dict:
     company = db.get(Company, user["company_id"])
-    company.worker_network_hostname = body.hostname.strip() if body.hostname and body.hostname.strip() else None
+    company.worker_network_enabled = body.enabled
+    if body.enabled and not company.worker_network_token:
+        # Токен генерится один раз, лениво, при первом включении — не при создании
+        # компании, чтобы не плодить неиспользуемые секреты для компаний, которым это
+        # никогда не понадобится.
+        company.worker_network_token = secrets.token_hex(16)
     db.commit()
-    return {"hostname": company.worker_network_hostname}
+    return _network_settings_dict(company)

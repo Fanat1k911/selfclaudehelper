@@ -36,13 +36,21 @@ class Company(Base):
     # не пользователь: все founder/worker этой компании по умолчанию на одном поясе
     # (физическая мастерская в одном месте). См. User.timezone для личного переопределения.
     timezone: Mapped[str] = mapped_column(String(64), default="Europe/Moscow")
-    # Ограничение входа worker'ов по сети мастерской (2026-07-23, запрос Александра) —
-    # DDNS-хостнейм (не голый IP — тот у большинства домашних провайдеров плавает, см.
-    # CLAUDE.md), при входе резолвится и сверяется с IP запроса (см.
-    # security.py::_enforce_workshop_network). NULL — ограничение выключено (дефолт,
-    # опционально по компании). Founder/Developer не ограничены — им может понадобиться
-    # доступ удалённо.
-    worker_network_hostname: Mapped[str | None] = mapped_column(String(255))
+    # Ограничение входа worker'ов по сети мастерской (2026-07-23/24, запрос Александра).
+    # Изначально было через DDNS-хостнейм (резолв на каждый вход) — заменено 2026-07-24 на
+    # call-home/heartbeat: роутер мастерской сам стучится на свой же токен-эндпоинт
+    # (POST /api/public/workshop-ping/{token}, без авторизации — токен и есть авторизация)
+    # раз в несколько минут, сервер запоминает IP звонившего как worker_network_ip. При
+    # входе просто сверяем IP запроса с последним записанным — без DNS вообще, без
+    # зависимости от стороннего DDNS-провайдера (тот бывает недоступен из РФ, см. CLAUDE.md).
+    # worker_network_enabled — явный тумблер, отдельный от наличия IP (IP появляется только
+    # после первого пинга, включить защиту можно раньше). worker_network_ip_updated_at —
+    # для staleness-проверки: если роутер давно не пинговался, считаем сеть недоступной
+    # (fail-closed, не fail-open, тот же принцип что был у DDNS-версии).
+    worker_network_enabled: Mapped[bool] = mapped_column(Boolean, default=False, server_default="false")
+    worker_network_token: Mapped[str | None] = mapped_column(String(64), unique=True, index=True)
+    worker_network_ip: Mapped[str | None] = mapped_column(String(64))
+    worker_network_ip_updated_at: Mapped[datetime | None] = mapped_column(DateTime)
 
 
 class User(Base):

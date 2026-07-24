@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useState, type FormEvent } from 'react'
-import { Pencil } from 'lucide-react'
+import { useEffect, useMemo, useState } from 'react'
+import { Copy } from 'lucide-react'
 import { apiFetch, ApiError } from '../lib/api'
 import { usePremiumBackground } from '../lib/usePremiumBackground'
 import type { LoginLogEntry, StaffUser, WorkerNetworkSettings } from '../types'
@@ -7,31 +7,34 @@ import { NewStaffModal } from '../components/NewStaffModal'
 import { StaffDetailPanel } from '../components/StaffDetailPanel'
 import { SkeletonRows } from '../components/SkeletonRows'
 
+function formatPingAge(value: string | null) {
+  if (!value) return null
+  const d = new Date(value)
+  if (Number.isNaN(d.getTime())) return null
+  return d.toLocaleString('ru-RU')
+}
+
 function NetworkRestrictionSection() {
-  const [hostname, setHostname] = useState<string | null>(null)
+  const [settings, setSettings] = useState<WorkerNetworkSettings | null>(null)
   const [loading, setLoading] = useState(true)
-  const [editing, setEditing] = useState(false)
-  const [draft, setDraft] = useState('')
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [copied, setCopied] = useState(false)
 
   useEffect(() => {
     apiFetch<WorkerNetworkSettings>('/users/network-settings')
-      .then((s) => setHostname(s.hostname))
+      .then(setSettings)
       .finally(() => setLoading(false))
   }, [])
 
-  async function handleSubmit(e: FormEvent) {
-    e.preventDefault()
+  async function toggle(enabled: boolean) {
     setError(null)
     setSaving(true)
     try {
-      const resp = await apiFetch<WorkerNetworkSettings>('/users/network-settings', {
+      setSettings(await apiFetch<WorkerNetworkSettings>('/users/network-settings', {
         method: 'PUT',
-        body: JSON.stringify({ hostname: draft.trim() || null }),
-      })
-      setHostname(resp.hostname)
-      setEditing(false)
+        body: JSON.stringify({ enabled }),
+      }))
     } catch (err) {
       setError(err instanceof ApiError ? err.message : 'Не удалось сохранить.')
     } finally {
@@ -39,7 +42,11 @@ function NetworkRestrictionSection() {
     }
   }
 
-  if (loading) return null
+  if (loading || !settings) return null
+
+  const pingCommand = settings.token
+    ? `curl -s https://selfclaudehelper.onrender.com/api/public/workshop-ping/${settings.token}`
+    : null
 
   return (
     <div className="relative mt-8 max-w-xl">
@@ -47,72 +54,60 @@ function NetworkRestrictionSection() {
         <h2 className="font-display text-lg font-semibold italic text-premium-text">
           Ограничение входа сотрудников по сети мастерской
         </h2>
-        {!editing && (
-          <button
-            onClick={() => {
-              setDraft(hostname ?? '')
-              setEditing(true)
-            }}
-            className="flex items-center gap-1.5 text-xs text-premium-text/50 hover:text-premium-gold-hi"
-          >
-            <Pencil size={13} /> {hostname ? 'Изменить' : 'Настроить'}
-          </button>
-        )}
+        <button
+          onClick={() => toggle(!settings.enabled)}
+          disabled={saving}
+          className={`whitespace-nowrap rounded-lg px-3 py-1.5 text-xs font-medium disabled:opacity-60 ${
+            settings.enabled
+              ? 'bg-premium-gold text-premium-bg'
+              : 'border border-premium-border text-premium-text hover:bg-premium-surface-2'
+          }`}
+        >
+          {settings.enabled ? 'Включено' : 'Выключено'}
+        </button>
       </div>
 
-      {!editing ? (
-        <div className="rounded-xl border border-premium-border bg-premium-surface p-4 text-sm">
-          {hostname ? (
-            <>
-              <div className="text-premium-text">
-                Включено — вход для роли «Сотрудник» разрешён только из сети мастерской.
-              </div>
-              <div className="mt-1 text-premium-text/50">DDNS-адрес: {hostname}</div>
-              <div className="mt-1 text-xs text-premium-text/40">
-                Founder и Developer не ограничены — им доступ разрешён из любой сети.
-              </div>
-            </>
-          ) : (
-            <div className="text-premium-text/50">
-              Выключено — сотрудники могут заходить откуда угодно.
+      <div className="rounded-xl border border-premium-border bg-premium-surface p-4 space-y-3 text-sm">
+        {!settings.enabled ? (
+          <div className="text-premium-text/50">Сотрудники могут заходить откуда угодно.</div>
+        ) : (
+          <>
+            <div className="text-premium-text">
+              Вход для роли «Сотрудник» разрешён только из сети мастерской. Founder и Developer не
+              ограничены.
             </div>
-          )}
-        </div>
-      ) : (
-        <form
-          onSubmit={handleSubmit}
-          className="rounded-xl border border-premium-border bg-premium-surface p-4 space-y-3"
-        >
-          <div>
-            <label className="block text-xs text-premium-text/60 mb-1">
-              DDNS-адрес мастерской (пусто — ограничение выключено)
-            </label>
-            <input
-              value={draft}
-              onChange={(e) => setDraft(e.target.value)}
-              placeholder="oinarri-workshop.duckdns.org"
-              className="w-full rounded-lg border border-premium-border bg-premium-bg px-3 py-2 text-sm text-premium-text outline-none focus:border-premium-gold"
-            />
-          </div>
-          {error && <div className="text-sm text-red-400">{error}</div>}
-          <div className="flex gap-2">
-            <button
-              type="button"
-              onClick={() => setEditing(false)}
-              className="flex-1 rounded-lg border border-premium-border py-2 text-sm font-medium text-premium-text hover:bg-premium-surface-2"
-            >
-              Отмена
-            </button>
-            <button
-              type="submit"
-              disabled={saving}
-              className="flex-1 rounded-lg bg-premium-gold py-2 text-sm font-medium text-premium-bg hover:bg-premium-gold-hi disabled:opacity-60"
-            >
-              {saving ? 'Сохраняем…' : 'Сохранить'}
-            </button>
-          </div>
-        </form>
-      )}
+            <div className="flex items-center justify-between">
+              <span className="text-premium-text/60">Текущий IP мастерской</span>
+              <span className="text-premium-text">{settings.ip ?? '— ещё не было сигнала'}</span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-premium-text/60">Последний сигнал</span>
+              <span className="text-premium-text">{formatPingAge(settings.updated_at) ?? '—'}</span>
+            </div>
+            {pingCommand && (
+              <div>
+                <div className="mb-1 flex items-center justify-between text-xs text-premium-text/60">
+                  <span>Команда для роутера мастерской (запускать раз в 5 минут, например через cron)</span>
+                  <button
+                    onClick={() => {
+                      navigator.clipboard.writeText(pingCommand)
+                      setCopied(true)
+                      setTimeout(() => setCopied(false), 1500)
+                    }}
+                    className="flex items-center gap-1 text-premium-gold-hi hover:text-premium-gold"
+                  >
+                    <Copy size={12} /> {copied ? 'Скопировано' : 'Копировать'}
+                  </button>
+                </div>
+                <code className="block break-all rounded-lg bg-premium-bg px-3 py-2 text-xs text-premium-text/70">
+                  {pingCommand}
+                </code>
+              </div>
+            )}
+          </>
+        )}
+        {error && <div className="text-sm text-red-400">{error}</div>}
+      </div>
     </div>
   )
 }
