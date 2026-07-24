@@ -67,8 +67,9 @@ export function DashboardPage() {
   }
 
   // Двойной тап по виджету "берёт" его (см. WidgetFrame), одиночный тап по другому виджету
-  // меняет их местами — свап widget_key у двух записей layout, x/y/w/h каждой не трогаем,
-  // поэтому размеры виджетов после свапа не съезжают.
+  // меняет их местами — свап x/y (позиция в мобильном стеке сортируется по ним) между двумя
+  // записями layout, widget_key/w/h каждой НЕ трогаем. Раньше свапался widget_key при чужих
+  // x/y/w/h — виджет физически принимал размер чужого слота (репорт Александра, 2026-07-24).
   function handleWidgetHeaderTap(key: string) {
     const now = Date.now()
     const last = lastTapRef.current
@@ -82,9 +83,12 @@ export function DashboardPage() {
     lastTapRef.current = { key, time: now }
 
     if (selectedForMove && selectedForMove !== key) {
+      const a = layout.find((l) => l.widget_key === selectedForMove)
+      const b = layout.find((l) => l.widget_key === key)
+      if (!a || !b) return
       const next = layout.map((l) => {
-        if (l.widget_key === selectedForMove) return { ...l, widget_key: key }
-        if (l.widget_key === key) return { ...l, widget_key: selectedForMove }
+        if (l.widget_key === selectedForMove) return { ...l, x: b.x, y: b.y }
+        if (l.widget_key === key) return { ...l, x: a.x, y: a.y }
         return l
       })
       setLayout(next)
