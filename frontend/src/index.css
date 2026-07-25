@@ -204,18 +204,160 @@ a[href] {
 }
 
 /* Скелетон-загрузка (2026-07-22, /redesign-existing-projects) — opacity-пульс, не
-   top/left/width, чтобы анимация шла на GPU-слое, а не переигрывала layout каждый кадр. */
+   top/left/width, чтобы анимация шла на GPU-слое, а не переигрывала layout каждый кадр.
+   Шимер-полоса добавлена 2026-07-25 (пилот "Компоненты") — второй, независимый keyframe
+   на background-position поверх той же opacity-пульсации, тоже GPU-слой (background,
+   не layout-свойство). */
 @keyframes skeleton-pulse {
   0%, 100% { opacity: 0.35; }
   50% { opacity: 0.7; }
 }
+@keyframes skeleton-shimmer {
+  0% { background-position: 150% 0; }
+  100% { background-position: -50% 0; }
+}
 .skeleton-pulse {
-  animation: skeleton-pulse 1.4s ease-in-out infinite;
+  animation: skeleton-pulse 1.4s ease-in-out infinite, skeleton-shimmer 1.8s ease-in-out infinite;
+  background-image: linear-gradient(
+    100deg,
+    transparent 30%,
+    color-mix(in srgb, var(--color-premium-gold) 20%, transparent) 50%,
+    transparent 70%
+  );
+  background-size: 200% 100%;
 }
 @media (prefers-reduced-motion: reduce) {
   .skeleton-pulse {
     animation: none;
     opacity: 0.5;
+    background-image: none;
+  }
+}
+
+/* Пилот-редизайн "Компоненты" (2026-07-25, запрос Александра — "мощнее") — до
+   отработки паттерна на остальных 7 старых страницах живёт как opt-in-классы, не
+   трогает .premium-card/.premium-stat (те общие с Дашбордом). */
+@keyframes premium-row-in {
+  from { opacity: 0; transform: translateY(10px) scale(0.97); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+.premium-row-enter {
+  animation: premium-row-in 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+
+/* Глубже, чем .premium-card: подъём 4px (не 2) + золотое подсвечение тенью. */
+.premium-card-bold {
+  transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.25s ease, box-shadow 0.25s ease;
+}
+.premium-card-bold:hover {
+  transform: translateY(-4px);
+  border-color: color-mix(in srgb, var(--color-premium-gold) 55%, var(--color-premium-border));
+  box-shadow:
+    0 16px 32px -16px rgba(0, 0, 0, 0.5),
+    0 0 28px -10px color-mix(in srgb, var(--color-premium-gold) 40%, transparent);
+}
+
+/* Золотая полоса слева на строке таблицы — растёт по высоте при hover вместо плоской
+   смены background-color. Родитель строки должен быть `relative`. */
+.premium-row-bar {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 3px;
+  background: var(--color-premium-gold);
+  transform: scaleY(0);
+  transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+tr:hover .premium-row-bar {
+  transform: scaleY(1);
+}
+
+/* "Ниже минимума" — пульсирующее свечение рамки, не просто красный текст. */
+@keyframes premium-alert-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.25); }
+  50% { box-shadow: 0 0 0 6px rgba(239, 68, 68, 0); }
+}
+.premium-alert-pulse {
+  animation: premium-alert-pulse 2.2s ease-in-out infinite;
+}
+
+/* Блик-полоса по кнопкам primary CTA при hover + press-scale при клике. */
+.btn-shine {
+  position: relative;
+  overflow: hidden;
+}
+.btn-shine::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(115deg, transparent 20%, rgba(255, 255, 255, 0.35) 50%, transparent 80%);
+  transform: translateX(-100%);
+  transition: transform 0.5s ease;
+}
+.btn-shine:hover::after {
+  transform: translateX(100%);
+}
+.btn-shine:active {
+  transform: scale(0.97);
+}
+
+/* Тачскрин не знает :hover вообще — без этого блик/золотое свечение карточек и строк
+   были мертвы на телефоне (поймано 2026-07-25, Александр смотрел на реальном
+   устройстве). (hover: none) — стандартный media-запрос "устройство без указателя
+   с наведением", не эмуляция; на десктопе с мышью не сработает. */
+@media (hover: none) {
+  .btn-shine:active::after {
+    transform: translateX(100%);
+    transition: transform 0.3s ease;
+  }
+  .premium-card-bold:active {
+    border-color: color-mix(in srgb, var(--color-premium-gold) 55%, var(--color-premium-border));
+    box-shadow: 0 0 20px -8px color-mix(in srgb, var(--color-premium-gold) 45%, transparent);
+  }
+}
+
+/* Появление модалок/панелей — раньше монтировались без входа вообще (мгновенный
+   рывок). Backdrop — фейд, панель/карточка — pop или slide, оба с overshoot-easing. */
+@keyframes backdrop-fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+.backdrop-fade-in {
+  animation: backdrop-fade-in 0.2s ease-out both;
+}
+@keyframes modal-pop-in {
+  from { opacity: 0; transform: scale(0.95) translateY(8px); }
+  to { opacity: 1; transform: scale(1) translateY(0); }
+}
+.modal-pop-in {
+  animation: modal-pop-in 0.3s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+@keyframes panel-slide-in {
+  from { opacity: 0; transform: translateX(24px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+.panel-slide-in {
+  animation: panel-slide-in 0.35s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .premium-row-enter,
+  .premium-card-bold,
+  .premium-alert-pulse,
+  .backdrop-fade-in,
+  .modal-pop-in,
+  .panel-slide-in {
+    animation: none !important;
+    transition: none !important;
+    transform: none !important;
+  }
+  .btn-shine::after {
+    transition: none !important;
+    display: none;
+  }
+  .premium-row-bar {
+    transition: none !important;
   }
 }
 

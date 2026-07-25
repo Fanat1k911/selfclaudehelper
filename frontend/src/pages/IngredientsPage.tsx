@@ -4,6 +4,7 @@ import { apiFetch, apiDownload } from '../lib/api'
 import { useAuth } from '../lib/auth'
 import { materialCategoryLabel } from '../lib/labels'
 import { usePremiumBackground } from '../lib/usePremiumBackground'
+import { useCountUp } from '../lib/useCountUp'
 import type { Ingredient, User } from '../types'
 import { IngredientDetailPanel } from '../components/IngredientDetailPanel'
 import { NewIngredientModal } from '../components/NewIngredientModal'
@@ -27,11 +28,12 @@ function formatDate(value: string | null) {
   return d.toLocaleDateString('ru-RU')
 }
 
-function MobileCard({ ing, onClick }: { ing: Ingredient; onClick: () => void }) {
+function MobileCard({ ing, onClick, index }: { ing: Ingredient; onClick: () => void; index: number }) {
   return (
     <button
       onClick={onClick}
-      className="premium-card w-full rounded-xl border border-premium-border bg-premium-surface p-4 text-left active:bg-premium-surface-2"
+      style={{ animationDelay: `${Math.min(index, 12) * 35}ms` }}
+      className="premium-row-enter premium-card premium-card-bold w-full rounded-xl border border-premium-border bg-premium-surface p-4 text-left active:scale-[0.98]"
     >
       <div className="flex items-start justify-between gap-2">
         <div className="flex min-w-0 items-center gap-2">
@@ -52,13 +54,15 @@ function MobileCard({ ing, onClick }: { ing: Ingredient; onClick: () => void }) 
   )
 }
 
-function DeskRow({ ing, onClick }: { ing: Ingredient; onClick: () => void }) {
+function DeskRow({ ing, onClick, index }: { ing: Ingredient; onClick: () => void; index: number }) {
   return (
     <tr
       onClick={onClick}
-      className="cursor-pointer border-b border-premium-border/60 transition-colors last:border-0 hover:bg-premium-surface-2"
+      style={{ animationDelay: `${Math.min(index, 12) * 35}ms` }}
+      className="premium-row-enter relative cursor-pointer border-b border-premium-border/60 transition-colors last:border-0 hover:bg-premium-surface-2"
     >
-      <td className="px-4 py-3 flex items-center gap-2 text-premium-text">
+      <td className="relative px-4 py-3 flex items-center gap-2 text-premium-text">
+        <span className="premium-row-bar" aria-hidden />
         <span className={`h-2 w-2 shrink-0 rounded-full ${COLOR_DOT[ing['цвет']]}`} />
         {ing['название']}
       </td>
@@ -118,6 +122,7 @@ export function IngredientsPage() {
 
   const totalFiltered = belowMin.length + rest.length
   const visibleCount = useMemo(() => ingredients.filter((i) => i['категория'] !== 'тара').length, [ingredients])
+  const animatedCount = useCountUp(visibleCount)
 
   function handleRowClick(ingredient: Ingredient) {
     setSelected(ingredient)
@@ -134,7 +139,7 @@ export function IngredientsPage() {
       <div className="relative mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <h1 className="flex items-baseline gap-2 font-display text-xl font-semibold italic text-premium-text sm:text-2xl">
           Компоненты
-          {!loading && <span className="font-sans text-sm font-normal not-italic text-premium-text/40">{visibleCount}</span>}
+          {!loading && <span className="font-sans text-sm font-normal not-italic text-premium-text/40">{animatedCount}</span>}
         </h1>
         <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-end">
           {/* Два явных блока (Александр, 2026-07-21): служебное (Экспорт/Импорт/Архив —
@@ -176,13 +181,13 @@ export function IngredientsPage() {
               <button
                 onClick={() => setShowBatchIncome(true)}
                 disabled={visibleCount === 0}
-                className="flex items-center justify-center gap-1.5 whitespace-nowrap rounded-lg bg-premium-gold px-3 py-2 text-sm font-medium text-premium-bg shadow-sm hover:bg-premium-gold-hi disabled:opacity-40 sm:w-auto sm:px-4"
+                className="btn-shine flex items-center justify-center gap-1.5 whitespace-nowrap rounded-lg bg-premium-gold px-3 py-2 text-sm font-medium text-premium-bg shadow-sm transition-transform hover:bg-premium-gold-hi disabled:opacity-40 sm:w-auto sm:px-4"
               >
                 <Truck size={15} /> Поставка
               </button>
               <button
                 onClick={() => setShowCreate(true)}
-                className="flex items-center justify-center gap-1.5 whitespace-nowrap rounded-lg border border-premium-gold/50 px-3 py-2 text-sm font-medium text-premium-gold-hi hover:bg-premium-gold/10 sm:w-auto sm:px-4"
+                className="btn-shine flex items-center justify-center gap-1.5 whitespace-nowrap rounded-lg border border-premium-gold/50 px-3 py-2 text-sm font-medium text-premium-gold-hi transition-transform hover:bg-premium-gold/10 sm:w-auto sm:px-4"
               >
                 <Plus size={15} /> Добавить компонент
               </button>
@@ -206,20 +211,20 @@ export function IngredientsPage() {
       )}
 
       {!loading && belowMin.length > 0 && (
-        <div className="relative mb-4 rounded-xl border border-red-500/40 bg-red-500/5 p-3">
+        <div className="premium-alert-pulse relative mb-4 rounded-xl border border-red-500/40 bg-red-500/5 p-3">
           <div className="mb-2 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-red-400">
             <AlertTriangle size={13} /> Ниже минимума
           </div>
           <div className="space-y-2 md:hidden">
-            {belowMin.map((ing) => (
-              <MobileCard key={ing.id} ing={ing} onClick={() => handleRowClick(ing)} />
+            {belowMin.map((ing, i) => (
+              <MobileCard key={ing.id} ing={ing} index={i} onClick={() => handleRowClick(ing)} />
             ))}
           </div>
           <div className="hidden overflow-hidden rounded-lg border border-premium-border bg-premium-surface md:block">
             <table className="w-full text-sm">
               <tbody>
-                {belowMin.map((ing) => (
-                  <DeskRow key={ing.id} ing={ing} onClick={() => handleRowClick(ing)} />
+                {belowMin.map((ing, i) => (
+                  <DeskRow key={ing.id} ing={ing} index={i} onClick={() => handleRowClick(ing)} />
                 ))}
               </tbody>
             </table>
@@ -230,8 +235,8 @@ export function IngredientsPage() {
       {!loading && rest.length > 0 && (
         <>
           <div className="relative space-y-2 md:hidden">
-            {rest.map((ing) => (
-              <MobileCard key={ing.id} ing={ing} onClick={() => handleRowClick(ing)} />
+            {rest.map((ing, i) => (
+              <MobileCard key={ing.id} ing={ing} index={i} onClick={() => handleRowClick(ing)} />
             ))}
           </div>
 
@@ -247,8 +252,8 @@ export function IngredientsPage() {
                 </tr>
               </thead>
               <tbody>
-                {rest.map((ing) => (
-                  <DeskRow key={ing.id} ing={ing} onClick={() => handleRowClick(ing)} />
+                {rest.map((ing, i) => (
+                  <DeskRow key={ing.id} ing={ing} index={i} onClick={() => handleRowClick(ing)} />
                 ))}
               </tbody>
             </table>

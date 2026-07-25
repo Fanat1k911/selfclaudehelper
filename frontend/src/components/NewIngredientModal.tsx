@@ -163,11 +163,11 @@ export function NewIngredientModal({
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30" onClick={onClose}>
+    <div className="backdrop-fade-in fixed inset-0 z-50 flex items-center justify-center bg-black/30" onClick={onClose}>
       <form
         onSubmit={handleSubmit}
         onClick={(e) => e.stopPropagation()}
-        className="w-full max-w-sm rounded-2xl bg-premium-surface p-6 shadow-2xl space-y-3"
+        className="modal-pop-in w-full max-w-sm rounded-2xl bg-premium-surface p-6 shadow-2xl space-y-3"
       >
         <div className="text-lg font-semibold text-premium-text mb-2">Новый компонент</div>
 

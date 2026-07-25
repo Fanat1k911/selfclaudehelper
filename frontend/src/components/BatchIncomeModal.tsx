@@ -83,11 +83,11 @@ export function BatchIncomeModal({
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 p-4" onClick={onClose}>
+    <div className="backdrop-fade-in fixed inset-0 z-50 flex items-center justify-center bg-black/30 p-4" onClick={onClose}>
       <form
         onSubmit={handleSubmit}
         onClick={(e) => e.stopPropagation()}
-        className="flex w-full max-w-lg max-h-[90vh] flex-col overflow-hidden rounded-2xl bg-premium-surface shadow-2xl"
+        className="modal-pop-in flex w-full max-w-lg max-h-[90vh] flex-col overflow-hidden rounded-2xl bg-premium-surface shadow-2xl"
       >
         <div className="flex items-start justify-between border-b border-premium-border px-6 py-5">
           <div className="flex items-start gap-3">
