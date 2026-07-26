@@ -46,11 +46,11 @@ export function NewStaffModal({ onClose, onCreated }: { onClose: () => void; onC
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30" onClick={onClose}>
+    <div className="backdrop-fade-in fixed inset-0 z-50 flex items-center justify-center bg-black/30" onClick={onClose}>
       <form
         onSubmit={handleSubmit}
         onClick={(e) => e.stopPropagation()}
-        className="w-full max-w-sm rounded-2xl bg-premium-surface p-6 shadow-2xl space-y-3 max-h-[90vh] touch-pan-y overflow-y-auto overflow-x-hidden"
+        className="modal-pop-in w-full max-w-sm rounded-2xl bg-premium-surface p-6 shadow-2xl space-y-3 max-h-[90vh] touch-pan-y overflow-y-auto overflow-x-hidden"
       >
         <div className="text-lg font-semibold text-premium-text mb-2">Новый сотрудник</div>
 

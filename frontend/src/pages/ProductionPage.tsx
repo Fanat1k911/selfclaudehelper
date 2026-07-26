@@ -46,7 +46,7 @@ export function ProductionPage() {
         <h1 className="font-display text-xl font-semibold italic text-premium-text sm:text-2xl">Производство</h1>
         <button
           onClick={() => setShowCreate(true)}
-          className="whitespace-nowrap rounded-lg bg-premium-gold px-3 py-2 text-sm font-medium text-premium-bg hover:bg-premium-gold-hi sm:px-4"
+          className="btn-shine transition-transform whitespace-nowrap rounded-lg bg-premium-gold px-3 py-2 text-sm font-medium text-premium-bg hover:bg-premium-gold-hi sm:px-4"
         >
           + Внести производство
         </button>
@@ -66,9 +66,16 @@ export function ProductionPage() {
               </tr>
             </thead>
             <tbody>
-              {leaderboard.map((row) => (
-                <tr key={row.worker_id} className="border-t border-premium-border/60">
-                  <td className="px-4 py-2 text-premium-text">{row['ФИО']}</td>
+              {leaderboard.map((row, i) => (
+                <tr
+                  key={row.worker_id}
+                  style={{ animationDelay: `${Math.min(i, 12) * 35}ms` }}
+                  className="premium-row-enter relative border-t border-premium-border/60"
+                >
+                  <td className="relative px-4 py-2 text-premium-text">
+                    <span className="premium-row-bar" aria-hidden />
+                    {row['ФИО']}
+                  </td>
                   <td className="px-4 py-2 text-right font-medium text-premium-text">{row['сегодня']}</td>
                   <td className="px-4 py-2 text-right font-medium text-premium-text">{row['месяц']}</td>
                 </tr>
@@ -89,8 +96,12 @@ export function ProductionPage() {
             Записей ещё нет.
           </div>
         )}
-        {log.map((entry) => (
-          <div key={entry.id} className="premium-card rounded-xl border border-premium-border bg-premium-surface p-4">
+        {log.map((entry, i) => (
+          <div
+            key={entry.id}
+            style={{ animationDelay: `${Math.min(i, 12) * 35}ms` }}
+            className="premium-row-enter premium-card rounded-xl border border-premium-border bg-premium-surface p-4"
+          >
             <div className="flex items-start justify-between gap-2">
               <span className="truncate text-sm font-medium text-premium-text">{entry['название рецепта']}</span>
               <span className="shrink-0 text-sm font-semibold text-premium-text">{entry['кол-во продукта']}</span>
@@ -137,9 +148,16 @@ export function ProductionPage() {
                 </td>
               </tr>
             )}
-            {log.map((entry) => (
-              <tr key={entry.id} className="border-b border-premium-border/60 last:border-0">
-                <td className="px-4 py-3 text-premium-text/50">{formatDate(entry['дата'])}</td>
+            {log.map((entry, i) => (
+              <tr
+                key={entry.id}
+                style={{ animationDelay: `${Math.min(i, 12) * 35}ms` }}
+                className="premium-row-enter relative border-b border-premium-border/60 last:border-0"
+              >
+                <td className="relative px-4 py-3 text-premium-text/50">
+                  <span className="premium-row-bar" aria-hidden />
+                  {formatDate(entry['дата'])}
+                </td>
                 <td className="px-4 py-3 text-premium-text">{entry['название рецепта']}</td>
                 <td className="px-4 py-3 text-premium-text/60">{entry['ФИО сотрудника']}</td>
                 <td className="px-4 py-3 text-right font-medium text-premium-text">{entry['кол-во продукта']}</td>
@@ -156,8 +174,12 @@ export function ProductionPage() {
           <h2 className="mb-3 font-display text-lg font-semibold italic text-premium-text">История упаковки</h2>
 
           <div className="space-y-2 md:hidden">
-            {packagingLog.map((entry) => (
-              <div key={entry.id} className="premium-card rounded-xl border border-premium-border bg-premium-surface p-4">
+            {packagingLog.map((entry, i) => (
+              <div
+                key={entry.id}
+                style={{ animationDelay: `${Math.min(i, 12) * 35}ms` }}
+                className="premium-row-enter premium-card rounded-xl border border-premium-border bg-premium-surface p-4"
+              >
                 <div className="flex items-start justify-between gap-2">
                   <span className="truncate text-sm font-medium text-premium-text">{entry['название продукта']}</span>
                   <span className="shrink-0 text-sm font-semibold text-premium-text">{entry['кол-во']} шт</span>
@@ -183,9 +205,16 @@ export function ProductionPage() {
                 </tr>
               </thead>
               <tbody>
-                {packagingLog.map((entry) => (
-                  <tr key={entry.id} className="border-b border-premium-border/60 last:border-0">
-                    <td className="px-4 py-3 text-premium-text/50">{formatDate(entry['дата'])}</td>
+                {packagingLog.map((entry, i) => (
+                  <tr
+                    key={entry.id}
+                    style={{ animationDelay: `${Math.min(i, 12) * 35}ms` }}
+                    className="premium-row-enter relative border-b border-premium-border/60 last:border-0"
+                  >
+                    <td className="relative px-4 py-3 text-premium-text/50">
+                      <span className="premium-row-bar" aria-hidden />
+                      {formatDate(entry['дата'])}
+                    </td>
                     <td className="px-4 py-3 text-premium-text">{entry['название продукта']}</td>
                     <td className="px-4 py-3 text-premium-text/60">{entry['ФИО сотрудника']}</td>
                     <td className="px-4 py-3 text-right font-medium text-premium-text">{entry['кол-во']}</td>

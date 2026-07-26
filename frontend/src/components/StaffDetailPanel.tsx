@@ -131,9 +131,9 @@ export function StaffDetailPanel({
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex justify-end bg-black/30" onClick={onClose}>
+    <div className="backdrop-fade-in fixed inset-0 z-50 flex justify-end bg-black/30" onClick={onClose}>
       <div
-        className="flex h-full w-full max-w-md flex-col bg-premium-surface shadow-2xl"
+        className="panel-slide-in flex h-full w-full max-w-md flex-col bg-premium-surface shadow-2xl"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-start justify-between border-b border-premium-border px-6 py-5">

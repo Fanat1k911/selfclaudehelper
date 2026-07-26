@@ -361,6 +361,106 @@ tr:hover .premium-row-bar {
   }
 }
 
+/* ---- Дашборд-only motion pass (2026-07-26, запрос Александра, "особенно
+   привлекательный") — этот блок сознательно новый CSS сверх общего .premium-*
+   паттерна с других 11 страниц: Дашборд единственная страница, которой явно разрешено
+   выйти за рамки общего паттерна (см. CLAUDE.md). Ничего здесь не трогает токены
+   --color-premium-* (все), CATEGORICAL и STATUS палитры, и не переопределяет
+   .premium-card, .premium-stat, .premium-row-enter выше — только новые, аддитивные
+   классы. ---- */
+
+/* Едва заметный дрейф золотого блика под .premium-grain (см. DashboardPage.tsx —
+   рисуется первым в DOM-порядке, поэтому визуально "под" зерном). Крутится, только
+   пока вкладка видна — JS в DashboardPage.tsx переключает animation-play-state через
+   visibilitychange, здесь только сама анимация/её выключение по reduced-motion. */
+@keyframes premium-ambient-sheen {
+  0%, 100% { background-position: -20% -20%; }
+  50% { background-position: 120% 120%; }
+}
+.premium-ambient-sheen {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  opacity: 0.03;
+  background-image: linear-gradient(135deg, transparent 30%, var(--color-premium-gold) 50%, transparent 70%);
+  background-size: 260% 260%;
+  animation: premium-ambient-sheen 18s ease-in-out infinite;
+}
+
+/* Одноразовая "ignition"-вспышка на герой-числах StatWidget (component_cost_value,
+   defect_rate) при первом появлении данных — см. useIgnite в StatWidget.tsx.
+   Отдельно от .premium-stat:hover (тот остаётся hover-only на всей карточке) —
+   это анимация самого числа, один раз при монтировании, не при наведении. */
+@keyframes premium-stat-ignite {
+  from { opacity: 0; transform: scale(0.9); }
+  to { opacity: 1; transform: scale(1); }
+}
+@keyframes premium-stat-ignite-flash {
+  0% { transform: translateX(-120%); opacity: 0; }
+  35% { opacity: 0.9; }
+  100% { transform: translateX(120%); opacity: 0; }
+}
+.premium-stat-ignite {
+  position: relative;
+  animation: premium-stat-ignite 0.6s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+.premium-stat-ignite::before {
+  content: '';
+  position: absolute;
+  inset: -20% -50%;
+  background: linear-gradient(
+    100deg,
+    transparent 35%,
+    color-mix(in srgb, var(--color-premium-gold-hi) 70%, transparent) 50%,
+    transparent 65%
+  );
+  animation: premium-stat-ignite-flash 0.9s ease-out both;
+  pointer-events: none;
+}
+
+/* Драг/резайз-полировка поверх собственных state-классов react-grid-layout — только
+   box-shadow/border/background, никогда transform (тот принадлежит RGL целиком, см.
+   DashboardPage.tsx). .layout — className самого ReactGridLayout в DashboardPage.tsx,
+   держит эти правила scoped к дашборду, не ко всем возможным re-grid-layout на сайте. */
+.layout .react-grid-item.react-draggable-dragging {
+  border-radius: 0.75rem;
+  box-shadow:
+    0 24px 48px -20px rgba(0, 0, 0, 0.6),
+    0 0 0 2px var(--color-premium-gold),
+    0 0 32px -8px color-mix(in srgb, var(--color-premium-gold) 55%, transparent);
+}
+@keyframes premium-placeholder-pulse {
+  0%, 100% { opacity: 0.35; }
+  50% { opacity: 0.9; }
+}
+.layout .react-grid-item.react-grid-placeholder {
+  background: color-mix(in srgb, var(--color-premium-gold) 12%, transparent);
+  border: 2px dashed var(--color-premium-gold);
+  border-radius: 0.75rem;
+  animation: premium-placeholder-pulse 1.2s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .premium-ambient-sheen {
+    animation: none !important;
+    opacity: 0 !important;
+  }
+  .premium-stat-ignite {
+    animation: none !important;
+    opacity: 1 !important;
+    transform: none !important;
+  }
+  .premium-stat-ignite::before {
+    animation: none !important;
+    display: none;
+  }
+  .layout .react-grid-item.react-grid-placeholder {
+    animation: none !important;
+    opacity: 0.6;
+  }
+}
+
 /* Плашка "доступно обновление" (2026-07-18, полировка по фидбеку Founder — "уродство") —
    плавающая карточка в стиле Refined Industrial вместо голой светлой полосы во всю ширину,
    видна на любой странице (и старых светлых, и новых тёмных) поверх остального UI, поэтому

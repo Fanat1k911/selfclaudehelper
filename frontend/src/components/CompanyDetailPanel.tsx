@@ -41,8 +41,8 @@ export function CompanyDetailPanel({ companyId, onClose }: { companyId: string; 
   ]
 
   return (
-    <div className="fixed inset-0 z-50 flex justify-end bg-black/30" onClick={onClose}>
-      <div className="flex h-full w-full max-w-md flex-col bg-premium-surface shadow-2xl" onClick={(e) => e.stopPropagation()}>
+    <div className="backdrop-fade-in fixed inset-0 z-50 flex justify-end bg-black/30" onClick={onClose}>
+      <div className="panel-slide-in flex h-full w-full max-w-md flex-col bg-premium-surface shadow-2xl" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-start justify-between border-b border-premium-border px-6 py-5">
           <div>
             <div className="text-lg font-semibold text-premium-text">{detail?.name ?? '…'}</div>
@@ -63,35 +63,42 @@ export function CompanyDetailPanel({ companyId, onClose }: { companyId: string; 
           )}
           {!loading &&
             detail &&
-            groups.map(({ role, label }) => {
-              const members = detail.members.filter((m) => m.role === role)
-              if (members.length === 0) return null
-              return (
-                <div key={role} className="mb-5">
-                  <div className="text-xs font-medium uppercase tracking-wider text-premium-text/40 mb-2">{label}</div>
-                  <div className="space-y-2">
-                    {members.map((m) => (
-                      <div
-                        key={m.id}
-                        className="flex items-center justify-between rounded-lg border border-premium-border px-3 py-2"
-                      >
-                        <div className="min-w-0">
-                          <div className="truncate text-sm font-medium text-premium-text">{m.fio}</div>
-                          <div className="text-xs text-premium-text/50">{m.login}</div>
-                        </div>
-                        <span
-                          className={`shrink-0 text-xs font-medium ${
-                            m.status === 'активен' ? 'text-premium-sage-hi' : 'text-red-400'
-                          }`}
-                        >
-                          {m.status === 'активен' ? 'Активен' : 'Уволен'}
-                        </span>
-                      </div>
-                    ))}
+            (() => {
+              const orderedMembers = groups.flatMap(({ role }) => detail.members.filter((m) => m.role === role))
+              return groups.map(({ role, label }) => {
+                const members = detail.members.filter((m) => m.role === role)
+                if (members.length === 0) return null
+                return (
+                  <div key={role} className="mb-5">
+                    <div className="text-xs font-medium uppercase tracking-wider text-premium-text/40 mb-2">{label}</div>
+                    <div className="space-y-2">
+                      {members.map((m) => {
+                        const index = orderedMembers.indexOf(m)
+                        return (
+                          <div
+                            key={m.id}
+                            style={{ animationDelay: `${Math.min(index, 12) * 35}ms` }}
+                            className="premium-row-enter flex items-center justify-between rounded-lg border border-premium-border px-3 py-2"
+                          >
+                            <div className="min-w-0">
+                              <div className="truncate text-sm font-medium text-premium-text">{m.fio}</div>
+                              <div className="text-xs text-premium-text/50">{m.login}</div>
+                            </div>
+                            <span
+                              className={`shrink-0 text-xs font-medium ${
+                                m.status === 'активен' ? 'text-premium-sage-hi' : 'text-red-400'
+                              }`}
+                            >
+                              {m.status === 'активен' ? 'Активен' : 'Уволен'}
+                            </span>
+                          </div>
+                        )
+                      })}
+                    </div>
                   </div>
-                </div>
-              )
-            })}
+                )
+              })
+            })()}
         </div>
       </div>
     </div>

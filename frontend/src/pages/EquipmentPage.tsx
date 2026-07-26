@@ -63,7 +63,7 @@ export function EquipmentPage() {
         </h1>
         <button
           onClick={() => setShowCreate(true)}
-          className="w-full whitespace-nowrap rounded-lg bg-premium-gold px-3 py-2 text-sm font-medium text-premium-bg hover:bg-premium-gold-hi sm:w-auto sm:px-4"
+          className="btn-shine w-full whitespace-nowrap rounded-lg bg-premium-gold px-3 py-2 text-sm font-medium text-premium-bg transition-transform hover:bg-premium-gold-hi sm:w-auto sm:px-4"
         >
           + Добавить инвентарь
         </button>
@@ -82,11 +82,12 @@ export function EquipmentPage() {
             Ничего не найдено.
           </div>
         )}
-        {filtered.map((it) => (
+        {filtered.map((it, i) => (
           <button
             key={it.id}
             onClick={() => setSelected(it)}
-            className="premium-card w-full rounded-xl border border-premium-border bg-premium-surface p-4 text-left active:bg-premium-surface-2"
+            style={{ animationDelay: `${Math.min(i, 12) * 35}ms` }}
+            className="premium-row-enter premium-card premium-card-bold w-full rounded-xl border border-premium-border bg-premium-surface p-4 text-left active:bg-premium-surface-2"
           >
             <div className="flex items-start justify-between gap-2">
               <div className="flex min-w-0 items-center gap-2">
@@ -130,13 +131,15 @@ export function EquipmentPage() {
                 </td>
               </tr>
             )}
-            {filtered.map((it) => (
+            {filtered.map((it, i) => (
               <tr
                 key={it.id}
                 onClick={() => setSelected(it)}
-                className="cursor-pointer border-b border-premium-border/60 transition-colors last:border-0 hover:bg-premium-surface-2"
+                style={{ animationDelay: `${Math.min(i, 12) * 35}ms` }}
+                className="premium-row-enter relative cursor-pointer border-b border-premium-border/60 transition-colors last:border-0 hover:bg-premium-surface-2"
               >
-                <td className="px-4 py-3 flex items-center gap-2 text-premium-text">
+                <td className="relative px-4 py-3 flex items-center gap-2 text-premium-text">
+                  <span className="premium-row-bar" aria-hidden />
                   <span className={`h-2 w-2 shrink-0 rounded-full ${COLOR_DOT[it['цвет']]}`} />
                   {it['название']}
                 </td>

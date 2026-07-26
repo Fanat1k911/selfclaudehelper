@@ -308,7 +308,7 @@ export function SurveillancePage() {
             <button
               onClick={handleScreenshot}
               disabled={savingShot || streamError}
-              className="flex items-center gap-1.5 whitespace-nowrap rounded-lg bg-premium-gold px-4 py-2 text-sm font-medium text-premium-bg hover:bg-premium-gold-hi disabled:opacity-40"
+              className="btn-shine flex items-center gap-1.5 whitespace-nowrap rounded-lg bg-premium-gold px-4 py-2 text-sm font-medium text-premium-bg transition-transform hover:bg-premium-gold-hi disabled:opacity-40"
             >
               <Camera size={15} /> {savingShot ? 'Сохраняем…' : 'Скриншот'}
             </button>
@@ -355,12 +355,13 @@ export function SurveillancePage() {
         )}
         {!loadingShots && screenshots.length > 0 && (
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4">
-            {screenshots.map((shot) => (
+            {screenshots.map((shot, i) => (
               <a
                 key={shot.id}
                 href={shot['изображение']}
                 download={`screenshot-${shot.id}.png`}
-                className="group overflow-hidden rounded-xl border border-premium-border bg-premium-surface"
+                style={{ animationDelay: `${Math.min(i, 12) * 35}ms` }}
+                className="premium-row-enter group overflow-hidden rounded-xl border border-premium-border bg-premium-surface"
               >
                 <img src={shot['изображение']} alt="" className="aspect-video w-full object-cover" />
                 <div className="p-2 text-xs text-premium-text/50">

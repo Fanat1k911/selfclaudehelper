@@ -110,13 +110,13 @@ export function PackagingMaterialsPage() {
               <button
                 onClick={() => setShowBatchIncome(true)}
                 disabled={ingredients.length === 0}
-                className="flex items-center justify-center gap-1.5 whitespace-nowrap rounded-lg bg-premium-gold px-3 py-2 text-sm font-medium text-premium-bg shadow-sm hover:bg-premium-gold-hi disabled:opacity-40"
+                className="btn-shine flex items-center justify-center gap-1.5 whitespace-nowrap rounded-lg bg-premium-gold px-3 py-2 text-sm font-medium text-premium-bg shadow-sm transition-transform hover:bg-premium-gold-hi disabled:opacity-40"
               >
                 <Truck size={15} /> Поставка
               </button>
               <button
                 onClick={() => setShowCreate(true)}
-                className="flex items-center justify-center gap-1.5 whitespace-nowrap rounded-lg border border-premium-gold/50 px-3 py-2 text-sm font-medium text-premium-gold-hi hover:bg-premium-gold/10"
+                className="btn-shine flex items-center justify-center gap-1.5 whitespace-nowrap rounded-lg border border-premium-gold/50 px-3 py-2 text-sm font-medium text-premium-gold-hi transition-transform hover:bg-premium-gold/10"
               >
                 <Plus size={15} /> Добавить тару
               </button>
@@ -154,11 +154,12 @@ export function PackagingMaterialsPage() {
             {showArchived ? 'Архив пуст.' : 'Ничего не найдено.'}
           </div>
         )}
-        {filtered.map((ing) => (
+        {filtered.map((ing, i) => (
           <button
             key={ing.id}
             onClick={() => setSelected(ing)}
-            className="premium-card w-full rounded-xl border border-premium-border bg-premium-surface p-4 text-left active:bg-premium-surface-2"
+            style={{ animationDelay: `${Math.min(i, 12) * 35}ms` }}
+            className="premium-row-enter premium-card premium-card-bold w-full rounded-xl border border-premium-border bg-premium-surface p-4 text-left active:bg-premium-surface-2"
           >
             <div className="flex items-start justify-between gap-2">
               <div className="flex min-w-0 items-center gap-2">
@@ -203,13 +204,15 @@ export function PackagingMaterialsPage() {
                 </td>
               </tr>
             )}
-            {filtered.map((ing) => (
+            {filtered.map((ing, i) => (
               <tr
                 key={ing.id}
                 onClick={() => setSelected(ing)}
-                className="cursor-pointer border-b border-premium-border/60 transition-colors last:border-0 hover:bg-premium-surface-2"
+                style={{ animationDelay: `${Math.min(i, 12) * 35}ms` }}
+                className="premium-row-enter relative cursor-pointer border-b border-premium-border/60 transition-colors last:border-0 hover:bg-premium-surface-2"
               >
-                <td className="px-4 py-3 flex items-center gap-2 text-premium-text">
+                <td className="relative px-4 py-3 flex items-center gap-2 text-premium-text">
+                  <span className="premium-row-bar" aria-hidden />
                   <span className={`h-2 w-2 shrink-0 rounded-full ${COLOR_DOT[ing['цвет']]}`} />
                   {ing['название']}
                 </td>

@@ -10,9 +10,9 @@ export function AddWidgetModal({
   onClose: () => void
 }) {
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4" onClick={onClose}>
+    <div className="backdrop-fade-in fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4" onClick={onClose}>
       <div
-        className="max-h-[80vh] w-full max-w-md overflow-auto rounded-xl border border-premium-border bg-premium-surface p-4 shadow-xl"
+        className="modal-pop-in max-h-[80vh] w-full max-w-md overflow-auto rounded-xl border border-premium-border bg-premium-surface p-4 shadow-xl"
         onClick={(e) => e.stopPropagation()}
       >
         <h2 className="mb-3 text-base font-semibold text-premium-text">Добавить виджет</h2>
@@ -20,8 +20,8 @@ export function AddWidgetModal({
           <div className="py-6 text-center text-sm text-premium-text-muted">Все виджеты уже на дашборде.</div>
         ) : (
           <ul className="space-y-1.5">
-            {available.map((w) => (
-              <li key={w.key}>
+            {available.map((w, i) => (
+              <li key={w.key} className="premium-row-enter" style={{ animationDelay: `${Math.min(i, 12) * 35}ms` }}>
                 <button
                   onClick={() => onAdd(w)}
                   className="w-full rounded-lg border border-premium-border px-3 py-2.5 text-left text-sm text-premium-text hover:bg-premium-surface-2"

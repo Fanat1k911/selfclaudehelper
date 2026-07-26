@@ -40,7 +40,7 @@ export function SalesPage() {
         <h1 className="font-display text-xl font-semibold italic text-premium-text sm:text-2xl">Отгрузка</h1>
         <button
           onClick={() => setShowCreate(true)}
-          className="whitespace-nowrap rounded-lg bg-premium-gold px-3 py-2 text-sm font-medium text-premium-bg hover:bg-premium-gold-hi sm:px-4"
+          className="btn-shine whitespace-nowrap rounded-lg bg-premium-gold px-3 py-2 text-sm font-medium text-premium-bg transition-transform hover:bg-premium-gold-hi sm:px-4"
         >
           + Внести отгрузку
         </button>
@@ -57,11 +57,12 @@ export function SalesPage() {
             Отгрузок пока нет.
           </div>
         )}
-        {sales.map((s) => (
+        {sales.map((s, i) => (
           <button
             key={s.id}
             onClick={() => setEditingSale(s)}
-            className="premium-card w-full rounded-xl border border-premium-border bg-premium-surface p-4 text-left active:bg-premium-surface-2"
+            style={{ animationDelay: `${Math.min(i, 12) * 35}ms` }}
+            className="premium-row-enter premium-card premium-card-bold w-full rounded-xl border border-premium-border bg-premium-surface p-4 text-left active:bg-premium-surface-2"
           >
             <div className="flex items-start justify-between gap-2">
               <span className="truncate text-sm font-medium text-premium-text">{s['название']}</span>
@@ -104,13 +105,17 @@ export function SalesPage() {
                 </td>
               </tr>
             )}
-            {sales.map((s) => (
+            {sales.map((s, i) => (
               <tr
                 key={s.id}
                 onClick={() => setEditingSale(s)}
-                className="cursor-pointer border-b border-premium-border/60 transition-colors last:border-0 hover:bg-premium-surface-2"
+                style={{ animationDelay: `${Math.min(i, 12) * 35}ms` }}
+                className="premium-row-enter relative cursor-pointer border-b border-premium-border/60 transition-colors last:border-0 hover:bg-premium-surface-2"
               >
-                <td className="px-4 py-3 text-premium-text/50">{formatDate(s['дата'])}</td>
+                <td className="relative px-4 py-3 text-premium-text/50">
+                  <span className="premium-row-bar" aria-hidden />
+                  {formatDate(s['дата'])}
+                </td>
                 <td className="px-4 py-3 text-premium-text">{s['название']}</td>
                 <td className="px-4 py-3 text-premium-text/50">{s['контрагент'] || '—'}</td>
                 <td className="px-4 py-3 text-right font-medium text-premium-text">{s['кол-во']}</td>

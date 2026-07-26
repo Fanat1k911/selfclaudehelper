@@ -76,7 +76,7 @@ export function TechPanelPage() {
           <button
             onClick={load}
             disabled={loading}
-            className="whitespace-nowrap rounded-lg bg-premium-gold px-3 py-2 text-sm font-medium text-premium-bg hover:bg-premium-gold-hi disabled:opacity-50 sm:px-4"
+            className="btn-shine transition-transform whitespace-nowrap rounded-lg bg-premium-gold px-3 py-2 text-sm font-medium text-premium-bg hover:bg-premium-gold-hi disabled:opacity-50 sm:px-4"
           >
             Обновить
           </button>
@@ -118,7 +118,11 @@ export function TechPanelPage() {
           </div>
         )}
         {logs.map((row, i) => (
-          <div key={i} className="rounded-xl border border-premium-border bg-premium-surface p-3">
+          <div
+            key={i}
+            style={{ animationDelay: `${Math.min(i, 12) * 35}ms` }}
+            className="premium-row-enter rounded-xl border border-premium-border bg-premium-surface p-3"
+          >
             <div className="flex items-center justify-between gap-2 text-xs">
               <span className={`font-medium ${LEVEL_COLOR[row.level] ?? 'text-premium-text/60'}`}>{row.level}</span>
               <span className="shrink-0 text-premium-text/40">{formatTime(row.time)}</span>
@@ -148,8 +152,15 @@ export function TechPanelPage() {
             </colgroup>
             <tbody>
               {logs.map((row, i) => (
-                <tr key={i} className="border-t border-premium-border/60 first:border-t-0">
-                  <td className="whitespace-nowrap px-3 py-2 align-top text-premium-text/40">{formatTime(row.time)}</td>
+                <tr
+                  key={i}
+                  style={{ animationDelay: `${Math.min(i, 12) * 35}ms` }}
+                  className="premium-row-enter relative border-t border-premium-border/60 first:border-t-0"
+                >
+                  <td className="relative whitespace-nowrap px-3 py-2 align-top text-premium-text/40">
+                    <span className="premium-row-bar" aria-hidden />
+                    {formatTime(row.time)}
+                  </td>
                   <td className={`whitespace-nowrap px-3 py-2 align-top font-medium ${LEVEL_COLOR[row.level] ?? 'text-premium-text/60'}`}>
                     {row.level}
                   </td>

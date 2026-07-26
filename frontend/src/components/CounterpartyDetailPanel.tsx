@@ -50,8 +50,8 @@ export function CounterpartyDetailPanel({
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex justify-end bg-black/30" onClick={onClose}>
-      <div className="flex h-full w-full max-w-md flex-col bg-premium-surface shadow-2xl" onClick={(e) => e.stopPropagation()}>
+    <div className="backdrop-fade-in fixed inset-0 z-50 flex justify-end bg-black/30" onClick={onClose}>
+      <div className="panel-slide-in flex h-full w-full max-w-md flex-col bg-premium-surface shadow-2xl" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-start justify-between border-b border-premium-border px-6 py-5">
           <div className="text-lg font-semibold text-premium-text">{counterparty['название']}</div>
           <button onClick={onClose} className="text-premium-text/40 hover:text-premium-text text-xl leading-none">

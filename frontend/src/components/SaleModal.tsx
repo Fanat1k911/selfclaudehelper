@@ -68,11 +68,11 @@ export function SaleModal({
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 p-4" onClick={onClose}>
+    <div className="backdrop-fade-in fixed inset-0 z-50 flex items-center justify-center bg-black/30 p-4" onClick={onClose}>
       <form
         onSubmit={handleSubmit}
         onClick={(e) => e.stopPropagation()}
-        className="max-h-[90vh] w-full max-w-sm touch-pan-y overflow-y-auto overflow-x-hidden rounded-2xl bg-premium-surface p-6 shadow-2xl space-y-3"
+        className="modal-pop-in max-h-[90vh] w-full max-w-sm touch-pan-y overflow-y-auto overflow-x-hidden rounded-2xl bg-premium-surface p-6 shadow-2xl space-y-3"
       >
         <div className="text-lg font-semibold text-premium-text mb-2">{editing ? 'Отгрузка' : 'Новая отгрузка'}</div>
 

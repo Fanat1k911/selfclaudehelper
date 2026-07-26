@@ -40,7 +40,7 @@ export function CompaniesPage() {
         <h1 className="font-display text-xl font-semibold italic text-premium-text sm:text-2xl">Компании</h1>
         <button
           onClick={() => setShowCreate(true)}
-          className="whitespace-nowrap rounded-lg bg-premium-gold px-3 py-2 text-sm font-medium text-premium-bg hover:bg-premium-gold-hi sm:px-4"
+          className="btn-shine whitespace-nowrap rounded-lg bg-premium-gold px-3 py-2 text-sm font-medium text-premium-bg transition-transform hover:bg-premium-gold-hi sm:px-4"
         >
           + Новая компания
         </button>
@@ -70,13 +70,17 @@ export function CompaniesPage() {
                 </td>
               </tr>
             )}
-            {companies.map((c) => (
+            {companies.map((c, i) => (
               <tr
                 key={c.id}
                 onClick={() => setSelectedId(c.id)}
-                className="cursor-pointer border-b border-premium-border/60 transition-colors last:border-0 hover:bg-premium-surface-2"
+                style={{ animationDelay: `${Math.min(i, 12) * 35}ms` }}
+                className="premium-row-enter relative cursor-pointer border-b border-premium-border/60 transition-colors last:border-0 hover:bg-premium-surface-2"
               >
-                <td className="px-4 py-3 text-premium-text">{c.name}</td>
+                <td className="relative px-4 py-3 text-premium-text">
+                  <span className="premium-row-bar" aria-hidden />
+                  {c.name}
+                </td>
                 <td className="px-4 py-3 text-premium-text/50 font-mono text-xs">{c.id}</td>
                 <td className="px-4 py-3 text-premium-text/60">{formatDate(c.created_at)}</td>
               </tr>

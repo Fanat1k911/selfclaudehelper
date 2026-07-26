@@ -104,10 +104,10 @@ export function ImportProductsModal({
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30" onClick={onClose}>
+    <div className="backdrop-fade-in fixed inset-0 z-50 flex items-center justify-center bg-black/30" onClick={onClose}>
       <div
         onClick={(e) => e.stopPropagation()}
-        className="w-full max-w-3xl max-h-[85vh] touch-pan-y overflow-y-auto overflow-x-hidden rounded-2xl bg-premium-surface p-6 shadow-2xl space-y-4"
+        className="modal-pop-in w-full max-w-3xl max-h-[85vh] touch-pan-y overflow-y-auto overflow-x-hidden rounded-2xl bg-premium-surface p-6 shadow-2xl space-y-4"
       >
         <div className="text-lg font-semibold text-premium-text">Импорт продуктов из файла</div>
         <p className="text-sm text-premium-text/50">

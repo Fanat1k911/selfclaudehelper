@@ -197,7 +197,7 @@ export function StaffPage() {
             setSelected(null)
             setShowCreate(true)
           }}
-          className="whitespace-nowrap rounded-lg bg-premium-gold px-3 py-2 text-sm font-medium text-premium-bg hover:bg-premium-gold-hi sm:px-4"
+          className="btn-shine whitespace-nowrap rounded-lg bg-premium-gold px-3 py-2 text-sm font-medium text-premium-bg transition-transform hover:bg-premium-gold-hi sm:px-4"
         >
           + Добавить сотрудника
         </button>
@@ -214,11 +214,12 @@ export function StaffPage() {
             Сотрудников пока нет.
           </div>
         )}
-        {staff.map((u) => (
+        {staff.map((u, i) => (
           <button
             key={u.id}
             onClick={() => handleRowClick(u)}
-            className="premium-card w-full rounded-xl border border-premium-border bg-premium-surface p-4 text-left active:bg-premium-surface-2"
+            style={{ animationDelay: `${Math.min(i, 12) * 35}ms` }}
+            className="premium-row-enter premium-card premium-card-bold w-full rounded-xl border border-premium-border bg-premium-surface p-4 text-left active:bg-premium-surface-2"
           >
             <div className="flex items-start justify-between gap-2">
               <span className="truncate text-sm font-medium text-premium-text">{u.fio}</span>
@@ -270,13 +271,17 @@ export function StaffPage() {
                 </td>
               </tr>
             )}
-            {staff.map((u) => (
+            {staff.map((u, i) => (
               <tr
                 key={u.id}
                 onClick={() => handleRowClick(u)}
-                className="cursor-pointer border-b border-premium-border/60 transition-colors last:border-0 hover:bg-premium-surface-2"
+                style={{ animationDelay: `${Math.min(i, 12) * 35}ms` }}
+                className="premium-row-enter relative cursor-pointer border-b border-premium-border/60 transition-colors last:border-0 hover:bg-premium-surface-2"
               >
-                <td className="px-4 py-3 text-premium-text">{u.fio}</td>
+                <td className="relative px-4 py-3 text-premium-text">
+                  <span className="premium-row-bar" aria-hidden />
+                  {u.fio}
+                </td>
                 <td className="px-4 py-3 text-premium-text/60">{u.login}</td>
                 <td className="px-4 py-3 text-premium-text/60">{ROLE_LABEL[u.role]}</td>
                 <td className="px-4 py-3 text-premium-text/60">{u.phone || '—'}</td>
@@ -324,9 +329,16 @@ export function StaffPage() {
                   </td>
                 </tr>
               )}
-              {loginLog.map((entry) => (
-                <tr key={entry.id} className="border-b border-premium-border/60 last:border-0">
-                  <td className="px-4 py-3 text-premium-text">{entry['ФИО']}</td>
+              {loginLog.map((entry, i) => (
+                <tr
+                  key={entry.id}
+                  style={{ animationDelay: `${Math.min(i, 12) * 35}ms` }}
+                  className="premium-row-enter relative border-b border-premium-border/60 last:border-0"
+                >
+                  <td className="relative px-4 py-3 text-premium-text">
+                    <span className="premium-row-bar" aria-hidden />
+                    {entry['ФИО']}
+                  </td>
                   <td className="px-4 py-3 text-premium-text/60">{entry['логин']}</td>
                   <td className="px-4 py-3 text-premium-text/50">{formatDateTime(entry['дата и время'])}</td>
                 </tr>

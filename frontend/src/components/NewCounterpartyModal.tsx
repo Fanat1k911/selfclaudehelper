@@ -99,11 +99,11 @@ export function NewCounterpartyModal({ onClose, onCreated }: { onClose: () => vo
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30" onClick={onClose}>
+    <div className="backdrop-fade-in fixed inset-0 z-50 flex items-center justify-center bg-black/30" onClick={onClose}>
       <form
         onSubmit={handleSubmit}
         onClick={(e) => e.stopPropagation()}
-        className="w-full max-w-sm rounded-2xl bg-premium-surface p-6 shadow-2xl space-y-3 max-h-[90vh] touch-pan-y overflow-y-auto overflow-x-hidden"
+        className="modal-pop-in w-full max-w-sm rounded-2xl bg-premium-surface p-6 shadow-2xl space-y-3 max-h-[90vh] touch-pan-y overflow-y-auto overflow-x-hidden"
       >
         <div className="text-lg font-semibold text-premium-text mb-2">Новый контрагент</div>
 
@@ -159,12 +159,12 @@ export function NewCounterpartyModal({ onClose, onCreated }: { onClose: () => vo
           </div>
         )}
         {lookupState === 'not_found' && (
-          <div className="rounded-lg bg-amber-500/10 px-3 py-2 text-xs text-amber-500">
+          <div className="premium-alert-pulse rounded-lg bg-amber-500/10 px-3 py-2 text-xs text-amber-500">
             Компания с таким ИНН не найдена — заполните поля вручную.
           </div>
         )}
         {lookupState === 'error' && (
-          <div className="rounded-lg bg-red-500/10 px-3 py-2 text-xs text-red-400">
+          <div className="premium-alert-pulse rounded-lg bg-red-500/10 px-3 py-2 text-xs text-red-400">
             {lookupErrorMessage} Заполните поля вручную.
           </div>
         )}

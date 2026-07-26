@@ -3,6 +3,13 @@ import { Bar, BarChart, CartesianGrid, Legend, ResponsiveContainer, Tooltip, XAx
 import { CATEGORICAL_DARK as CATEGORICAL, CHROME_DARK as CHROME } from '../../lib/vizColors'
 import type { DashboardSpendTopMaterial, TopCounterpartyRow, WidgetKpiRow } from '../../types'
 
+// Recharts-анимация (draw-in) выключается для тех, кто просил меньше движения на экране —
+// проверка один раз за рендер компонента, без подписки на смену (эта настройка на практике
+// не меняется посреди сессии, а перечитывать её ценой ре-рендера/layout-эффекта того не стоит).
+function prefersReducedMotion() {
+  return typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches
+}
+
 // ~6.5px на символ при fontSize 11 для кириллицы — грубая, но достаточная оценка
 // для переноса строк без замера реального текста (Canvas measureText — overkill
 // для подписи оси). Если ошибаемся на пару символов, второй строки/многоточия
@@ -149,6 +156,7 @@ function SingleSeriesBar({ rows, valueKey }: { rows: { name: string; value: numb
   // больше места (40%), бары всё равно вторичны при таком узком виджете.
   const isMobileNarrow = containerWidth < 260
   const axisWidth = Math.round(containerWidth * (isMobileNarrow ? 0.4 : 0.25))
+  const reduced = prefersReducedMotion()
 
   return (
     <div ref={containerRef} className="h-full w-full">
@@ -167,7 +175,15 @@ function SingleSeriesBar({ rows, valueKey }: { rows: { name: string; value: numb
             content={<ValueOnlyTooltip valueKey={valueKey} />}
             cursor={{ fill: CATEGORICAL[0], fillOpacity: 0.12 }}
           />
-          <Bar dataKey="value" fill={CATEGORICAL[0]} radius={[0, 4, 4, 0]} maxBarSize={24} />
+          <Bar
+            dataKey="value"
+            fill={CATEGORICAL[0]}
+            radius={[0, 4, 4, 0]}
+            maxBarSize={24}
+            isAnimationActive={!reduced}
+            animationDuration={800}
+            animationEasing="ease-out"
+          />
         </BarChart>
       </ResponsiveContainer>
     </div>
@@ -178,6 +194,7 @@ function KpiByWorkerBar({ rows }: { rows: WidgetKpiRow[] }) {
   if (rows.length === 0) {
     return <div className="flex h-full items-center justify-center text-sm text-premium-text-muted">Данных пока нет.</div>
   }
+  const reduced = prefersReducedMotion()
   const months = Array.from(new Set(rows.map((r) => r['месяц']))).sort()
   const workers = Array.from(new Set(rows.map((r) => r['ФИО'])))
   const chartData = months.map((month) => {
@@ -202,7 +219,16 @@ function KpiByWorkerBar({ rows }: { rows: WidgetKpiRow[] }) {
         />
         {workers.length > 1 && <Legend wrapperStyle={{ fontSize: 12, color: CHROME.textSecondary }} />}
         {workers.map((worker, i) => (
-          <Bar key={worker} dataKey={worker} fill={CATEGORICAL[i % CATEGORICAL.length]} radius={[4, 4, 0, 0]} maxBarSize={28} />
+          <Bar
+            key={worker}
+            dataKey={worker}
+            fill={CATEGORICAL[i % CATEGORICAL.length]}
+            radius={[4, 4, 0, 0]}
+            maxBarSize={28}
+            isAnimationActive={!reduced}
+            animationDuration={800}
+            animationEasing="ease-out"
+          />
         ))}
       </BarChart>
     </ResponsiveContainer>

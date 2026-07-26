@@ -40,7 +40,7 @@ export function ProductsPage() {
         <div className="flex flex-wrap gap-2">
           <button
             onClick={() => setShowCreate(true)}
-            className="whitespace-nowrap rounded-lg bg-premium-gold px-3 py-2 text-sm font-medium text-premium-bg hover:bg-premium-gold-hi sm:px-4"
+            className="btn-shine whitespace-nowrap rounded-lg bg-premium-gold px-3 py-2 text-sm font-medium text-premium-bg transition-transform hover:bg-premium-gold-hi sm:px-4"
           >
             + Новый продукт
           </button>
@@ -64,11 +64,12 @@ export function ProductsPage() {
             Продуктов пока нет.
           </div>
         )}
-        {products.map((p) => (
+        {products.map((p, i) => (
           <div
             key={p.id}
             onClick={() => setEditing(p)}
-            className="premium-card cursor-pointer rounded-xl border border-premium-border bg-premium-surface p-4 active:bg-premium-surface-2"
+            style={{ animationDelay: `${Math.min(i, 12) * 35}ms` }}
+            className="premium-row-enter premium-card premium-card-bold cursor-pointer rounded-xl border border-premium-border bg-premium-surface p-4 active:bg-premium-surface-2"
           >
             <div className="flex items-start justify-between gap-2">
               <span className="truncate text-sm font-medium text-premium-text">{p['название']}</span>
@@ -116,13 +117,17 @@ export function ProductsPage() {
                 </td>
               </tr>
             )}
-            {products.map((p) => (
+            {products.map((p, i) => (
               <tr
                 key={p.id}
                 onClick={() => setEditing(p)}
-                className="cursor-pointer border-b border-premium-border/60 transition-colors last:border-0 hover:bg-premium-surface-2"
+                style={{ animationDelay: `${Math.min(i, 12) * 35}ms` }}
+                className="premium-row-enter relative cursor-pointer border-b border-premium-border/60 transition-colors last:border-0 hover:bg-premium-surface-2"
               >
-                <td className="px-4 py-3 text-premium-text">{p['название']}</td>
+                <td className="relative px-4 py-3 text-premium-text">
+                  <span className="premium-row-bar" aria-hidden />
+                  {p['название']}
+                </td>
                 <td className="px-4 py-3 text-premium-text/60">{p['категория']}</td>
                 <td className="px-4 py-3 text-premium-text/60">{p.GTIN}</td>
                 <td className="px-4 py-3 text-right font-medium text-premium-text">

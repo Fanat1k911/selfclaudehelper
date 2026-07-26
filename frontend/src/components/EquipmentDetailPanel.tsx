@@ -101,9 +101,9 @@ export function EquipmentDetailPanel({
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex justify-end bg-black/30" onClick={onClose}>
+    <div className="backdrop-fade-in fixed inset-0 z-50 flex justify-end bg-black/30" onClick={onClose}>
       <div
-        className="flex h-full w-full max-w-md flex-col bg-premium-surface shadow-2xl"
+        className="panel-slide-in flex h-full w-full max-w-md flex-col bg-premium-surface shadow-2xl"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-start justify-between border-b border-premium-border px-6 py-5">
@@ -212,8 +212,12 @@ export function EquipmentDetailPanel({
               <div className="text-sm text-premium-text/40">Движений пока нет.</div>
             )}
             <div className="space-y-2">
-              {transactions?.map((tx) => (
-                <div key={tx.id} className="flex items-start justify-between gap-3 text-sm border-b border-premium-border/60 pb-2">
+              {transactions?.map((tx, i) => (
+                <div
+                  key={tx.id}
+                  style={{ animationDelay: `${Math.min(i, 12) * 35}ms` }}
+                  className="premium-row-enter flex items-start justify-between gap-3 text-sm border-b border-premium-border/60 pb-2"
+                >
                   <div className="min-w-0">
                     <div className="capitalize text-premium-text">{tx['тип']}</div>
                     <div className="text-xs text-premium-text/40">{formatDate(tx['дата'])}</div>

@@ -65,7 +65,7 @@ export function RecipesPage() {
                 setSelected(null)
                 setShowCreate(true)
               }}
-              className="whitespace-nowrap rounded-lg bg-premium-gold px-3 py-2 text-sm font-medium text-premium-bg hover:bg-premium-gold-hi sm:px-4"
+              className="btn-shine whitespace-nowrap rounded-lg bg-premium-gold px-3 py-2 text-sm font-medium text-premium-bg transition-transform hover:bg-premium-gold-hi sm:px-4"
             >
               + Новый рецепт
             </button>
@@ -84,11 +84,12 @@ export function RecipesPage() {
             {showArchived ? 'Архив пуст.' : 'Рецептов пока нет.'}
           </div>
         )}
-        {recipes.map((r) => (
+        {recipes.map((r, i) => (
           <button
             key={r.id}
             onClick={() => handleRowClick(r)}
-            className="premium-card w-full rounded-xl border border-premium-border bg-premium-surface p-4 text-left active:bg-premium-surface-2"
+            style={{ animationDelay: `${Math.min(i, 12) * 35}ms` }}
+            className="premium-row-enter premium-card premium-card-bold w-full rounded-xl border border-premium-border bg-premium-surface p-4 text-left active:bg-premium-surface-2"
           >
             <div className="flex items-start justify-between gap-2">
               <span className="truncate text-sm font-medium text-premium-text">{r['название']}</span>
@@ -123,13 +124,17 @@ export function RecipesPage() {
                 </td>
               </tr>
             )}
-            {recipes.map((r) => (
+            {recipes.map((r, i) => (
               <tr
                 key={r.id}
                 onClick={() => handleRowClick(r)}
-                className="cursor-pointer border-b border-premium-border/60 transition-colors last:border-0 hover:bg-premium-surface-2"
+                style={{ animationDelay: `${Math.min(i, 12) * 35}ms` }}
+                className="premium-row-enter relative cursor-pointer border-b border-premium-border/60 transition-colors last:border-0 hover:bg-premium-surface-2"
               >
-                <td className="px-4 py-3 text-premium-text">{r['название']}</td>
+                <td className="relative px-4 py-3 text-premium-text">
+                  <span className="premium-row-bar" aria-hidden />
+                  {r['название']}
+                </td>
                 <td className="px-4 py-3 text-premium-text/60">{r['что производим']}</td>
                 <td className="px-4 py-3 text-right text-premium-text">{r['выход партии']}</td>
               </tr>

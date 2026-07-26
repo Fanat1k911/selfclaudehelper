@@ -2,6 +2,11 @@ import { CartesianGrid, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YA
 import { CHROME_DARK as CHROME, SEQUENTIAL_BLUE_DARK as SEQUENTIAL_BLUE } from '../../lib/vizColors'
 import type { DashboardSpendMonth, MonthlyRevenueRow } from '../../types'
 
+// См. тот же helper в BarWidget.tsx/DonutWidget.tsx.
+function prefersReducedMotion() {
+  return typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches
+}
+
 export function LineWidget({ widgetKey, data }: { widgetKey: string; data: unknown }) {
   let rows: { x: string; value: number }[] = []
   let label = ''
@@ -17,6 +22,8 @@ export function LineWidget({ widgetKey, data }: { widgetKey: string; data: unkno
   if (rows.length === 0) {
     return <div className="flex h-full items-center justify-center text-sm text-premium-text-muted">Данных пока нет.</div>
   }
+
+  const reduced = prefersReducedMotion()
 
   return (
     <ResponsiveContainer width="100%" height="100%">
@@ -36,6 +43,9 @@ export function LineWidget({ widgetKey, data }: { widgetKey: string; data: unkno
           strokeWidth={2}
           dot={{ r: 4, fill: SEQUENTIAL_BLUE }}
           activeDot={{ r: 6 }}
+          isAnimationActive={!reduced}
+          animationDuration={800}
+          animationEasing="ease-out"
         />
       </LineChart>
     </ResponsiveContainer>

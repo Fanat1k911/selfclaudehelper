@@ -19,6 +19,14 @@ const ROW_HEIGHT = 36
 const MOBILE_COLS = 12
 const MOBILE_HALF = 6
 
+// Стагер появления виджетов по их месту в сетке (x, y), а не по индексу в массиве/ответе
+// API — виджеты "накатывают" в порядке чтения (сверху-слева → снизу-справа), а не в порядке
+// прихода данных. Тот же шаг/кап, что у premium-row-enter на других страницах (35мс/12), чуть
+// крупнее шаг (30мс) и та же формула что задумана для сетки: (y * COLS + x).
+function gridMountDelay(x: number, y: number, cols: number) {
+  return Math.min(y * cols + x, 12) * 30
+}
+
 export function DashboardPage() {
   const [catalog, setCatalog] = useState<WidgetCatalogItem[]>([])
   const [layout, setLayout] = useState<WidgetLayoutItem[]>([])
@@ -28,11 +36,26 @@ export function DashboardPage() {
   const [showAdd, setShowAdd] = useState(false)
   const [selectedForMove, setSelectedForMove] = useState<string | null>(null)
   const lastTapRef = useRef<{ key: string; time: number } | null>(null)
+  const sheenRef = useRef<HTMLDivElement>(null)
 
   const catalogByKey = Object.fromEntries(catalog.map((w) => [w.key, w]))
 
   usePremiumBackground()
   const isMobile = useIsMobile()
+
+  // Ambient sheen (см. .premium-ambient-sheen в index.css) — крутится, только пока вкладка
+  // видна: document.hidden дешевле и надёжнее IntersectionObserver для "открыта ли вообще
+  // вкладка браузера" (единственное, что нам нужно — не жечь GPU-цикл в фоновой вкладке).
+  useEffect(() => {
+    const el = sheenRef.current
+    if (!el) return
+    function syncVisibility() {
+      if (el) el.style.animationPlayState = document.hidden ? 'paused' : 'running'
+    }
+    syncVisibility()
+    document.addEventListener('visibilitychange', syncVisibility)
+    return () => document.removeEventListener('visibilitychange', syncVisibility)
+  }, [])
 
   async function loadWidgetData(key: string) {
     const data = await apiFetch(`/dashboard/widgets/${key}/data`)
@@ -162,6 +185,7 @@ export function DashboardPage() {
 
   return (
     <div className="relative min-h-full overflow-hidden bg-premium-bg px-4 py-4 sm:px-8 sm:py-6">
+      <div ref={sheenRef} className="premium-ambient-sheen" aria-hidden />
       <div className="premium-grain" aria-hidden />
       <div className="relative mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <h1 className="font-display text-2xl font-semibold italic text-premium-text sm:text-3xl">
@@ -171,7 +195,7 @@ export function DashboardPage() {
           {editing && (
             <button
               onClick={() => setShowAdd(true)}
-              className="whitespace-nowrap rounded-lg border border-premium-border bg-premium-surface px-3 py-2 text-sm font-medium text-premium-text hover:bg-premium-surface-2"
+              className="btn-shine transition-transform whitespace-nowrap rounded-lg border border-premium-border bg-premium-surface px-3 py-2 text-sm font-medium text-premium-text hover:bg-premium-surface-2"
             >
               + Добавить виджет
             </button>
@@ -181,7 +205,7 @@ export function DashboardPage() {
               setEditing((v) => !v)
               setSelectedForMove(null)
             }}
-            className={`whitespace-nowrap rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
+            className={`btn-shine transition whitespace-nowrap rounded-lg px-3 py-2 text-sm font-medium ${
               editing
                 ? 'bg-premium-gold text-premium-bg hover:bg-premium-gold-hi'
                 : 'border border-premium-border text-premium-text hover:bg-premium-surface-2'
@@ -221,7 +245,15 @@ export function DashboardPage() {
               const height = Math.max(widget.min_h ?? 2, l.h) * ROW_HEIGHT
               const mobileW = l.mobile_w ?? MOBILE_COLS
               return (
-                <div key={l.widget_key} style={{ height, gridColumn: `span ${mobileW} / span ${mobileW}` }}>
+                <div
+                  key={l.widget_key}
+                  className="premium-row-enter"
+                  style={{
+                    height,
+                    gridColumn: `span ${mobileW} / span ${mobileW}`,
+                    animationDelay: `${gridMountDelay(l.x, l.y, MOBILE_COLS)}ms`,
+                  }}
+                >
                   <WidgetFrame
                     title={widget.title}
                     editing={editing}
@@ -264,10 +296,20 @@ export function DashboardPage() {
             const widget = catalogByKey[l.widget_key]
             if (!widget) return null
             return (
+              // Внутренняя обёртка для стагер-анимации входа — НЕ на этом div напрямую:
+              // RGL сам владеет transform этого div-а (позиционирование через translate),
+              // а premium-row-enter тоже анимирует transform — на одном элементе это
+              // перетирало бы позицию виджета после монтирования (см. CLAUDE.md/энхансмент
+              // 5 про drag/resize — тот же принцип "не трогать transform RGL-элемента").
               <div key={l.widget_key}>
-                <WidgetFrame title={widget.title} editing={editing} onRemove={() => handleRemove(l.widget_key)}>
-                  <WidgetRenderer widget={widget} data={widgetData[l.widget_key]} />
-                </WidgetFrame>
+                <div
+                  className="premium-row-enter h-full"
+                  style={{ animationDelay: `${gridMountDelay(l.x, l.y, COLS)}ms` }}
+                >
+                  <WidgetFrame title={widget.title} editing={editing} onRemove={() => handleRemove(l.widget_key)}>
+                    <WidgetRenderer widget={widget} data={widgetData[l.widget_key]} />
+                  </WidgetFrame>
+                </div>
               </div>
             )
           })}
