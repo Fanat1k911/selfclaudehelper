@@ -163,6 +163,7 @@ export interface ProducibleProduct {
   'название': string
   recipe_id: string
   default_packaging_material_id: string | null
+  'доступно сейчас': number | null
 }
 
 export interface ProductionLogEntry {

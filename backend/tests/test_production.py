@@ -158,6 +158,40 @@ def test_production_products_list_only_producible(client, db_session):
     assert names == [product.name]
 
 
+def test_production_products_list_includes_max_available_qty(client, db_session):
+    """2026-07-26, запрос Александра со скрина — подсказка "Доступно: N" над полем
+    "Количество продукта" в форме, чтобы не узнавать о нехватке сырья только после
+    попытки сохранить. 40 в наличии / 2.0 на партию = 20 партий × выход 10.0 = 200."""
+    material, recipe, product = _make_recipe_with_material(db_session, qty_per_batch=2.0, batch_yield=10.0)
+    company_id = default_company_id(db_session)
+    db_session.add(Transaction(company_id=company_id, material_id=material.id, type=TRANSACTION_INCOME, qty=40.0))
+    db_session.commit()
+
+    worker = make_user(db_session, login="max_qty_worker", role=WORKER)
+    resp = client.get("/api/production/products", headers=auth_headers(worker))
+    entry = next(p for p in resp.json() if p["id"] == product.id)
+    assert entry["доступно сейчас"] == 200.0
+
+
+def test_production_products_list_max_available_qty_null_without_recipe_items(client, db_session):
+    """Рецепт без состава — сырьё не ограничивает производство, отдаём None (не 0, не
+    "бесконечность"), фронт тогда просто не показывает подсказку."""
+    company_id = default_company_id(db_session)
+    recipe = Recipe(company_id=company_id, name="Без состава", category="мыло", produces="мыло", batch_yield=5.0)
+    db_session.add(recipe)
+    db_session.flush()
+    product = Product(
+        company_id=company_id, name="Продукт без состава", category="мыло", gtin="nostate", recipe_id=recipe.id
+    )
+    db_session.add(product)
+    db_session.commit()
+
+    worker = make_user(db_session, login="no_items_worker", role=WORKER)
+    resp = client.get("/api/production/products", headers=auth_headers(worker))
+    entry = next(p for p in resp.json() if p["id"] == product.id)
+    assert entry["доступно сейчас"] is None
+
+
 def test_leaderboard_aggregates_today_and_month_only_quantity(client, db_session):
     _, recipe, product = _make_recipe_with_material(db_session, batch_yield=10.0)
     worker = make_user(db_session, login="w8", role=WORKER, fio="Анна Смирнова")

@@ -31,6 +31,32 @@ def _balance(db: Session, material_id: str, company_id: str) -> float:
     return balance
 
 
+def _max_producible_qty(db: Session, recipe: Recipe, company_id: str) -> float | None:
+    """Сколько продукта можно сделать прямо сейчас исходя из остатков сырья рецепта —
+    та же формула, что и проверка достаточности в create_production, только не "хватает
+    ли на X", а "сколько максимум влезет". None — рецепт без состава (пока такое бывает,
+    см. NewRecipeModal — состав обязателен при создании, но старые/тестовые рецепты могли
+    быть заведены без него) или без выхода партии — ограничения по сырью нет, лимита не
+    показываем, а не подсовываем 0/бесконечность как будто посчитали."""
+    items = db.scalars(select(RecipeItem).where(RecipeItem.recipe_id == recipe.id)).all()
+    batch_yield = float(recipe.batch_yield)
+    if not items or batch_yield <= 0:
+        return None
+    loss_factor = 1 + float(recipe.loss_percent) / 100
+    max_batches = None
+    for item in items:
+        need_per_batch = float(item.qty_per_batch) * loss_factor
+        if need_per_batch <= 0:
+            continue
+        available = _balance(db, item.material_id, company_id)
+        batches = available / need_per_batch
+        if max_batches is None or batches < max_batches:
+            max_batches = batches
+    if max_batches is None:
+        return None
+    return max(0.0, max_batches * batch_yield)
+
+
 def _recipe_dict(recipe: Recipe) -> dict:
     return {
         "id": recipe.id,
@@ -65,6 +91,7 @@ def list_producible_products(user: dict = Depends(get_current_user), db: Session
             "название": p.name,
             "recipe_id": p.recipe_id,
             "default_packaging_material_id": p.default_packaging_material_id,
+            "доступно сейчас": _max_producible_qty(db, p.recipe, user["company_id"]),
         }
         for p in db.scalars(stmt)
     ]

@@ -43,6 +43,13 @@ export function NewProductionModal({
     setPackagingMaterialId(product?.default_packaging_material_id ?? '')
   }, [productId, products])
 
+  const selectedProduct = (products ?? []).find((p) => p.id === productId)
+  const maxAvailable = selectedProduct?.['доступно сейчас'] ?? null
+  // Мягкое предупреждение (2026-07-26, запрос Александра со скрина) — не блокирует
+  // отправку, сервер всё равно проверит и отклонит недостачу с точной раскладкой по
+  // материалам (create_production); тут просто не даём узнать об этом постфактум.
+  const exceedsMax = maxAvailable !== null && Number(qty || 0) > maxAvailable
+
   if (products !== null && products.length === 0) {
     return (
       <div className="backdrop-fade-in fixed inset-0 z-50 flex items-center justify-center bg-black/30" onClick={onClose}>
@@ -137,14 +144,23 @@ export function NewProductionModal({
         </div>
 
         <div>
-          <label className="block text-xs text-premium-text/60 mb-1">Количество продукта</label>
+          <div className="mb-1 flex items-center justify-between">
+            <label className="text-xs text-premium-text/60">Количество продукта</label>
+            {maxAvailable !== null && (
+              <span className={`text-xs font-medium ${exceedsMax ? 'text-red-400' : 'text-premium-text/40'}`}>
+                Доступно: {Number(maxAvailable.toFixed(2))}
+              </span>
+            )}
+          </div>
           <input
             type="number"
             step="any"
             min="0"
             value={qty}
             onChange={(e) => setQty(e.target.value)}
-            className="w-full rounded-lg border border-premium-border bg-premium-bg px-3 py-2 text-sm text-premium-text outline-none focus:border-premium-gold"
+            className={`w-full rounded-lg border bg-premium-bg px-3 py-2 text-sm text-premium-text outline-none focus:border-premium-gold ${
+              exceedsMax ? 'border-red-500' : 'border-premium-border'
+            }`}
             required
           />
         </div>
