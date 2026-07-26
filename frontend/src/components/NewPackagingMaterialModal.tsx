@@ -1,5 +1,6 @@
 import { useState, type FormEvent } from 'react'
 import { apiFetch, ApiError } from '../lib/api'
+import { blockNonNumericKeys, clampNumericInput } from '../lib/numericInput'
 
 const PACKAGING_TYPES = ['короб', 'флакон', 'наклейка', 'лента', 'прочее']
 
@@ -90,15 +91,15 @@ export function NewPackagingMaterialModal({
           <div className="grid grid-cols-3 gap-3">
             <div>
               <label className="block text-xs text-premium-text/60 mb-1">Длина, мм</label>
-              <input type="number" step="any" min="0" value={lengthMm} onChange={(e) => setLengthMm(e.target.value)} className="w-full rounded-lg border border-premium-border bg-premium-bg px-3 py-2 text-sm text-premium-text outline-none focus:border-premium-gold" />
+              <input type="number" onKeyDown={blockNonNumericKeys} step="any" min="0" value={lengthMm} onChange={(e) => setLengthMm(clampNumericInput(e.target.value))} className="w-full rounded-lg border border-premium-border bg-premium-bg px-3 py-2 text-sm text-premium-text outline-none focus:border-premium-gold" />
             </div>
             <div>
               <label className="block text-xs text-premium-text/60 mb-1">Ширина, мм</label>
-              <input type="number" step="any" min="0" value={widthMm} onChange={(e) => setWidthMm(e.target.value)} className="w-full rounded-lg border border-premium-border bg-premium-bg px-3 py-2 text-sm text-premium-text outline-none focus:border-premium-gold" />
+              <input type="number" onKeyDown={blockNonNumericKeys} step="any" min="0" value={widthMm} onChange={(e) => setWidthMm(clampNumericInput(e.target.value))} className="w-full rounded-lg border border-premium-border bg-premium-bg px-3 py-2 text-sm text-premium-text outline-none focus:border-premium-gold" />
             </div>
             <div>
               <label className="block text-xs text-premium-text/60 mb-1">Высота, мм</label>
-              <input type="number" step="any" min="0" value={heightMm} onChange={(e) => setHeightMm(e.target.value)} className="w-full rounded-lg border border-premium-border bg-premium-bg px-3 py-2 text-sm text-premium-text outline-none focus:border-premium-gold" />
+              <input type="number" onKeyDown={blockNonNumericKeys} step="any" min="0" value={heightMm} onChange={(e) => setHeightMm(clampNumericInput(e.target.value))} className="w-full rounded-lg border border-premium-border bg-premium-bg px-3 py-2 text-sm text-premium-text outline-none focus:border-premium-gold" />
             </div>
           </div>
         )}
@@ -108,15 +109,15 @@ export function NewPackagingMaterialModal({
             <div className="grid grid-cols-3 gap-3">
               <div>
                 <label className="block text-xs text-premium-text/60 mb-1">Объём, мл</label>
-                <input type="number" step="any" min="0" value={volumeMl} onChange={(e) => setVolumeMl(e.target.value)} className="w-full rounded-lg border border-premium-border bg-premium-bg px-3 py-2 text-sm text-premium-text outline-none focus:border-premium-gold" />
+                <input type="number" onKeyDown={blockNonNumericKeys} step="any" min="0" value={volumeMl} onChange={(e) => setVolumeMl(clampNumericInput(e.target.value))} className="w-full rounded-lg border border-premium-border bg-premium-bg px-3 py-2 text-sm text-premium-text outline-none focus:border-premium-gold" />
               </div>
               <div>
                 <label className="block text-xs text-premium-text/60 mb-1">Ширина, мм</label>
-                <input type="number" step="any" min="0" value={widthMm} onChange={(e) => setWidthMm(e.target.value)} className="w-full rounded-lg border border-premium-border bg-premium-bg px-3 py-2 text-sm text-premium-text outline-none focus:border-premium-gold" />
+                <input type="number" onKeyDown={blockNonNumericKeys} step="any" min="0" value={widthMm} onChange={(e) => setWidthMm(clampNumericInput(e.target.value))} className="w-full rounded-lg border border-premium-border bg-premium-bg px-3 py-2 text-sm text-premium-text outline-none focus:border-premium-gold" />
               </div>
               <div>
                 <label className="block text-xs text-premium-text/60 mb-1">Высота, мм</label>
-                <input type="number" step="any" min="0" value={heightMm} onChange={(e) => setHeightMm(e.target.value)} className="w-full rounded-lg border border-premium-border bg-premium-bg px-3 py-2 text-sm text-premium-text outline-none focus:border-premium-gold" />
+                <input type="number" onKeyDown={blockNonNumericKeys} step="any" min="0" value={heightMm} onChange={(e) => setHeightMm(clampNumericInput(e.target.value))} className="w-full rounded-lg border border-premium-border bg-premium-bg px-3 py-2 text-sm text-premium-text outline-none focus:border-premium-gold" />
               </div>
             </div>
             <div>
@@ -130,11 +131,11 @@ export function NewPackagingMaterialModal({
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="block text-xs text-premium-text/60 mb-1">Длина, мм</label>
-              <input type="number" step="any" min="0" value={lengthMm} onChange={(e) => setLengthMm(e.target.value)} className="w-full rounded-lg border border-premium-border bg-premium-bg px-3 py-2 text-sm text-premium-text outline-none focus:border-premium-gold" />
+              <input type="number" onKeyDown={blockNonNumericKeys} step="any" min="0" value={lengthMm} onChange={(e) => setLengthMm(clampNumericInput(e.target.value))} className="w-full rounded-lg border border-premium-border bg-premium-bg px-3 py-2 text-sm text-premium-text outline-none focus:border-premium-gold" />
             </div>
             <div>
               <label className="block text-xs text-premium-text/60 mb-1">Ширина, мм</label>
-              <input type="number" step="any" min="0" value={widthMm} onChange={(e) => setWidthMm(e.target.value)} className="w-full rounded-lg border border-premium-border bg-premium-bg px-3 py-2 text-sm text-premium-text outline-none focus:border-premium-gold" />
+              <input type="number" onKeyDown={blockNonNumericKeys} step="any" min="0" value={widthMm} onChange={(e) => setWidthMm(clampNumericInput(e.target.value))} className="w-full rounded-lg border border-premium-border bg-premium-bg px-3 py-2 text-sm text-premium-text outline-none focus:border-premium-gold" />
             </div>
           </div>
         )}
@@ -143,7 +144,7 @@ export function NewPackagingMaterialModal({
           <>
             <div>
               <label className="block text-xs text-premium-text/60 mb-1">Ширина, мм</label>
-              <input type="number" step="any" min="0" value={widthMm} onChange={(e) => setWidthMm(e.target.value)} className="w-full rounded-lg border border-premium-border bg-premium-bg px-3 py-2 text-sm text-premium-text outline-none focus:border-premium-gold" />
+              <input type="number" onKeyDown={blockNonNumericKeys} step="any" min="0" value={widthMm} onChange={(e) => setWidthMm(clampNumericInput(e.target.value))} className="w-full rounded-lg border border-premium-border bg-premium-bg px-3 py-2 text-sm text-premium-text outline-none focus:border-premium-gold" />
             </div>
             <div>
               <label className="block text-xs text-premium-text/60 mb-1">Особенность</label>
@@ -167,22 +168,22 @@ export function NewPackagingMaterialModal({
           <div>
             <label className="block text-xs text-premium-text/60 mb-1">Мин. остаток</label>
             <input
-              type="number"
+              type="number" onKeyDown={blockNonNumericKeys}
               step="any"
               min="0"
               value={minStock}
-              onChange={(e) => setMinStock(e.target.value)}
+              onChange={(e) => setMinStock(clampNumericInput(e.target.value))}
               className="w-full rounded-lg border border-premium-border bg-premium-bg px-3 py-2 text-sm text-premium-text outline-none focus:border-premium-gold"
             />
           </div>
           <div>
             <label className="block text-xs text-premium-text/60 mb-1">Начальный остаток</label>
             <input
-              type="number"
+              type="number" onKeyDown={blockNonNumericKeys}
               step="any"
               min="0"
               value={initialQty}
-              onChange={(e) => setInitialQty(e.target.value)}
+              onChange={(e) => setInitialQty(clampNumericInput(e.target.value))}
               className="w-full rounded-lg border border-premium-border bg-premium-bg px-3 py-2 text-sm text-premium-text outline-none focus:border-premium-gold"
             />
           </div>

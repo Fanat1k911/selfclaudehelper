@@ -1,6 +1,7 @@
 import { useEffect, useState, type FormEvent } from 'react'
 import { AlertTriangle, ArrowUpCircle, HelpCircle, SlidersHorizontal } from 'lucide-react'
 import { apiFetch, ApiError } from '../lib/api'
+import { blockNonNumericKeys, clampNumericInput } from '../lib/numericInput'
 import type { EquipmentItem, EquipmentTransaction } from '../types'
 
 type ActionKind = 'приход' | 'поломка' | 'пропажа' | 'корректировка' | null
@@ -163,10 +164,10 @@ export function EquipmentDetailPanel({
                     {action === 'корректировка' ? 'Фактическое количество' : 'Количество'}
                   </label>
                   <input
-                    type="number"
+                    type="number" onKeyDown={blockNonNumericKeys}
                     step="any"
                     value={qty}
-                    onChange={(e) => setQty(e.target.value)}
+                    onChange={(e) => setQty(clampNumericInput(e.target.value))}
                     className="w-full rounded-lg border border-premium-border bg-premium-bg px-3 py-2 text-sm text-premium-text outline-none focus:border-premium-gold"
                     required
                   />
@@ -177,10 +178,10 @@ export function EquipmentDetailPanel({
                       {action === 'приход' ? 'Цена (необязательно)' : 'Трата на ремонт/замену (необязательно)'}
                     </label>
                     <input
-                      type="number"
+                      type="number" onKeyDown={blockNonNumericKeys}
                       step="any"
                       value={cost}
-                      onChange={(e) => setCost(e.target.value)}
+                      onChange={(e) => setCost(clampNumericInput(e.target.value))}
                       className="w-full rounded-lg border border-premium-border bg-premium-bg px-3 py-2 text-sm text-premium-text outline-none focus:border-premium-gold"
                     />
                   </div>

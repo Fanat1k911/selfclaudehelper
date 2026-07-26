@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { Check, ChevronsUpDown, Plus } from 'lucide-react'
 import { apiFetch, ApiError } from '../lib/api'
 import { materialCategoryLabel } from '../lib/labels'
+import { blockNonNumericKeys, clampNumericInput } from '../lib/numericInput'
 
 // Базовый набор всегда доступен, даже пока /ingredients/categories не загрузился —
 // см. app.constants.DEFAULT_MATERIAL_CATEGORIES на бэке, держим синхронно. "тара"
@@ -190,20 +191,20 @@ export function NewIngredientModal({
           <div>
             <label className="block text-xs text-premium-text/60 mb-1">Мин. остаток</label>
             <input
-              type="number"
+              type="number" onKeyDown={blockNonNumericKeys}
               step="any"
               value={minStock}
-              onChange={(e) => setMinStock(e.target.value)}
+              onChange={(e) => setMinStock(clampNumericInput(e.target.value))}
               className="w-full rounded-lg border border-premium-border bg-premium-bg px-3 py-2 text-sm text-premium-text outline-none focus:border-premium-gold"
             />
           </div>
           <div>
             <label className="block text-xs text-premium-text/60 mb-1">Начальный остаток</label>
             <input
-              type="number"
+              type="number" onKeyDown={blockNonNumericKeys}
               step="any"
               value={initialQty}
-              onChange={(e) => setInitialQty(e.target.value)}
+              onChange={(e) => setInitialQty(clampNumericInput(e.target.value))}
               className="w-full rounded-lg border border-premium-border bg-premium-bg px-3 py-2 text-sm text-premium-text outline-none focus:border-premium-gold"
             />
           </div>

@@ -1,5 +1,6 @@
 import { useEffect, useState, type FormEvent } from 'react'
 import { apiFetch, ApiError } from '../lib/api'
+import { blockNonIntegerKeys, blockNonNumericKeys, clampNumericInput } from '../lib/numericInput'
 import type { Counterparty, Product, Sale } from '../types'
 
 export function SaleModal({
@@ -26,6 +27,19 @@ export function SaleModal({
   const [logistCost, setLogistCost] = useState(sale?.['трата_логист'] != null ? String(sale['трата_логист']) : '')
   const [error, setError] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
+
+  const selectedProduct = products.find((p) => p.id === productId)
+  const baseAvailable = selectedProduct?.['готово к отгрузке'] ?? null
+  // При редактировании "готово к отгрузке" продукта уже учитывает списание ЭТОЙ же
+  // продажи (она в базе) — прибавляем её кол-во обратно, иначе подсказка занизит на
+  // собственное значение записи (см. ту же логику на бэке — sales.py::update_sale
+  // считает sold_excluding_self). Не применяется, если в момент редактирования сменили
+  // продукт — тогда старое кол-во относится к другому товару.
+  const available =
+    baseAvailable === null
+      ? null
+      : baseAvailable + (editing && sale && sale.product_id === productId ? Number(sale['кол-во']) : 0)
+  const exceedsAvailable = available !== null && Number(qty || 0) > available
 
   useEffect(() => {
     apiFetch<Product[]>('/products').then((data) => {
@@ -110,19 +124,28 @@ export function SaleModal({
 
         <div className="grid grid-cols-2 gap-3">
           <div>
-            <label className="block text-xs text-premium-text/60 mb-1">Количество</label>
+            <div className="mb-1 flex items-center justify-between">
+              <label className="text-xs text-premium-text/60">Количество</label>
+              {available !== null && (
+                <span className={`text-xs font-medium ${exceedsAvailable ? 'text-red-400' : 'text-premium-text/40'}`}>
+                  Доступно: {Number(available.toFixed(2))}
+                </span>
+              )}
+            </div>
             <input
-              type="number" step="any" min="0" value={qty}
-              onChange={(e) => setQty(e.target.value)}
-              className="w-full rounded-lg border border-premium-border bg-premium-bg px-3 py-2 text-sm text-premium-text outline-none focus:border-premium-gold"
+              type="number" onKeyDown={blockNonNumericKeys} step="any" min="0" value={qty}
+              onChange={(e) => setQty(clampNumericInput(e.target.value))}
+              className={`w-full rounded-lg border bg-premium-bg px-3 py-2 text-sm text-premium-text outline-none focus:border-premium-gold ${
+                exceedsAvailable ? 'border-red-500' : 'border-premium-border'
+              }`}
               required
             />
           </div>
           <div>
             <label className="block text-xs text-premium-text/60 mb-1">Цена (необязательно)</label>
             <input
-              type="number" step="any" value={price}
-              onChange={(e) => setPrice(e.target.value)}
+              type="number" onKeyDown={blockNonNumericKeys} step="any" value={price}
+              onChange={(e) => setPrice(clampNumericInput(e.target.value))}
               className="w-full rounded-lg border border-premium-border bg-premium-bg px-3 py-2 text-sm text-premium-text outline-none focus:border-premium-gold"
             />
           </div>
@@ -134,24 +157,24 @@ export function SaleModal({
             <div>
               <label className="block text-xs text-premium-text/60 mb-1">Коробки, шт</label>
               <input
-                type="number" step="any" min="0" value={boxCount}
-                onChange={(e) => setBoxCount(e.target.value)}
+                type="number" onKeyDown={blockNonIntegerKeys} step="any" min="0" value={boxCount}
+                onChange={(e) => setBoxCount(clampNumericInput(e.target.value))}
                 className="w-full rounded-lg border border-premium-border bg-premium-bg px-3 py-2 text-sm text-premium-text outline-none focus:border-premium-gold"
               />
             </div>
             <div>
               <label className="block text-xs text-premium-text/60 mb-1">Скотч, см</label>
               <input
-                type="number" step="any" min="0" value={tapeCm}
-                onChange={(e) => setTapeCm(e.target.value)}
+                type="number" onKeyDown={blockNonNumericKeys} step="any" min="0" value={tapeCm}
+                onChange={(e) => setTapeCm(clampNumericInput(e.target.value))}
                 className="w-full rounded-lg border border-premium-border bg-premium-bg px-3 py-2 text-sm text-premium-text outline-none focus:border-premium-gold"
               />
             </div>
             <div>
               <label className="block text-xs text-premium-text/60 mb-1">Наклейки, шт</label>
               <input
-                type="number" step="any" min="0" value={stickerCount}
-                onChange={(e) => setStickerCount(e.target.value)}
+                type="number" onKeyDown={blockNonIntegerKeys} step="any" min="0" value={stickerCount}
+                onChange={(e) => setStickerCount(clampNumericInput(e.target.value))}
                 className="w-full rounded-lg border border-premium-border bg-premium-bg px-3 py-2 text-sm text-premium-text outline-none focus:border-premium-gold"
               />
             </div>
@@ -160,16 +183,16 @@ export function SaleModal({
             <div>
               <label className="block text-xs text-premium-text/60 mb-1">Курьер, ₽</label>
               <input
-                type="number" step="any" min="0" value={courierCost}
-                onChange={(e) => setCourierCost(e.target.value)}
+                type="number" onKeyDown={blockNonNumericKeys} step="any" min="0" value={courierCost}
+                onChange={(e) => setCourierCost(clampNumericInput(e.target.value))}
                 className="w-full rounded-lg border border-premium-border bg-premium-bg px-3 py-2 text-sm text-premium-text outline-none focus:border-premium-gold"
               />
             </div>
             <div>
               <label className="block text-xs text-premium-text/60 mb-1">Логист, ₽</label>
               <input
-                type="number" step="any" min="0" value={logistCost}
-                onChange={(e) => setLogistCost(e.target.value)}
+                type="number" onKeyDown={blockNonNumericKeys} step="any" min="0" value={logistCost}
+                onChange={(e) => setLogistCost(clampNumericInput(e.target.value))}
                 className="w-full rounded-lg border border-premium-border bg-premium-bg px-3 py-2 text-sm text-premium-text outline-none focus:border-premium-gold"
               />
             </div>

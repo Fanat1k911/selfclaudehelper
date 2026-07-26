@@ -1,6 +1,7 @@
 import { useMemo, useState, type FormEvent } from 'react'
 import { Truck, X } from 'lucide-react'
 import { apiFetch, ApiError } from '../lib/api'
+import { blockNonNumericKeys, clampNumericInput } from '../lib/numericInput'
 import { MaterialCombobox } from './MaterialCombobox'
 import type { Ingredient } from '../types'
 
@@ -130,18 +131,18 @@ export function BatchIncomeModal({
                     Кол-во{row.materialId && byId.get(row.materialId) ? `, ${byId.get(row.materialId)!['ед.измерения']}` : ''}
                   </label>
                   <input
-                    type="number" step="any" required
+                    type="number" onKeyDown={blockNonNumericKeys} step="any" required
                     value={row.qty}
-                    onChange={(e) => updateRow(i, { qty: e.target.value })}
+                    onChange={(e) => updateRow(i, { qty: clampNumericInput(e.target.value) })}
                     className="w-full rounded-lg border border-premium-border bg-premium-bg px-3 py-2 text-sm text-premium-text outline-none focus:border-premium-gold"
                   />
                 </div>
                 <div>
                   <label className="block text-xs text-premium-text/50 mb-1">Цена за единицу</label>
                   <input
-                    type="number" step="any"
+                    type="number" onKeyDown={blockNonNumericKeys} step="any"
                     value={row.price}
-                    onChange={(e) => updateRow(i, { price: e.target.value })}
+                    onChange={(e) => updateRow(i, { price: clampNumericInput(e.target.value) })}
                     className="w-full rounded-lg border border-premium-border bg-premium-bg px-3 py-2 text-sm text-premium-text outline-none focus:border-premium-gold"
                   />
                 </div>
@@ -166,9 +167,9 @@ export function BatchIncomeModal({
           <div className="pt-2 border-t border-premium-border">
             <label className="block text-xs text-premium-text/60 mb-1">Транспортные расходы за всю поставку (₽, необязательно)</label>
             <input
-              type="number" step="any"
+              type="number" onKeyDown={blockNonNumericKeys} step="any"
               value={transportCost}
-              onChange={(e) => setTransportCost(e.target.value)}
+              onChange={(e) => setTransportCost(clampNumericInput(e.target.value))}
               className="w-full rounded-lg border border-premium-border bg-premium-bg px-3 py-2 text-sm text-premium-text outline-none focus:border-premium-gold"
             />
           </div>

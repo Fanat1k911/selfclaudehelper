@@ -1,5 +1,6 @@
 import { useEffect, useState, type FormEvent } from 'react'
 import { apiFetch, ApiError } from '../lib/api'
+import { blockNonNumericKeys, clampNumericInput } from '../lib/numericInput'
 import { MaterialCombobox } from './MaterialCombobox'
 import type { Ingredient, Recipe, RecipeItem } from '../types'
 
@@ -166,11 +167,11 @@ export function RecipeDetailPanel({
           ) : (
             <form onSubmit={saveLossPercent} className="flex items-center gap-2">
               <input
-                type="number"
+                type="number" onKeyDown={blockNonNumericKeys}
                 step="any"
                 min="0"
                 value={lossPercent}
-                onChange={(e) => setLossPercent(e.target.value)}
+                onChange={(e) => setLossPercent(clampNumericInput(e.target.value))}
                 className="w-20 rounded-lg border border-premium-border bg-premium-bg px-2 py-1 text-sm text-premium-text outline-none focus:border-premium-gold"
                 autoFocus
               />
@@ -227,11 +228,11 @@ export function RecipeDetailPanel({
                   />
                   <div className="flex gap-2">
                     <input
-                      type="number"
+                      type="number" onKeyDown={blockNonNumericKeys}
                       step="any"
                       min="0"
                       value={qty}
-                      onChange={(e) => setQty(e.target.value)}
+                      onChange={(e) => setQty(clampNumericInput(e.target.value))}
                       placeholder="Вес на 1 единицу продукта"
                       className="no-spinner flex-1 rounded-lg border border-premium-border bg-premium-bg px-3 py-2 text-sm text-premium-text outline-none focus:border-premium-gold"
                       required
@@ -262,12 +263,12 @@ export function RecipeDetailPanel({
                   <div className="flex items-center gap-2">
                     <span className="min-w-0 flex-1 truncate">{item['название материала']}</span>
                     <input
-                      type="number"
+                      type="number" onKeyDown={blockNonNumericKeys}
                       step="any"
                       min="0"
                       autoFocus
                       value={editedQty}
-                      onChange={(e) => setEditedQty(e.target.value)}
+                      onChange={(e) => setEditedQty(clampNumericInput(e.target.value))}
                       className="no-spinner w-20 shrink-0 rounded-lg border border-premium-border bg-premium-bg px-2 py-1 text-sm text-premium-text outline-none focus:border-premium-gold"
                     />
                     <span className="shrink-0 text-xs text-premium-text/40">{item['ед.измерения']}</span>

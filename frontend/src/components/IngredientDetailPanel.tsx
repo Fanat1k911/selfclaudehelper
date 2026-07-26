@@ -3,6 +3,7 @@ import { ArrowDownCircle, ArrowUpCircle, Pencil, SlidersHorizontal } from 'lucid
 import { apiFetch, ApiError } from '../lib/api'
 import { useAuth } from '../lib/auth'
 import { materialCategoryLabel } from '../lib/labels'
+import { blockNonNumericKeys, clampNumericInput } from '../lib/numericInput'
 import type { Ingredient, Transaction } from '../types'
 
 type ActionKind = 'приход' | 'расход' | 'корректировка' | null
@@ -340,15 +341,15 @@ export function IngredientDetailPanel({
                   <div className="grid grid-cols-3 gap-3">
                     <div>
                       <label className="block text-xs text-premium-text/60 mb-1">Длина, мм</label>
-                      <input type="number" step="any" value={taraAttrs.lengthMm} onChange={(e) => setTaraAttrs({ ...taraAttrs, lengthMm: e.target.value })} className="w-full rounded-lg border border-premium-border bg-premium-bg px-3 py-2 text-sm text-premium-text outline-none focus:border-premium-gold" />
+                      <input type="number" onKeyDown={blockNonNumericKeys} step="any" value={taraAttrs.lengthMm} onChange={(e) => setTaraAttrs({ ...taraAttrs, lengthMm: clampNumericInput(e.target.value) })} className="w-full rounded-lg border border-premium-border bg-premium-bg px-3 py-2 text-sm text-premium-text outline-none focus:border-premium-gold" />
                     </div>
                     <div>
                       <label className="block text-xs text-premium-text/60 mb-1">Ширина, мм</label>
-                      <input type="number" step="any" value={taraAttrs.widthMm} onChange={(e) => setTaraAttrs({ ...taraAttrs, widthMm: e.target.value })} className="w-full rounded-lg border border-premium-border bg-premium-bg px-3 py-2 text-sm text-premium-text outline-none focus:border-premium-gold" />
+                      <input type="number" onKeyDown={blockNonNumericKeys} step="any" value={taraAttrs.widthMm} onChange={(e) => setTaraAttrs({ ...taraAttrs, widthMm: clampNumericInput(e.target.value) })} className="w-full rounded-lg border border-premium-border bg-premium-bg px-3 py-2 text-sm text-premium-text outline-none focus:border-premium-gold" />
                     </div>
                     <div>
                       <label className="block text-xs text-premium-text/60 mb-1">Высота, мм</label>
-                      <input type="number" step="any" value={taraAttrs.heightMm} onChange={(e) => setTaraAttrs({ ...taraAttrs, heightMm: e.target.value })} className="w-full rounded-lg border border-premium-border bg-premium-bg px-3 py-2 text-sm text-premium-text outline-none focus:border-premium-gold" />
+                      <input type="number" onKeyDown={blockNonNumericKeys} step="any" value={taraAttrs.heightMm} onChange={(e) => setTaraAttrs({ ...taraAttrs, heightMm: clampNumericInput(e.target.value) })} className="w-full rounded-lg border border-premium-border bg-premium-bg px-3 py-2 text-sm text-premium-text outline-none focus:border-premium-gold" />
                     </div>
                   </div>
                 )}
@@ -358,15 +359,15 @@ export function IngredientDetailPanel({
                     <div className="grid grid-cols-3 gap-3">
                       <div>
                         <label className="block text-xs text-premium-text/60 mb-1">Объём, мл</label>
-                        <input type="number" step="any" value={taraAttrs.volumeMl} onChange={(e) => setTaraAttrs({ ...taraAttrs, volumeMl: e.target.value })} className="w-full rounded-lg border border-premium-border bg-premium-bg px-3 py-2 text-sm text-premium-text outline-none focus:border-premium-gold" />
+                        <input type="number" onKeyDown={blockNonNumericKeys} step="any" value={taraAttrs.volumeMl} onChange={(e) => setTaraAttrs({ ...taraAttrs, volumeMl: clampNumericInput(e.target.value) })} className="w-full rounded-lg border border-premium-border bg-premium-bg px-3 py-2 text-sm text-premium-text outline-none focus:border-premium-gold" />
                       </div>
                       <div>
                         <label className="block text-xs text-premium-text/60 mb-1">Ширина, мм</label>
-                        <input type="number" step="any" value={taraAttrs.widthMm} onChange={(e) => setTaraAttrs({ ...taraAttrs, widthMm: e.target.value })} className="w-full rounded-lg border border-premium-border bg-premium-bg px-3 py-2 text-sm text-premium-text outline-none focus:border-premium-gold" />
+                        <input type="number" onKeyDown={blockNonNumericKeys} step="any" value={taraAttrs.widthMm} onChange={(e) => setTaraAttrs({ ...taraAttrs, widthMm: clampNumericInput(e.target.value) })} className="w-full rounded-lg border border-premium-border bg-premium-bg px-3 py-2 text-sm text-premium-text outline-none focus:border-premium-gold" />
                       </div>
                       <div>
                         <label className="block text-xs text-premium-text/60 mb-1">Высота, мм</label>
-                        <input type="number" step="any" value={taraAttrs.heightMm} onChange={(e) => setTaraAttrs({ ...taraAttrs, heightMm: e.target.value })} className="w-full rounded-lg border border-premium-border bg-premium-bg px-3 py-2 text-sm text-premium-text outline-none focus:border-premium-gold" />
+                        <input type="number" onKeyDown={blockNonNumericKeys} step="any" value={taraAttrs.heightMm} onChange={(e) => setTaraAttrs({ ...taraAttrs, heightMm: clampNumericInput(e.target.value) })} className="w-full rounded-lg border border-premium-border bg-premium-bg px-3 py-2 text-sm text-premium-text outline-none focus:border-premium-gold" />
                       </div>
                     </div>
                     <div>
@@ -380,11 +381,11 @@ export function IngredientDetailPanel({
                   <div className="grid grid-cols-2 gap-3">
                     <div>
                       <label className="block text-xs text-premium-text/60 mb-1">Длина, мм</label>
-                      <input type="number" step="any" value={taraAttrs.lengthMm} onChange={(e) => setTaraAttrs({ ...taraAttrs, lengthMm: e.target.value })} className="w-full rounded-lg border border-premium-border bg-premium-bg px-3 py-2 text-sm text-premium-text outline-none focus:border-premium-gold" />
+                      <input type="number" onKeyDown={blockNonNumericKeys} step="any" value={taraAttrs.lengthMm} onChange={(e) => setTaraAttrs({ ...taraAttrs, lengthMm: clampNumericInput(e.target.value) })} className="w-full rounded-lg border border-premium-border bg-premium-bg px-3 py-2 text-sm text-premium-text outline-none focus:border-premium-gold" />
                     </div>
                     <div>
                       <label className="block text-xs text-premium-text/60 mb-1">Ширина, мм</label>
-                      <input type="number" step="any" value={taraAttrs.widthMm} onChange={(e) => setTaraAttrs({ ...taraAttrs, widthMm: e.target.value })} className="w-full rounded-lg border border-premium-border bg-premium-bg px-3 py-2 text-sm text-premium-text outline-none focus:border-premium-gold" />
+                      <input type="number" onKeyDown={blockNonNumericKeys} step="any" value={taraAttrs.widthMm} onChange={(e) => setTaraAttrs({ ...taraAttrs, widthMm: clampNumericInput(e.target.value) })} className="w-full rounded-lg border border-premium-border bg-premium-bg px-3 py-2 text-sm text-premium-text outline-none focus:border-premium-gold" />
                     </div>
                   </div>
                 )}
@@ -393,7 +394,7 @@ export function IngredientDetailPanel({
                   <>
                     <div>
                       <label className="block text-xs text-premium-text/60 mb-1">Ширина, мм</label>
-                      <input type="number" step="any" value={taraAttrs.widthMm} onChange={(e) => setTaraAttrs({ ...taraAttrs, widthMm: e.target.value })} className="w-full rounded-lg border border-premium-border bg-premium-bg px-3 py-2 text-sm text-premium-text outline-none focus:border-premium-gold" />
+                      <input type="number" onKeyDown={blockNonNumericKeys} step="any" value={taraAttrs.widthMm} onChange={(e) => setTaraAttrs({ ...taraAttrs, widthMm: clampNumericInput(e.target.value) })} className="w-full rounded-lg border border-premium-border bg-premium-bg px-3 py-2 text-sm text-premium-text outline-none focus:border-premium-gold" />
                     </div>
                     <div>
                       <label className="block text-xs text-premium-text/60 mb-1">Особенность</label>
@@ -472,32 +473,32 @@ export function IngredientDetailPanel({
                 <div>
                   <label className="block text-xs text-premium-text/60 mb-1">Себестоимость 1 {ingredient['ед.измерения']}</label>
                   <input
-                    type="number" step="any" value={attrs.unitCost}
-                    onChange={(e) => setAttrs({ ...attrs, unitCost: e.target.value })}
+                    type="number" onKeyDown={blockNonNumericKeys} step="any" value={attrs.unitCost}
+                    onChange={(e) => setAttrs({ ...attrs, unitCost: clampNumericInput(e.target.value) })}
                     className="w-full rounded-lg border border-premium-border bg-premium-bg px-3 py-2 text-sm text-premium-text outline-none focus:border-premium-gold"
                   />
                 </div>
                 <div>
                   <label className="block text-xs text-premium-text/60 mb-1">Мин. партия для закупки</label>
                   <input
-                    type="number" step="any" value={attrs.minBatchQty}
-                    onChange={(e) => setAttrs({ ...attrs, minBatchQty: e.target.value })}
+                    type="number" onKeyDown={blockNonNumericKeys} step="any" value={attrs.minBatchQty}
+                    onChange={(e) => setAttrs({ ...attrs, minBatchQty: clampNumericInput(e.target.value) })}
                     className="w-full rounded-lg border border-premium-border bg-premium-bg px-3 py-2 text-sm text-premium-text outline-none focus:border-premium-gold"
                   />
                 </div>
                 <div>
                   <label className="block text-xs text-premium-text/60 mb-1">Себестоимость мин. партии</label>
                   <input
-                    type="number" step="any" value={attrs.minBatchCost}
-                    onChange={(e) => setAttrs({ ...attrs, minBatchCost: e.target.value })}
+                    type="number" onKeyDown={blockNonNumericKeys} step="any" value={attrs.minBatchCost}
+                    onChange={(e) => setAttrs({ ...attrs, minBatchCost: clampNumericInput(e.target.value) })}
                     className="w-full rounded-lg border border-premium-border bg-premium-bg px-3 py-2 text-sm text-premium-text outline-none focus:border-premium-gold"
                   />
                 </div>
                 <div>
                   <label className="block text-xs text-premium-text/60 mb-1">Вес мин. партии</label>
                   <input
-                    type="number" step="any" value={attrs.minBatchWeight}
-                    onChange={(e) => setAttrs({ ...attrs, minBatchWeight: e.target.value })}
+                    type="number" onKeyDown={blockNonNumericKeys} step="any" value={attrs.minBatchWeight}
+                    onChange={(e) => setAttrs({ ...attrs, minBatchWeight: clampNumericInput(e.target.value) })}
                     className="w-full rounded-lg border border-premium-border bg-premium-bg px-3 py-2 text-sm text-premium-text outline-none focus:border-premium-gold"
                   />
                 </div>
@@ -572,10 +573,10 @@ export function IngredientDetailPanel({
                   {action === 'корректировка' ? 'Фактическое количество' : 'Количество'}
                 </label>
                 <input
-                  type="number"
+                  type="number" onKeyDown={blockNonNumericKeys}
                   step="any"
                   value={qty}
-                  onChange={(e) => setQty(e.target.value)}
+                  onChange={(e) => setQty(clampNumericInput(e.target.value))}
                   className="w-full rounded-lg border border-premium-border bg-premium-bg px-3 py-2 text-sm text-premium-text outline-none focus:border-premium-gold"
                   required
                 />
@@ -584,10 +585,10 @@ export function IngredientDetailPanel({
                 <div>
                   <label className="block text-xs text-premium-text/60 mb-1">Цена за единицу (необязательно)</label>
                   <input
-                    type="number"
+                    type="number" onKeyDown={blockNonNumericKeys}
                     step="any"
                     value={price}
-                    onChange={(e) => setPrice(e.target.value)}
+                    onChange={(e) => setPrice(clampNumericInput(e.target.value))}
                     className="w-full rounded-lg border border-premium-border bg-premium-bg px-3 py-2 text-sm text-premium-text outline-none focus:border-premium-gold"
                   />
                 </div>

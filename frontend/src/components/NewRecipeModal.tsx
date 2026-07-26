@@ -1,5 +1,6 @@
 import { useEffect, useState, type FormEvent } from 'react'
 import { apiFetch, ApiError } from '../lib/api'
+import { blockNonNumericKeys, clampNumericInput, MAX_NUMERIC_INPUT } from '../lib/numericInput'
 import { MaterialCombobox } from './MaterialCombobox'
 import type { Ingredient, Product } from '../types'
 
@@ -52,6 +53,12 @@ export function NewRecipeModal({
     const firstComma = value.indexOf(',')
     if (firstComma !== -1) {
       value = value.slice(0, firstComma + 1) + value.slice(firstComma + 1).replace(/,/g, '')
+    }
+    // Комма — не dot, clampNumericInput тут не подходит (Number("5,5") даёт NaN) —
+    // проверяем потолок 1 000 000 отдельно, тем же порогом (2026-07-26, запрос Александра).
+    const numeric = Number(value.replace(',', '.'))
+    if (!Number.isNaN(numeric) && numeric > MAX_NUMERIC_INPUT) {
+      value = String(MAX_NUMERIC_INPUT)
     }
     updateRow(i, { qty: value })
   }
@@ -138,20 +145,20 @@ export function NewRecipeModal({
           <div>
             <label className="block text-xs text-premium-text/60 mb-1">Выход партии</label>
             <input
-              type="number"
+              type="number" onKeyDown={blockNonNumericKeys}
               step="any"
               value={batchYield}
-              onChange={(e) => setBatchYield(e.target.value)}
+              onChange={(e) => setBatchYield(clampNumericInput(e.target.value))}
               className="w-full rounded-lg border border-premium-border bg-premium-bg px-3 py-2 text-sm text-premium-text outline-none focus:border-premium-gold"
             />
           </div>
           <div>
             <label className="block text-xs text-premium-text/60 mb-1">Потери сырья, %</label>
             <input
-              type="number"
+              type="number" onKeyDown={blockNonNumericKeys}
               step="any"
               value={lossPercent}
-              onChange={(e) => setLossPercent(e.target.value)}
+              onChange={(e) => setLossPercent(clampNumericInput(e.target.value))}
               className="w-full rounded-lg border border-premium-border bg-premium-bg px-3 py-2 text-sm text-premium-text outline-none focus:border-premium-gold"
             />
           </div>
