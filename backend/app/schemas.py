@@ -413,3 +413,7 @@ class CameraSettingsRequest(BaseModel):
 class NewScreenshotRequest(BaseModel):
     image_base64: str = Field(max_length=8_000_000)
     comment: str = ""
+
+
+class UpdateFeedbackStatusRequest(BaseModel):
+    status: str

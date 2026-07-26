@@ -359,3 +359,23 @@ export interface Screenshot {
   'изображение': string
   'комментарий': string
 }
+
+export interface FeedbackAttachment {
+  id: string
+  'изображение': string
+  'имя файла': string | null
+}
+
+export interface FeedbackEntry {
+  id: string
+  'дата': string
+  'автор': string
+  'роль автора': string
+  'сообщение': string
+  'статус': string
+  'вложения': FeedbackAttachment[]
+}
+
+export interface MyFeedbackEntry extends FeedbackEntry {
+  'статус для автора': string
+}

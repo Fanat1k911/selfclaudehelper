@@ -14,6 +14,7 @@ import { CompaniesPage } from './pages/CompaniesPage'
 import { CounterpartiesPage } from './pages/CounterpartiesPage'
 import { TechPanelPage } from './pages/TechPanelPage'
 import { SurveillancePage } from './pages/SurveillancePage'
+import { FeedbackPage } from './pages/FeedbackPage'
 import { Layout } from './components/Layout'
 import { UpdateBanner } from './components/UpdateBanner'
 import { RequireAuth, RequireRole, defaultPathForRole, useAuth } from './lib/auth'
@@ -38,6 +39,7 @@ function App() {
           }
         >
           <Route path="/ingredients" element={<IngredientsPage />} />
+          <Route path="/feedback" element={<FeedbackPage />} />
           <Route path="/production" element={<ProductionPage />} />
           <Route path="/packaging" element={<PackagingMaterialsPage />} />
           <Route

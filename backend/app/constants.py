@@ -42,3 +42,18 @@ PACKAGING_TYPES = [
     PACKAGING_TYPE_TAPE,
     PACKAGING_TYPE_OTHER,
 ]
+
+# Обратная связь разработчику (2026-07-26, запрос Александра) — Feedback.status.
+FEEDBACK_STATUS_NEW = "новое"
+FEEDBACK_STATUS_SEEN = "просмотрено"
+FEEDBACK_STATUS_RESOLVED = "решено"
+FEEDBACK_STATUSES = [FEEDBACK_STATUS_NEW, FEEDBACK_STATUS_SEEN, FEEDBACK_STATUS_RESOLVED]
+
+# До 3 картинок на сообщение, до 8МБ на файл (сырой, до перекодирования в PNG) — видео
+# отложено до платного сервера/нормального object storage, см. CLAUDE.md.
+FEEDBACK_MAX_ATTACHMENTS = 3
+FEEDBACK_MAX_ATTACHMENT_BYTES = 8 * 1024 * 1024
+# Нижняя планка при уменьшении — не жертвуем читаемостью скрина ради экономии места.
+FEEDBACK_MIN_DIMENSION = (1280, 768)
+# Верхняя планка — выше этого уменьшаем (никто не читает скрин в разрешении 4К).
+FEEDBACK_MAX_DIMENSION = (2560, 1440)

@@ -110,6 +110,43 @@ export async function apiUpload<T>(path: string, file: File, extra?: Record<stri
   return res.json() as Promise<T>
 }
 
+// Для форм с несколькими файлами под одним именем поля (напр. вложения фидбека,
+// files=[...]) — apiUpload выше жёстко на одно поле "file", тут поле "files" и их
+// может быть 0+.
+export async function apiUploadMultiple<T>(path: string, files: File[], fields?: Record<string, string>): Promise<T> {
+  const token = getToken()
+  const form = new FormData()
+  for (const file of files) form.append('files', file)
+  if (fields) {
+    for (const [key, value] of Object.entries(fields)) form.append(key, value)
+  }
+
+  const res = await fetch(`/api${path}`, {
+    method: 'POST',
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
+    body: form,
+  })
+
+  if (token && res.status === 401) {
+    clearSession()
+    window.location.href = '/login'
+    throw new ApiError(401, 'Сессия истекла, войдите снова.')
+  }
+
+  if (!res.ok) {
+    let message = 'Ошибка запроса.'
+    try {
+      const body = await res.json()
+      message = extractErrorMessage(body.detail, message)
+    } catch {
+      // тело не JSON — оставляем стандартное сообщение
+    }
+    throw new ApiError(res.status, message)
+  }
+
+  return res.json() as Promise<T>
+}
+
 export async function apiDownload(path: string, filename: string): Promise<void> {
   const token = getToken()
   const res = await fetch(`/api${path}`, {

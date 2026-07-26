@@ -402,6 +402,11 @@ class TechLog(Base):
 
 
 class Feedback(Base):
+    """Обратная связь разработчику (2026-07-26, запрос Александра) — таблица существовала
+    в схеме до этого момента, но без роутера/фронта (см. историю в CLAUDE.md). Отправить
+    может любая авторизованная роль (worker включительно), видит и меняет статус только
+    developer — не founder, сообщение адресовано конкретно разработчику."""
+
     __tablename__ = "feedback"
 
     id: Mapped[str] = mapped_column(String(8), primary_key=True, default=_short_id)
@@ -411,6 +416,31 @@ class Feedback(Base):
     author_role: Mapped[str] = mapped_column(String(20))
     message: Mapped[str] = mapped_column(Text)
     status: Mapped[str] = mapped_column(String(20), default="новое")
+
+    author: Mapped["User"] = relationship()
+    attachments: Mapped[list["FeedbackAttachment"]] = relationship(
+        back_populates="feedback", cascade="all, delete-orphan"
+    )
+
+
+class FeedbackAttachment(Base):
+    """До 3 картинок на сообщение (2026-07-26) — PNG в Postgres как data URI, тот же
+    паттерн, что у SurveillanceScreenshot (см. models.py выше): видео/полноценный object
+    storage отложены до платного сервера, см. CLAUDE.md. Бэк на приёме перекодирует
+    исходный файл в PNG через Pillow (снимает большинство встраиваний, EXIF и т.п.) и
+    ужимает, если больше FEEDBACK_MAX_DIMENSION, но не меньше FEEDBACK_MIN_DIMENSION —
+    не жертвуем читаемостью скрина ради места. Нет собственного company_id — скоуп
+    транзитивно через feedback_id (тот company-scoped), тот же принцип, что у RecipeItem."""
+
+    __tablename__ = "feedback_attachments"
+
+    id: Mapped[str] = mapped_column(String(8), primary_key=True, default=_short_id)
+    feedback_id: Mapped[str] = mapped_column(ForeignKey("feedback.id"))
+    image_base64: Mapped[str] = mapped_column(Text)
+    filename: Mapped[str | None] = mapped_column(String(255))
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+
+    feedback: Mapped["Feedback"] = relationship(back_populates="attachments")
 
 
 class CameraSettings(Base):

@@ -2,7 +2,14 @@ import { useEffect, useState } from 'react'
 import { apiFetch } from '../lib/api'
 import { usePremiumBackground } from '../lib/usePremiumBackground'
 import { SkeletonRows } from '../components/SkeletonRows'
-import type { TechLogEntry, TechStatus } from '../types'
+import type { FeedbackEntry, TechLogEntry, TechStatus } from '../types'
+
+const FEEDBACK_STATUSES = ['новое', 'просмотрено', 'решено']
+const FEEDBACK_STATUS_COLOR: Record<string, string> = {
+  'новое': 'text-amber-500',
+  'просмотрено': 'text-premium-text/60',
+  'решено': 'text-premium-sage-hi',
+}
 
 function formatUptime(seconds: number) {
   const h = Math.floor(seconds / 3600)
@@ -30,21 +37,30 @@ export function TechPanelPage() {
   usePremiumBackground()
   const [status, setStatus] = useState<TechStatus | null>(null)
   const [logs, setLogs] = useState<TechLogEntry[]>([])
+  const [feedback, setFeedback] = useState<FeedbackEntry[]>([])
+  const [viewingImage, setViewingImage] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
   const [clearing, setClearing] = useState(false)
 
   async function load() {
     setLoading(true)
     try {
-      const [statusData, logsData] = await Promise.all([
+      const [statusData, logsData, feedbackData] = await Promise.all([
         apiFetch<TechStatus>('/techpanel/status'),
         apiFetch<TechLogEntry[]>('/techpanel/logs'),
+        apiFetch<FeedbackEntry[]>('/feedback'),
       ])
       setStatus(statusData)
       setLogs(logsData)
+      setFeedback(feedbackData)
     } finally {
       setLoading(false)
     }
+  }
+
+  async function updateFeedbackStatus(id: string, newStatus: string) {
+    await apiFetch(`/feedback/${id}`, { method: 'PATCH', body: JSON.stringify({ status: newStatus }) })
+    setFeedback((prev) => prev.map((f) => (f.id === id ? { ...f, 'статус': newStatus } : f)))
   }
 
   useEffect(() => {
@@ -174,6 +190,74 @@ export function TechPanelPage() {
           </table>
         )}
       </div>
+
+      <h2 className="relative mb-2 mt-6 text-sm font-semibold text-premium-text/70">Обратная связь</h2>
+
+      <div className="relative space-y-3">
+        {!loading && feedback.length === 0 && (
+          <div className="rounded-xl border border-premium-border bg-premium-surface px-4 py-6 text-center text-sm text-premium-text/40">
+            Сообщений пока нет.
+          </div>
+        )}
+        {feedback.map((f, i) => (
+          <div
+            key={f.id}
+            style={{ animationDelay: `${Math.min(i, 12) * 35}ms` }}
+            className="premium-row-enter rounded-xl border border-premium-border bg-premium-surface p-4"
+          >
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <div className="text-sm font-medium text-premium-text">
+                {f['автор']} <span className="text-premium-text/40">({f['роль автора']})</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-premium-text/40">{f['дата']}</span>
+                <select
+                  value={f['статус']}
+                  onChange={(e) => updateFeedbackStatus(f.id, e.target.value)}
+                  className={`rounded-lg border border-premium-border bg-premium-bg px-2 py-1 text-xs font-medium outline-none focus:border-premium-gold ${
+                    FEEDBACK_STATUS_COLOR[f['статус']] ?? 'text-premium-text'
+                  }`}
+                >
+                  {FEEDBACK_STATUSES.map((s) => (
+                    <option key={s} value={s}>
+                      {s}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+            <div className="mt-2 whitespace-pre-wrap break-words text-sm text-premium-text/80">{f['сообщение']}</div>
+            {f['вложения'].length > 0 && (
+              <div className="mt-3 flex flex-wrap gap-2">
+                {f['вложения'].map((a) => (
+                  <button
+                    key={a.id}
+                    type="button"
+                    onClick={() => setViewingImage(a['изображение'])}
+                    className="h-20 w-20 overflow-hidden rounded-lg border border-premium-border"
+                  >
+                    <img src={a['изображение']} alt={a['имя файла'] ?? ''} className="h-full w-full object-cover" />
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        ))}
+      </div>
+
+      {viewingImage && (
+        <div
+          className="backdrop-fade-in fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4"
+          onClick={() => setViewingImage(null)}
+        >
+          <img
+            src={viewingImage}
+            alt=""
+            className="modal-pop-in max-h-full max-w-full rounded-lg object-contain"
+            onClick={(e) => e.stopPropagation()}
+          />
+        </div>
+      )}
     </div>
   )
 }
