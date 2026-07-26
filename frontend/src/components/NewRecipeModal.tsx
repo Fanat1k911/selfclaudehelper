@@ -1,11 +1,11 @@
 import { useEffect, useState, type FormEvent } from 'react'
 import { apiFetch, ApiError } from '../lib/api'
+import { MaterialCombobox } from './MaterialCombobox'
 import type { Ingredient, Product } from '../types'
 
 const DEFAULT_ROWS = 3
 
 interface CompositionRow {
-  materialName: string
   materialId: string
   qty: string
 }
@@ -26,7 +26,7 @@ export function NewRecipeModal({
   const [ingredients, setIngredients] = useState<Ingredient[]>([])
   const [productCategories, setProductCategories] = useState<string[]>([])
   const [rows, setRows] = useState<CompositionRow[]>(
-    Array.from({ length: DEFAULT_ROWS }, () => ({ materialName: '', materialId: '', qty: '' })),
+    Array.from({ length: DEFAULT_ROWS }, () => ({ materialId: '', qty: '' })),
   )
   const [error, setError] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
@@ -44,12 +44,7 @@ export function NewRecipeModal({
   }
 
   function addRow() {
-    setRows((prev) => [...prev, { materialName: '', materialId: '', qty: '' }])
-  }
-
-  function selectMaterialByName(i: number, value: string) {
-    const match = ingredients.find((ing) => ing['название'].toLowerCase() === value.toLowerCase())
-    updateRow(i, { materialName: value, materialId: match ? match.id : '' })
+    setRows((prev) => [...prev, { materialId: '', qty: '' }])
   }
 
   function updateQty(i: number, raw: string) {
@@ -177,12 +172,11 @@ export function NewRecipeModal({
           <div className="space-y-2">
             {rows.map((row, i) => (
               <div key={i} className="flex gap-2">
-                <input
-                  list="composition-materials"
-                  value={row.materialName}
-                  onChange={(e) => selectMaterialByName(i, e.target.value)}
+                <MaterialCombobox
+                  ingredients={ingredients}
+                  value={row.materialId}
+                  onChange={(id) => updateRow(i, { materialId: id })}
                   placeholder="Компонент"
-                  className="min-w-0 flex-1 rounded-lg border border-premium-border bg-premium-bg px-3 py-2 text-sm text-premium-text outline-none focus:border-premium-gold"
                 />
                 <input
                   type="text"
@@ -195,11 +189,6 @@ export function NewRecipeModal({
               </div>
             ))}
           </div>
-          <datalist id="composition-materials">
-            {ingredients.map((ing) => (
-              <option key={ing.id} value={ing['название']} />
-            ))}
-          </datalist>
           <button
             type="button"
             onClick={addRow}
