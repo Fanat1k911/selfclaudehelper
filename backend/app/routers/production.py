@@ -60,7 +60,12 @@ def list_producible_products(user: dict = Depends(get_current_user), db: Session
         )
     )
     return [
-        {"id": p.id, "название": p.name, "recipe_id": p.recipe_id}
+        {
+            "id": p.id,
+            "название": p.name,
+            "recipe_id": p.recipe_id,
+            "default_packaging_material_id": p.default_packaging_material_id,
+        }
         for p in db.scalars(stmt)
     ]
 
@@ -78,6 +83,7 @@ def _log_dict(entry: ProductionLog) -> dict:
         # 2026-07-18: qty=10 при yield=3 показывало бы 9.999 вместо 10).
         "кол-во продукта": float(entry.qty),
         "брак": float(entry.defects),
+        "упаковано": entry.packaged,
         "комментарий": entry.comment or "",
     }
 
@@ -132,6 +138,18 @@ def create_production(
     if float(recipe.batch_yield) <= 0:
         raise HTTPException(400, "У рецепта не указан выход партии — невозможно посчитать списание сырья.")
 
+    # Тара (2026-07-26, запрос Александра) — обязательна, когда реально упаковываем
+    # (packaged_qty>0); "Упаковано: Нет" (packaged_qty=0, дефолт формы) её не требует.
+    # Тара ≠ упаковка (см. CLAUDE.md): презентационная ёмкость, которую видит покупатель
+    # (флакон/банка), не техническая (короб/скотч) — выбирается из каталога "Упаковка".
+    packaging_material = None
+    if body.packaged_qty > 0:
+        if not body.packaging_material_id:
+            raise HTTPException(400, "Выберите тару — без неё нельзя отметить продукт как упакованный.")
+        packaging_material = get_owned_or_404(
+            db, Material, body.packaging_material_id, user["company_id"], "Тара не найдена."
+        )
+
     # Списание считается партиями, ввод теперь — готовым продуктом (2026-07-18): переводим
     # обратно делением на выход партии рецепта, дальше логика та же, что и раньше.
     batches = body.qty / float(recipe.batch_yield)
@@ -146,7 +164,10 @@ def create_production(
     # же данных и вместе списывают больше, чем есть на складе (тот же TOCTOU, что был
     # закрыт в sales.py). Сортировка по id — фиксированный порядок захвата блокировок,
     # чтобы два запроса с разным набором материалов не заблокировали друг друга насмерть.
-    material_ids = sorted({item.material_id for item in recipe_items})
+    # Тара (если выбрана) идёт в тот же лок-сет — свой отдельный лок после этого рисковал
+    # бы deadlock'ом с параллельным запросом, у которого тара и сырьё пересекаются в
+    # обратном порядке.
+    material_ids = sorted({item.material_id for item in recipe_items} | ({packaging_material.id} if packaging_material else set()))
     if material_ids:
         db.execute(select(Material.id).where(Material.id.in_(material_ids)).order_by(Material.id).with_for_update())
 
@@ -156,6 +177,12 @@ def create_production(
         available = _balance(db, item.material_id, user["company_id"])
         if available < need:
             shortages.append(f"{item.material.name}: нужно {need:g}, в наличии {available:g}")
+    if packaging_material:
+        # Брак упаковки тоже физически съел тару (см. _packaged_by_product в products.py —
+        # там же qty, не qty−defects), поэтому списываем весь packaged_qty, не за вычетом брака.
+        available = _balance(db, packaging_material.id, user["company_id"])
+        if available < body.packaged_qty:
+            shortages.append(f"{packaging_material.name}: нужно {body.packaged_qty:g}, в наличии {available:g}")
     if shortages:
         raise HTTPException(400, "Недостаточно компонентов на складе: " + "; ".join(shortages))
 
@@ -170,6 +197,20 @@ def create_production(
                 comment=f"списание по производству: {recipe.name}",
             )
         )
+
+    if packaging_material:
+        db.add(
+            Transaction(
+                company_id=user["company_id"],
+                material_id=packaging_material.id,
+                type=TRANSACTION_EXPENSE,
+                qty=body.packaged_qty,
+                comment=f"списание тары при упаковке: {product.name}",
+            )
+        )
+        # Запоминаем выбор — не привязка, просто подсказка для предзаполнения формы в
+        # следующий раз (см. CLAUDE.md/NewProductionModal.tsx), воркер может сменить.
+        product.default_packaging_material_id = packaging_material.id
 
     # started_at/finished_at убраны из ручного ввода (2026-07-18, решение Founder), но не из
     # колонок БД — вместо голого "оба = сейчас" (нулевая длительность) started_at теперь берём
@@ -200,6 +241,7 @@ def create_production(
         started_at=started_at,
         finished_at=now,
         defects=body.defects,
+        packaged=body.packaged_qty > 0,
         comment=body.comment,
     )
     db.add(log)
@@ -216,6 +258,7 @@ def create_production(
                 product_id=product.id,
                 qty=body.packaged_qty,
                 defects=body.packaged_defects,
+                material_id=packaging_material.id if packaging_material else None,
                 comment=body.comment,
             )
         )

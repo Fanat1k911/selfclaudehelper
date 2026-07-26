@@ -324,10 +324,24 @@ def test_production_started_at_falls_back_to_now_without_login_today(client, db_
     assert before <= log.started_at <= after
 
 
+def _make_tara(db_session, *, stock=100.0):
+    company_id = default_company_id(db_session)
+    tara = Material(company_id=company_id, name="Флакон 100мл", category="тара", unit="шт", min_stock=0.0)
+    db_session.add(tara)
+    db_session.flush()
+    if stock:
+        db_session.add(Transaction(company_id=company_id, material_id=tara.id, type=TRANSACTION_INCOME, qty=stock))
+    db_session.commit()
+    return tara
+
+
 def test_production_with_packaged_qty_writes_packaging_log(client, db_session):
     """2026-07-23: "Производство" одной формой пишет и ProductionLog, и (если указано
-    упаковано) отдельную строку в PackagingLog — раньше это была отдельная вкладка."""
+    упаковано) отдельную строку в PackagingLog — раньше это была отдельная вкладка.
+    2026-07-26: упаковано=да теперь обязательно требует тару (см. ниже отдельные тесты
+    на отказ без тары/при нехватке остатка) — тут даём достаточный остаток тары."""
     material, recipe, product = _make_recipe_with_material(db_session)
+    tara = _make_tara(db_session)
     company_id = default_company_id(db_session)
     db_session.add(Transaction(company_id=company_id, material_id=material.id, type=TRANSACTION_INCOME, qty=100.0))
     db_session.commit()
@@ -341,6 +355,7 @@ def test_production_with_packaged_qty_writes_packaging_log(client, db_session):
             "qty": 10,
             "packaged_qty": 8,
             "packaged_defects": 1,
+            "packaging_material_id": tara.id,
         },
         headers=auth_headers(worker),
     )
@@ -350,6 +365,18 @@ def test_production_with_packaged_qty_writes_packaging_log(client, db_session):
     assert entry.product_id == product.id
     assert float(entry.qty) == 8.0
     assert float(entry.defects) == 1.0
+    assert entry.material_id == tara.id
+
+    log = db_session.query(ProductionLog).filter(ProductionLog.worker_id == worker.id).one()
+    assert log.packaged is True
+
+    # Тара списывается ЦЕЛИКОМ (8), не за вычетом брака упаковки (1) — брак тоже физически
+    # съел флакон, см. комментарий в production.py и _packaged_by_product в products.py.
+    tara_expense = db_session.query(Transaction).filter(Transaction.material_id == tara.id, Transaction.type != TRANSACTION_INCOME).one()
+    assert float(tara_expense.qty) == 8.0
+
+    db_session.refresh(product)
+    assert product.default_packaging_material_id == tara.id
 
 
 def test_production_without_packaged_qty_skips_packaging_log(client, db_session):
@@ -366,6 +393,106 @@ def test_production_without_packaged_qty_skips_packaging_log(client, db_session)
     )
     assert resp.status_code == 200
     assert db_session.query(PackagingLog).count() == 0
+
+    log = db_session.query(ProductionLog).filter(ProductionLog.worker_id == worker.id).one()
+    assert log.packaged is False
+
+
+def test_production_packaged_qty_without_tara_rejected(client, db_session):
+    """2026-07-26, запрос Александра: "Упаковано: Да" без выбранной тары — отклоняем, не
+    молча пишем PackagingLog без material_id."""
+    material, recipe, product = _make_recipe_with_material(db_session)
+    company_id = default_company_id(db_session)
+    db_session.add(Transaction(company_id=company_id, material_id=material.id, type=TRANSACTION_INCOME, qty=100.0))
+    db_session.commit()
+
+    worker = make_user(db_session, login="no_tara_worker", role=WORKER)
+    resp = client.post(
+        "/api/production",
+        json={"product_id": product.id, "recipe_id": recipe.id, "qty": 10, "packaged_qty": 8},
+        headers=auth_headers(worker),
+    )
+    assert resp.status_code == 400
+    assert db_session.query(ProductionLog).count() == 0
+    assert db_session.query(PackagingLog).count() == 0
+
+
+def test_production_packaged_qty_rejected_when_tara_insufficient(client, db_session):
+    material, recipe, product = _make_recipe_with_material(db_session)
+    tara = _make_tara(db_session, stock=3.0)
+    company_id = default_company_id(db_session)
+    db_session.add(Transaction(company_id=company_id, material_id=material.id, type=TRANSACTION_INCOME, qty=100.0))
+    db_session.commit()
+
+    worker = make_user(db_session, login="low_tara_worker", role=WORKER)
+    resp = client.post(
+        "/api/production",
+        json={
+            "product_id": product.id,
+            "recipe_id": recipe.id,
+            "qty": 10,
+            "packaged_qty": 8,
+            "packaging_material_id": tara.id,
+        },
+        headers=auth_headers(worker),
+    )
+    assert resp.status_code == 400
+    # Ничего не должно списаться — ни сырьё по рецепту, ни тара (атомарно, как и раньше
+    # с нехваткой сырья: shortages проверяются до db.add() Transaction).
+    assert db_session.query(ProductionLog).count() == 0
+    assert db_session.query(Transaction).filter(Transaction.type != TRANSACTION_INCOME).count() == 0
+
+
+def test_production_rejects_foreign_tara(client, db_session):
+    from tests.conftest import make_company
+
+    material, recipe, product = _make_recipe_with_material(db_session)
+    company_id = default_company_id(db_session)
+    db_session.add(Transaction(company_id=company_id, material_id=material.id, type=TRANSACTION_INCOME, qty=100.0))
+    other_company = make_company(db_session)
+    foreign_tara = Material(company_id=other_company.id, name="Чужой флакон", category="тара", unit="шт")
+    db_session.add(foreign_tara)
+    db_session.commit()
+
+    worker = make_user(db_session, login="foreign_tara_worker", role=WORKER)
+    resp = client.post(
+        "/api/production",
+        json={
+            "product_id": product.id,
+            "recipe_id": recipe.id,
+            "qty": 10,
+            "packaged_qty": 8,
+            "packaging_material_id": foreign_tara.id,
+        },
+        headers=auth_headers(worker),
+    )
+    assert resp.status_code == 404
+
+
+def test_production_products_list_includes_default_packaging_material(client, db_session):
+    material, recipe, product = _make_recipe_with_material(db_session)
+    tara = _make_tara(db_session)
+    company_id = default_company_id(db_session)
+    db_session.add(Transaction(company_id=company_id, material_id=material.id, type=TRANSACTION_INCOME, qty=100.0))
+    db_session.commit()
+
+    worker = make_user(db_session, login="default_tara_worker", role=FOUNDER)
+    client.post(
+        "/api/production",
+        json={
+            "product_id": product.id,
+            "recipe_id": recipe.id,
+            "qty": 10,
+            "packaged_qty": 8,
+            "packaging_material_id": tara.id,
+        },
+        headers=auth_headers(worker),
+    )
+
+    resp = client.get("/api/production/products", headers=auth_headers(worker))
+    assert resp.status_code == 200
+    entry = next(p for p in resp.json() if p["id"] == product.id)
+    assert entry["default_packaging_material_id"] == tara.id
 
 
 def test_production_rejects_foreign_product(client, db_session):

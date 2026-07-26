@@ -254,6 +254,11 @@ class Product(Base):
     tn_ved: Mapped[str | None] = mapped_column(String(50))
     declaration: Mapped[str | None] = mapped_column(String(255))
     declaration_expires: Mapped[date_ | None] = mapped_column(Date)
+    # Последняя выбранная тара при упаковке этого продукта (2026-07-26, запрос
+    # Александра) — только подсказка для предзаполнения формы производства, не жёсткая
+    # привязка: воркер каждый раз может выбрать другую. Тара ≠ упаковка (см. CLAUDE.md) —
+    # это презентационная ёмкость (флакон/банка), которую видит покупатель.
+    default_packaging_material_id: Mapped[str | None] = mapped_column(ForeignKey("materials.id"))
 
     recipe: Mapped["Recipe | None"] = relationship()
 
@@ -317,6 +322,14 @@ class ProductionLog(Base):
     started_at: Mapped[datetime] = mapped_column(DateTime)
     finished_at: Mapped[datetime] = mapped_column(DateTime)
     defects: Mapped[float] = mapped_column(Numeric(12, 3), default=0)
+    # Снимок выбора "Упаковано: Да/Нет" на форме (2026-07-26) — хранится прямо тут, а не
+    # вычисляется джойном по PackagingLog: между строками production_log и packaging_log
+    # нет FK друг на друга (одна форма просто пишет в обе таблицы), догадываться по
+    # product_id+дате было бы ненадёжно при нескольких партиях в один день. Старые строки
+    # (до этой миграции) — server_default false, честного "было упаковано или нет" для них
+    # нет и не восстановить, но такие продукты сейчас уже либо проданы, либо это старые
+    # тестовые данные, ретроактивный бэкафилл не имеет практической ценности.
+    packaged: Mapped[bool] = mapped_column(Boolean, default=False, server_default="false")
     comment: Mapped[str | None] = mapped_column(Text)
 
     worker: Mapped["User"] = relationship()
@@ -333,11 +346,17 @@ class PackagingLog(Base):
     product_id: Mapped[str] = mapped_column(ForeignKey("products.id"))
     qty: Mapped[float] = mapped_column(Numeric(12, 3))
     defects: Mapped[float] = mapped_column(Numeric(12, 3), default=0)
+    # Тара, физически ушедшая на эту упаковку (2026-07-26, запрос Александра) —
+    # nullable: старые строки (до этой миграции) и записи с qty=0 ("не упаковано") тару
+    # не выбирают. Списание её остатка — Transaction(EXPENSE) на qty (не qty-defects:
+    # бракованная упаковка тоже физически съела тару, см. _packaged_by_product).
+    material_id: Mapped[str | None] = mapped_column(ForeignKey("materials.id"))
     comment: Mapped[str | None] = mapped_column(Text)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
 
     worker: Mapped["User"] = relationship()
     product: Mapped["Product"] = relationship()
+    material: Mapped["Material | None"] = relationship()
 
 
 class DashboardWidgetLayout(Base):

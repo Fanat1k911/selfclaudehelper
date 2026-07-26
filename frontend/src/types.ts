@@ -162,6 +162,7 @@ export interface ProducibleProduct {
   id: string
   'название': string
   recipe_id: string
+  default_packaging_material_id: string | null
 }
 
 export interface ProductionLogEntry {
@@ -173,6 +174,7 @@ export interface ProductionLogEntry {
   'название рецепта': string
   'кол-во продукта': number
   'брак': number
+  'упаковано': boolean
   'комментарий': string
 }
 

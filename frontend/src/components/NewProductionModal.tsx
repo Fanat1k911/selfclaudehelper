@@ -1,6 +1,7 @@
 import { useEffect, useState, type FormEvent } from 'react'
 import { apiFetch, ApiError } from '../lib/api'
-import type { ProducibleProduct } from '../types'
+import { MaterialCombobox } from './MaterialCombobox'
+import type { Ingredient, ProducibleProduct } from '../types'
 
 export function NewProductionModal({
   onClose,
@@ -10,9 +11,15 @@ export function NewProductionModal({
   onCreated: () => void
 }) {
   const [products, setProducts] = useState<ProducibleProduct[] | null>(null)
+  const [tara, setTara] = useState<Ingredient[]>([])
   const [productId, setProductId] = useState('')
   const [qty, setQty] = useState('1')
   const [defects, setDefects] = useState('0')
+  // "Упаковано" (2026-07-26, запрос Александра) — обязательный выбор, дефолт "нет". Тара —
+  // презентационная ёмкость (флакон/банка), которую видит покупатель, не путать с
+  // технической упаковкой (короб/скотч) — см. CLAUDE.md.
+  const [packaged, setPackaged] = useState<'нет' | 'да'>('нет')
+  const [packagingMaterialId, setPackagingMaterialId] = useState('')
   const [packagedQty, setPackagedQty] = useState('')
   const [packagedDefects, setPackagedDefects] = useState('0')
   const [comment, setComment] = useState('')
@@ -24,7 +31,17 @@ export function NewProductionModal({
       setProducts(data)
       if (data.length > 0) setProductId(data[0].id)
     })
+    apiFetch<Ingredient[]>('/ingredients').then((list) => {
+      setTara(list.filter((i) => i['категория'] === 'тара'))
+    })
   }, [])
+
+  // Подставляем тару, выбранную для этого продукта в прошлый раз (не жёсткая
+  // привязка — просто подсказка, можно сменить перед сохранением).
+  useEffect(() => {
+    const product = (products ?? []).find((p) => p.id === productId)
+    setPackagingMaterialId(product?.default_packaging_material_id ?? '')
+  }, [productId, products])
 
   if (products !== null && products.length === 0) {
     return (
@@ -50,11 +67,27 @@ export function NewProductionModal({
     )
   }
 
+  function handlePackagedChange(value: 'нет' | 'да') {
+    setPackaged(value)
+    if (value === 'да' && !packagedQty) {
+      const produced = Math.max(0, Number(qty || 0) - Number(defects || 0))
+      setPackagedQty(String(produced))
+    }
+  }
+
   async function handleSubmit(e: FormEvent) {
     e.preventDefault()
     setError(null)
     const product = (products ?? []).find((p) => p.id === productId)
     if (!product) return
+    if (packaged === 'да' && !packagingMaterialId) {
+      setError('Выберите тару — без неё нельзя отметить продукт как упакованный.')
+      return
+    }
+    if (packaged === 'да' && !(Number(packagedQty) > 0)) {
+      setError('Укажите, сколько штук упаковано.')
+      return
+    }
     setSubmitting(true)
     try {
       await apiFetch('/production', {
@@ -64,8 +97,9 @@ export function NewProductionModal({
           recipe_id: product.recipe_id,
           qty: Number(qty),
           defects: defects ? Number(defects) : 0,
-          packaged_qty: packagedQty ? Number(packagedQty) : 0,
-          packaged_defects: packagedDefects ? Number(packagedDefects) : 0,
+          packaged_qty: packaged === 'да' ? Number(packagedQty || 0) : 0,
+          packaged_defects: packaged === 'да' && packagedDefects ? Number(packagedDefects) : 0,
+          packaging_material_id: packaged === 'да' ? packagingMaterialId : null,
           comment,
         }),
       })
@@ -82,7 +116,7 @@ export function NewProductionModal({
       <form
         onSubmit={handleSubmit}
         onClick={(e) => e.stopPropagation()}
-        className="modal-pop-in w-full max-w-sm rounded-2xl bg-premium-surface p-6 shadow-2xl space-y-3"
+        className="modal-pop-in max-h-[90vh] w-full max-w-sm overflow-y-auto overflow-x-hidden rounded-2xl bg-premium-surface p-6 shadow-2xl space-y-3"
       >
         <div className="text-lg font-semibold text-premium-text mb-2">Внести производство</div>
 
@@ -128,32 +162,55 @@ export function NewProductionModal({
         </div>
 
         <div className="border-t border-premium-border pt-3">
-          <div className="mb-2 text-xs font-medium text-premium-text/50">Упаковка (необязательно)</div>
-          <div className="flex gap-2">
-            <div className="flex-1">
-              <label className="block text-xs text-premium-text/60 mb-1">Упаковано, шт</label>
-              <input
-                type="number"
-                step="any"
-                min="0"
-                value={packagedQty}
-                onChange={(e) => setPackagedQty(e.target.value)}
-                placeholder="0"
-                className="w-full rounded-lg border border-premium-border bg-premium-bg px-3 py-2 text-sm text-premium-text outline-none focus:border-premium-gold"
-              />
+          <label className="block text-xs text-premium-text/60 mb-1">Упаковано</label>
+          <select
+            value={packaged}
+            onChange={(e) => handlePackagedChange(e.target.value as 'нет' | 'да')}
+            className="w-full rounded-lg border border-premium-border bg-premium-bg px-3 py-2 text-sm text-premium-text outline-none focus:border-premium-gold"
+            required
+          >
+            <option value="нет">Нет</option>
+            <option value="да">Да</option>
+          </select>
+
+          {packaged === 'да' && (
+            <div className="mt-3 space-y-3">
+              <div>
+                <label className="block text-xs text-premium-text/60 mb-1">Тара</label>
+                <MaterialCombobox
+                  ingredients={tara}
+                  value={packagingMaterialId}
+                  onChange={setPackagingMaterialId}
+                  placeholder="Начните вводить название тары…"
+                />
+              </div>
+              <div className="flex gap-2">
+                <div className="flex-1">
+                  <label className="block text-xs text-premium-text/60 mb-1">Упаковано, шт</label>
+                  <input
+                    type="number"
+                    step="any"
+                    min="0"
+                    value={packagedQty}
+                    onChange={(e) => setPackagedQty(e.target.value)}
+                    placeholder="0"
+                    className="w-full rounded-lg border border-premium-border bg-premium-bg px-3 py-2 text-sm text-premium-text outline-none focus:border-premium-gold"
+                  />
+                </div>
+                <div className="flex-1">
+                  <label className="block text-xs text-premium-text/60 mb-1">Брак упаковки</label>
+                  <input
+                    type="number"
+                    step="any"
+                    min="0"
+                    value={packagedDefects}
+                    onChange={(e) => setPackagedDefects(e.target.value)}
+                    className="w-full rounded-lg border border-premium-border bg-premium-bg px-3 py-2 text-sm text-premium-text outline-none focus:border-premium-gold"
+                  />
+                </div>
+              </div>
             </div>
-            <div className="flex-1">
-              <label className="block text-xs text-premium-text/60 mb-1">Брак упаковки</label>
-              <input
-                type="number"
-                step="any"
-                min="0"
-                value={packagedDefects}
-                onChange={(e) => setPackagedDefects(e.target.value)}
-                className="w-full rounded-lg border border-premium-border bg-premium-bg px-3 py-2 text-sm text-premium-text outline-none focus:border-premium-gold"
-              />
-            </div>
-          </div>
+          )}
         </div>
 
         <div>

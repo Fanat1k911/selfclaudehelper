@@ -151,6 +151,11 @@ class ProductionRequest(BaseModel):
     defects: float = 0.0
     packaged_qty: float = Field(default=0.0, ge=0)
     packaged_defects: float = Field(default=0.0, ge=0)
+    # Тара (2026-07-26, запрос Александра) — обязателен, только когда packaged_qty>0
+    # ("Упаковано: Да"); при "Нет" (packaged_qty=0) остаётся None. Проверяется в
+    # create_production, не тут — Optional на уровне схемы, а не условный required,
+    # чтобы не городить кастомный валидатор ради одного поля.
+    packaging_material_id: str | None = None
     comment: str = ""
 
 

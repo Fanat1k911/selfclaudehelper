@@ -110,6 +110,13 @@ export function ProductionPage() {
               <span className="truncate">{entry['ФИО сотрудника']}</span>
               <span className="shrink-0">{formatDate(entry['дата'])}</span>
             </div>
+            <div className="mt-1.5">
+              <span
+                className={`whitespace-nowrap text-xs font-medium ${entry['упаковано'] ? 'text-premium-sage-hi' : 'text-amber-500'}`}
+              >
+                {entry['упаковано'] ? 'Упаковано' : 'Не упаковано'}
+              </span>
+            </div>
             {(entry['брак'] > 0 || entry['комментарий']) && (
               <div className="mt-1.5 text-xs text-premium-text/50">
                 {entry['брак'] > 0 && <span className="text-red-400">брак: {entry['брак']}</span>}
@@ -130,20 +137,21 @@ export function ProductionPage() {
               <th className="px-4 py-3 font-medium">Сотрудник</th>
               <th className="px-4 py-3 font-medium text-right">Кол-во</th>
               <th className="px-4 py-3 font-medium text-right">Брак</th>
+              <th className="px-4 py-3 font-medium">Упаковано</th>
               <th className="px-4 py-3 font-medium">Комментарий</th>
             </tr>
           </thead>
           <tbody>
             {loading && (
               <tr>
-                <td colSpan={6} className="p-0">
+                <td colSpan={7} className="p-0">
                   <SkeletonRows />
                 </td>
               </tr>
             )}
             {!loading && log.length === 0 && (
               <tr>
-                <td colSpan={6} className="px-4 py-6 text-center text-premium-text/40">
+                <td colSpan={7} className="px-4 py-6 text-center text-premium-text/40">
                   Записей ещё нет.
                 </td>
               </tr>
@@ -162,6 +170,13 @@ export function ProductionPage() {
                 <td className="px-4 py-3 text-premium-text/60">{entry['ФИО сотрудника']}</td>
                 <td className="px-4 py-3 text-right font-medium text-premium-text">{entry['кол-во продукта']}</td>
                 <td className="px-4 py-3 text-right text-premium-text/50">{entry['брак']}</td>
+                <td className="px-4 py-3">
+                  <span
+                    className={`whitespace-nowrap text-xs font-medium ${entry['упаковано'] ? 'text-premium-sage-hi' : 'text-amber-500'}`}
+                  >
+                    {entry['упаковано'] ? 'Упаковано' : 'Не упаковано'}
+                  </span>
+                </td>
                 <td className="px-4 py-3 text-premium-text/50">{entry['комментарий']}</td>
               </tr>
             ))}
