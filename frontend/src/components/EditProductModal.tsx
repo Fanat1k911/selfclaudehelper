@@ -1,6 +1,7 @@
 import { useEffect, useState, type FormEvent } from 'react'
 import { Check, Copy } from 'lucide-react'
 import { apiFetch, ApiError } from '../lib/api'
+import { CategorySelect } from './CategorySelect'
 import type { Product, Recipe } from '../types'
 
 export function EditProductModal({
@@ -13,6 +14,7 @@ export function EditProductModal({
   onSaved: () => void
 }) {
   const [recipes, setRecipes] = useState<Recipe[]>([])
+  const [categories, setCategories] = useState<string[]>([])
   const [name, setName] = useState(product['название'])
   const [category, setCategory] = useState(product['категория'])
   const [gtin, setGtin] = useState(product.GTIN)
@@ -35,6 +37,9 @@ export function EditProductModal({
 
   useEffect(() => {
     apiFetch<Recipe[]>('/recipes').then(setRecipes)
+    apiFetch<Product[]>('/products').then((products) => {
+      setCategories([...new Set(products.map((p) => p['категория']).filter(Boolean))].sort())
+    })
   }, [])
 
   async function handleSubmit(e: FormEvent) {
@@ -85,19 +90,17 @@ export function EditProductModal({
 
         <div>
           <label className="block text-xs text-premium-text/60 mb-1">Категория</label>
-          <input
-            value={category}
-            onChange={(e) => setCategory(e.target.value)}
-            className="w-full rounded-lg border border-premium-border bg-premium-bg px-3 py-2 text-sm text-premium-text outline-none focus:border-premium-gold"
-            required
-          />
+          <CategorySelect value={category} onChange={setCategory} categories={categories} />
         </div>
 
         <div>
           <label className="block text-xs text-premium-text/60 mb-1">GTIN</label>
           <input
             value={gtin}
-            onChange={(e) => setGtin(e.target.value)}
+            onChange={(e) => setGtin(e.target.value.replace(/\D/g, ''))}
+            inputMode="numeric"
+            maxLength={14}
+            placeholder="13 цифр (EAN-13)"
             className="w-full rounded-lg border border-premium-border bg-premium-bg px-3 py-2 text-sm text-premium-text outline-none focus:border-premium-gold"
             required
           />
