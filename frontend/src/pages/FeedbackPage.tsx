@@ -223,12 +223,32 @@ function FeedbackGroup({ title, items }: { title: string; items: MyFeedbackEntry
               {expanded && f['вложения'].length > 0 && (
                 <div className="mt-2 flex flex-wrap gap-2">
                   {f['вложения'].map((a) => (
-                    <img
+                    // stopPropagation — картинка внутри карточки-кнопки (сворачивает/разворачивает
+                    // по клику), без него клик по превью тоже засчитывался бы как клик по карточке
+                    // и мгновенно её сворачивал, не давая посмотреть картинку (репорт Александра,
+                    // 2026-07-27). Открываем в новой вкладке — там штатный zoom браузера и
+                    // оригинальное разрешение, не квадратный превью-кроп 80×80 отсюда.
+                    <span
                       key={a.id}
-                      src={a['изображение']}
-                      alt={a['имя файла'] ?? ''}
-                      className="h-20 w-20 rounded-lg border border-premium-border object-cover"
-                    />
+                      role="button"
+                      tabIndex={0}
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        window.open(a['изображение'], '_blank')
+                      }}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' || e.key === ' ') {
+                          e.stopPropagation()
+                          window.open(a['изображение'], '_blank')
+                        }
+                      }}
+                    >
+                      <img
+                        src={a['изображение']}
+                        alt={a['имя файла'] ?? ''}
+                        className="h-20 w-20 cursor-zoom-in rounded-lg border border-premium-border object-cover"
+                      />
+                    </span>
                   ))}
                 </div>
               )}
