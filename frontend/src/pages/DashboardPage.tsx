@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import GridLayout, { WidthProvider } from 'react-grid-layout/legacy'
 import type { Layout } from 'react-grid-layout/legacy'
 import 'react-grid-layout/css/styles.css'
@@ -38,7 +38,7 @@ export function DashboardPage() {
   const lastTapRef = useRef<{ key: string; time: number } | null>(null)
   const sheenRef = useRef<HTMLDivElement>(null)
 
-  const catalogByKey = Object.fromEntries(catalog.map((w) => [w.key, w]))
+  const catalogByKey = useMemo(() => Object.fromEntries(catalog.map((w) => [w.key, w])), [catalog])
 
   usePremiumBackground()
   const isMobile = useIsMobile()
