@@ -2,7 +2,9 @@ import { useEffect, useRef, useState } from 'react'
 import { ImagePlus, X } from 'lucide-react'
 import { apiFetch, apiUploadMultiple, ApiError } from '../lib/api'
 import { usePremiumBackground } from '../lib/usePremiumBackground'
-import type { MyFeedbackEntry } from '../types'
+import { useAuth } from '../lib/auth'
+import { ImageLightbox } from '../components/ImageLightbox'
+import type { FeedbackEntry, MyFeedbackEntry } from '../types'
 
 const MAX_ATTACHMENTS = 3
 
@@ -12,8 +14,23 @@ const STATUS_DOT: Record<string, string> = {
   'решено': 'bg-premium-sage-hi',
 }
 
+const FEEDBACK_STATUSES = ['новое', 'просмотрено', 'решено']
+const FEEDBACK_STATUS_COLOR: Record<string, string> = {
+  'новое': 'text-amber-500',
+  'просмотрено': 'text-premium-text/60',
+  'решено': 'text-premium-sage-hi',
+}
+
 export function FeedbackPage() {
   usePremiumBackground()
+  const { user } = useAuth()
+  const isDeveloper = user?.role === 'developer'
+  // Зонирование "Отправленные"/"Полученные" (2026-07-27, запрос Александра) — раньше
+  // просмотр/управление входящими обращениями жило отдельно в Техпанели, разработчик
+  // путал свою личную историю (эта страница) с панелью разбора чужих сообщений. Вкладка
+  // "Полученные" видна только developer — остальные роли получателями не бывают.
+  const [tab, setTab] = useState<'sent' | 'received'>('sent')
+
   const [message, setMessage] = useState('')
   const [files, setFiles] = useState<File[]>([])
   const [dragOver, setDragOver] = useState(false)
@@ -98,90 +115,120 @@ export function FeedbackPage() {
       <h1 className="relative mb-2 font-display text-xl font-semibold italic text-premium-text sm:text-2xl">
         Обратная связь
       </h1>
-      <p className="relative mb-6 max-w-lg text-sm text-premium-text/50">
-        Сообщение уходит прямо разработчику — ошибка, идея, что-то неудобное. Можно приложить
-        до {MAX_ATTACHMENTS} скриншотов — вставить из буфера (Ctrl+V в поле сообщения),
-        перетащить файл или выбрать вручную.
-      </p>
 
-      <form onSubmit={handleSubmit} className="relative max-w-lg space-y-3">
-        <div>
-          <label className="block text-xs text-premium-text/60 mb-1">Сообщение</label>
-          <textarea
-            value={message}
-            onChange={(e) => setMessage(e.target.value)}
-            onPaste={handlePaste}
-            rows={6}
-            placeholder="Опиши, что произошло, или что хотелось бы улучшить…"
-            className="w-full rounded-lg border border-premium-border bg-premium-surface px-3 py-2 text-sm text-premium-text outline-none focus:border-premium-gold"
-            required
-          />
+      {isDeveloper && (
+        <div className="relative mb-6 flex gap-1 rounded-lg border border-premium-border bg-premium-surface p-1 sm:w-fit">
+          <button
+            type="button"
+            onClick={() => setTab('sent')}
+            className={`rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
+              tab === 'sent' ? 'bg-premium-gold text-premium-bg' : 'text-premium-text/60 hover:text-premium-text'
+            }`}
+          >
+            Отправленные
+          </button>
+          <button
+            type="button"
+            onClick={() => setTab('received')}
+            className={`rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
+              tab === 'received' ? 'bg-premium-gold text-premium-bg' : 'text-premium-text/60 hover:text-premium-text'
+            }`}
+          >
+            Полученные
+          </button>
         </div>
+      )}
 
-        <div>
-          <label className="block text-xs text-premium-text/60 mb-1">
-            Скриншоты ({files.length}/{MAX_ATTACHMENTS})
-          </label>
-          {files.length > 0 && (
-            <div className="mb-2 flex flex-wrap gap-2">
-              {previews.map((url, i) => (
-                <div key={url} className="relative h-20 w-20 overflow-hidden rounded-lg border border-premium-border">
-                  <img src={url} alt="" className="h-full w-full object-cover" />
-                  <button
-                    type="button"
-                    onClick={() => removeFile(i)}
-                    className="absolute right-1 top-1 rounded-full bg-premium-bg/80 p-0.5 text-premium-text hover:text-red-400"
-                  >
-                    <X size={14} />
-                  </button>
-                </div>
-              ))}
-            </div>
-          )}
-          {files.length < MAX_ATTACHMENTS && (
-            <div
-              onDragOver={(e) => {
-                e.preventDefault()
-                setDragOver(true)
-              }}
-              onDragLeave={() => setDragOver(false)}
-              onDrop={handleDrop}
-              onClick={() => fileInputRef.current?.click()}
-              className={`flex cursor-pointer items-center gap-2 rounded-lg border border-dashed px-3 py-3 text-sm text-premium-text/50 transition-colors ${
-                dragOver ? 'border-premium-gold bg-premium-gold/5 text-premium-text' : 'border-premium-border hover:bg-premium-surface-2'
-              }`}
-            >
-              <ImagePlus size={16} className="shrink-0" />
-              Перетащи скриншот сюда или нажми, чтобы выбрать
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept="image/*"
-                multiple
-                onChange={(e) => addFiles(Array.from(e.target.files ?? []))}
-                className="hidden"
+      {tab === 'received' && isDeveloper ? (
+        <ReceivedFeedback />
+      ) : (
+        <>
+          <p className="relative mb-6 max-w-lg text-sm text-premium-text/50">
+            Сообщение уходит прямо разработчику — ошибка, идея, что-то неудобное. Можно приложить
+            до {MAX_ATTACHMENTS} скриншотов — вставить из буфера (Ctrl+V в поле сообщения),
+            перетащить файл или выбрать вручную.
+          </p>
+
+          <form onSubmit={handleSubmit} className="relative max-w-lg space-y-3">
+            <div>
+              <label className="block text-xs text-premium-text/60 mb-1">Сообщение</label>
+              <textarea
+                value={message}
+                onChange={(e) => setMessage(e.target.value)}
+                onPaste={handlePaste}
+                rows={6}
+                placeholder="Опиши, что произошло, или что хотелось бы улучшить…"
+                className="w-full rounded-lg border border-premium-border bg-premium-surface px-3 py-2 text-sm text-premium-text outline-none focus:border-premium-gold"
+                required
               />
             </div>
+
+            <div>
+              <label className="block text-xs text-premium-text/60 mb-1">
+                Скриншоты ({files.length}/{MAX_ATTACHMENTS})
+              </label>
+              {files.length > 0 && (
+                <div className="mb-2 flex flex-wrap gap-2">
+                  {previews.map((url, i) => (
+                    <div key={url} className="relative h-20 w-20 overflow-hidden rounded-lg border border-premium-border">
+                      <img src={url} alt="" className="h-full w-full object-cover" />
+                      <button
+                        type="button"
+                        onClick={() => removeFile(i)}
+                        className="absolute right-1 top-1 rounded-full bg-premium-bg/80 p-0.5 text-premium-text hover:text-red-400"
+                      >
+                        <X size={14} />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+              {files.length < MAX_ATTACHMENTS && (
+                <div
+                  onDragOver={(e) => {
+                    e.preventDefault()
+                    setDragOver(true)
+                  }}
+                  onDragLeave={() => setDragOver(false)}
+                  onDrop={handleDrop}
+                  onClick={() => fileInputRef.current?.click()}
+                  className={`flex cursor-pointer items-center gap-2 rounded-lg border border-dashed px-3 py-3 text-sm text-premium-text/50 transition-colors ${
+                    dragOver ? 'border-premium-gold bg-premium-gold/5 text-premium-text' : 'border-premium-border hover:bg-premium-surface-2'
+                  }`}
+                >
+                  <ImagePlus size={16} className="shrink-0" />
+                  Перетащи скриншот сюда или нажми, чтобы выбрать
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/*"
+                    multiple
+                    onChange={(e) => addFiles(Array.from(e.target.files ?? []))}
+                    className="hidden"
+                  />
+                </div>
+              )}
+            </div>
+
+            {error && <div className="text-sm text-red-400">{error}</div>}
+            {sent && <div className="text-sm text-premium-sage-hi">Отправлено, спасибо!</div>}
+
+            <button
+              type="submit"
+              disabled={submitting}
+              className="btn-shine transition-transform rounded-lg bg-premium-gold px-4 py-2 text-sm font-medium text-premium-bg hover:bg-premium-gold-hi disabled:opacity-60"
+            >
+              {submitting ? 'Отправляем…' : 'Отправить'}
+            </button>
+          </form>
+
+          {mine.length > 0 && (
+            <div className="relative mt-8 max-w-lg space-y-6">
+              <FeedbackGroup title="Актуальные" items={mine.filter((f) => f['статус'] !== 'решено')} />
+              <FeedbackGroup title="Решённые" items={mine.filter((f) => f['статус'] === 'решено')} />
+            </div>
           )}
-        </div>
-
-        {error && <div className="text-sm text-red-400">{error}</div>}
-        {sent && <div className="text-sm text-premium-sage-hi">Отправлено, спасибо!</div>}
-
-        <button
-          type="submit"
-          disabled={submitting}
-          className="btn-shine transition-transform rounded-lg bg-premium-gold px-4 py-2 text-sm font-medium text-premium-bg hover:bg-premium-gold-hi disabled:opacity-60"
-        >
-          {submitting ? 'Отправляем…' : 'Отправить'}
-        </button>
-      </form>
-
-      {mine.length > 0 && (
-        <div className="relative mt-8 max-w-lg space-y-6">
-          <FeedbackGroup title="Актуальные" items={mine.filter((f) => f['статус'] !== 'решено')} />
-          <FeedbackGroup title="Решённые" items={mine.filter((f) => f['статус'] === 'решено')} />
-        </div>
+        </>
       )}
     </div>
   )
@@ -192,6 +239,7 @@ function FeedbackGroup({ title, items }: { title: string; items: MyFeedbackEntry
   // не рендерились вообще (репорт Александра, 2026-07-27). Клик по карточке
   // разворачивает полный текст + скриншоты, второй клик сворачивает обратно.
   const [expandedId, setExpandedId] = useState<string | null>(null)
+  const [viewingImage, setViewingImage] = useState<string | null>(null)
 
   if (items.length === 0) return null
   return (
@@ -226,20 +274,20 @@ function FeedbackGroup({ title, items }: { title: string; items: MyFeedbackEntry
                     // stopPropagation — картинка внутри карточки-кнопки (сворачивает/разворачивает
                     // по клику), без него клик по превью тоже засчитывался бы как клик по карточке
                     // и мгновенно её сворачивал, не давая посмотреть картинку (репорт Александра,
-                    // 2026-07-27). Открываем в новой вкладке — там штатный zoom браузера и
-                    // оригинальное разрешение, не квадратный превью-кроп 80×80 отсюда.
+                    // 2026-07-27). window.open(data:URL) браузеры блокируют как навигацию
+                    // (about:blank вместо картинки) — открываем в модалке с ручным зумом вместо этого.
                     <span
                       key={a.id}
                       role="button"
                       tabIndex={0}
                       onClick={(e) => {
                         e.stopPropagation()
-                        window.open(a['изображение'], '_blank')
+                        setViewingImage(a['изображение'])
                       }}
                       onKeyDown={(e) => {
                         if (e.key === 'Enter' || e.key === ' ') {
                           e.stopPropagation()
-                          window.open(a['изображение'], '_blank')
+                          setViewingImage(a['изображение'])
                         }
                       }}
                     >
@@ -256,6 +304,91 @@ function FeedbackGroup({ title, items }: { title: string; items: MyFeedbackEntry
           )
         })}
       </div>
+      {viewingImage && <ImageLightbox src={viewingImage} onClose={() => setViewingImage(null)} />}
+    </div>
+  )
+}
+
+// Перенесено из TechPanelPage.tsx (2026-07-27, запрос Александра) — панель разбора входящих
+// обращений жила отдельно в Техпанели, что путало с личной историей на этой же странице.
+// Автор+роль, полная дата-время (не .slice(0,10), как в "мои"), смена статуса — то же самое,
+// что было в Техпанели, один в один, просто другое место.
+function ReceivedFeedback() {
+  const [feedback, setFeedback] = useState<FeedbackEntry[]>([])
+  const [loading, setLoading] = useState(true)
+  const [viewingImage, setViewingImage] = useState<string | null>(null)
+
+  async function load() {
+    setLoading(true)
+    try {
+      setFeedback(await apiFetch<FeedbackEntry[]>('/feedback'))
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    load()
+  }, [])
+
+  async function updateStatus(id: string, newStatus: string) {
+    await apiFetch(`/feedback/${id}`, { method: 'PATCH', body: JSON.stringify({ status: newStatus }) })
+    setFeedback((prev) => prev.map((f) => (f.id === id ? { ...f, 'статус': newStatus } : f)))
+  }
+
+  return (
+    <div className="relative max-w-lg space-y-3">
+      {!loading && feedback.length === 0 && (
+        <div className="rounded-xl border border-premium-border bg-premium-surface px-4 py-6 text-center text-sm text-premium-text/40">
+          Сообщений пока нет.
+        </div>
+      )}
+      {feedback.map((f, i) => (
+        <div
+          key={f.id}
+          style={{ animationDelay: `${Math.min(i, 12) * 35}ms` }}
+          className="premium-row-enter rounded-xl border border-premium-border bg-premium-surface p-4"
+        >
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <div className="text-sm font-medium text-premium-text">
+              {f['автор']} <span className="text-premium-text/40">({f['роль автора']})</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-premium-text/40">{f['дата']}</span>
+              <select
+                value={f['статус']}
+                onChange={(e) => updateStatus(f.id, e.target.value)}
+                className={`rounded-lg border border-premium-border bg-premium-bg px-2 py-1 text-xs font-medium outline-none focus:border-premium-gold ${
+                  FEEDBACK_STATUS_COLOR[f['статус']] ?? 'text-premium-text'
+                }`}
+              >
+                {FEEDBACK_STATUSES.map((s) => (
+                  <option key={s} value={s}>
+                    {s}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+          <div className="mt-2 whitespace-pre-wrap break-words text-sm text-premium-text/80">{f['сообщение']}</div>
+          {f['вложения'].length > 0 && (
+            <div className="mt-3 flex flex-wrap gap-2">
+              {f['вложения'].map((a) => (
+                <button
+                  key={a.id}
+                  type="button"
+                  onClick={() => setViewingImage(a['изображение'])}
+                  className="h-20 w-20 overflow-hidden rounded-lg border border-premium-border"
+                >
+                  <img src={a['изображение']} alt={a['имя файла'] ?? ''} className="h-full w-full object-cover" />
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+      ))}
+
+      {viewingImage && <ImageLightbox src={viewingImage} onClose={() => setViewingImage(null)} />}
     </div>
   )
 }
