@@ -254,3 +254,36 @@ def test_developer_cannot_update_foreign_feedback(client, db_session):
         f"/api/feedback/{feedback_id}", json={"status": "решено"}, headers=auth_headers(developer)
     )
     assert resp.status_code == 404
+
+
+def test_worker_cannot_see_unread_count(client, db_session):
+    worker = make_user(db_session, login="fb_unread_worker", role=WORKER)
+    resp = client.get("/api/feedback/unread-count", headers=auth_headers(worker))
+    assert resp.status_code == 403
+
+
+def test_unread_count_only_counts_new_status(client, db_session):
+    worker = make_user(db_session, login="fb_unread_target", role=WORKER)
+    r1 = client.post("/api/feedback", data={"message": "первое"}, headers=auth_headers(worker))
+    r2 = client.post("/api/feedback", data={"message": "второе"}, headers=auth_headers(worker))
+    client.post("/api/feedback", data={"message": "третье"}, headers=auth_headers(worker))
+
+    developer = make_user(db_session, login="fb_unread_dev", role=DEVELOPER)
+    # Одно уже просмотрено, одно решено — счётчик должен учитывать только оставшееся "новое".
+    client.patch(f"/api/feedback/{r1.json()['id']}", json={"status": "просмотрено"}, headers=auth_headers(developer))
+    client.patch(f"/api/feedback/{r2.json()['id']}", json={"status": "решено"}, headers=auth_headers(developer))
+
+    resp = client.get("/api/feedback/unread-count", headers=auth_headers(developer))
+    assert resp.status_code == 200
+    assert resp.json()["count"] == 1
+
+
+def test_unread_count_isolated_between_companies(client, db_session):
+    other_company = make_company(db_session, name="Другая компания")
+    other_worker = make_user(db_session, login="fb_unread_other_co", role=WORKER, company_id=other_company.id)
+    client.post("/api/feedback", data={"message": "чужая компания"}, headers=auth_headers(other_worker))
+
+    developer = make_user(db_session, login="fb_unread_dev_iso", role=DEVELOPER)
+    resp = client.get("/api/feedback/unread-count", headers=auth_headers(developer))
+    assert resp.status_code == 200
+    assert resp.json()["count"] == 0

@@ -18,7 +18,7 @@ import io
 from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
 from PIL import Image
 from PIL import UnidentifiedImageError
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.constants import (
@@ -26,6 +26,7 @@ from app.constants import (
     FEEDBACK_MAX_ATTACHMENT_BYTES,
     FEEDBACK_MAX_ATTACHMENTS,
     FEEDBACK_MAX_DIMENSION,
+    FEEDBACK_STATUS_NEW,
     FEEDBACK_STATUSES,
 )
 from app.db import get_db
@@ -145,6 +146,23 @@ async def create_feedback(
         db.add(FeedbackAttachment(feedback_id=feedback.id, image_base64=image_base64, filename=filename))
     db.commit()
     return {"id": feedback.id}
+
+
+@router.get("/unread-count")
+def unread_feedback_count(
+    user: dict = Depends(require_roles(DEVELOPER)), db: Session = Depends(get_db)
+) -> dict:
+    """Счётчик для точки-индикатора в сайдбаре (2026-07-27, запрос Александра) — только
+    статус "новое", не общее число обращений, иначе индикатор горел бы вечно даже после
+    того, как всё уже просмотрено/решено. Отдельный лёгкий эндпоинт, не переиспользуем
+    list_feedback — тот тянет вложения (base64-картинки) на каждое обращение, дорого
+    гонять только ради значка."""
+    count = db.scalar(
+        select(func.count(Feedback.id)).where(
+            Feedback.company_id == user["company_id"], Feedback.status == FEEDBACK_STATUS_NEW
+        )
+    )
+    return {"count": count or 0}
 
 
 @router.get("")

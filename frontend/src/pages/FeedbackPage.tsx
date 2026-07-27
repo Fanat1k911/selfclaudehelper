@@ -188,26 +188,53 @@ export function FeedbackPage() {
 }
 
 function FeedbackGroup({ title, items }: { title: string; items: MyFeedbackEntry[] }) {
+  // Карточки были "неоткрывающимися" — текст всегда в одну строку (truncate), вложения
+  // не рендерились вообще (репорт Александра, 2026-07-27). Клик по карточке
+  // разворачивает полный текст + скриншоты, второй клик сворачивает обратно.
+  const [expandedId, setExpandedId] = useState<string | null>(null)
+
   if (items.length === 0) return null
   return (
     <div>
       <h2 className="mb-2 text-sm font-semibold text-premium-text/70">{title}</h2>
       <div className="space-y-2">
-        {items.map((f) => (
-          <div key={f.id} className="rounded-xl border border-premium-border bg-premium-surface p-3">
-            <div className="flex items-center justify-between gap-2 text-xs text-premium-text/40">
-              <span>{f['дата'].slice(0, 10)}</span>
-              <span className="flex items-center gap-1.5">
-                <span className={`h-1.5 w-1.5 rounded-full ${STATUS_DOT[f['статус']] ?? 'bg-premium-text/30'}`} />
-                {f['статус']}
-              </span>
-            </div>
-            <div className="mt-1 truncate text-sm text-premium-text/80">{f['сообщение']}</div>
-            {f['статус для автора'] && (
-              <div className="mt-1.5 text-xs text-premium-gold-hi">{f['статус для автора']}</div>
-            )}
-          </div>
-        ))}
+        {items.map((f) => {
+          const expanded = expandedId === f.id
+          return (
+            <button
+              key={f.id}
+              type="button"
+              onClick={() => setExpandedId(expanded ? null : f.id)}
+              className="block w-full rounded-xl border border-premium-border bg-premium-surface p-3 text-left transition-colors hover:bg-premium-surface-2"
+            >
+              <div className="flex items-center justify-between gap-2 text-xs text-premium-text/40">
+                <span>{f['дата'].slice(0, 10)}</span>
+                <span className="flex items-center gap-1.5">
+                  <span className={`h-1.5 w-1.5 rounded-full ${STATUS_DOT[f['статус']] ?? 'bg-premium-text/30'}`} />
+                  {f['статус']}
+                </span>
+              </div>
+              <div className={`mt-1 text-sm text-premium-text/80 ${expanded ? '' : 'truncate'}`}>
+                {f['сообщение']}
+              </div>
+              {f['статус для автора'] && (
+                <div className="mt-1.5 text-xs text-premium-gold-hi">{f['статус для автора']}</div>
+              )}
+              {expanded && f['вложения'].length > 0 && (
+                <div className="mt-2 flex flex-wrap gap-2">
+                  {f['вложения'].map((a) => (
+                    <img
+                      key={a.id}
+                      src={a['изображение']}
+                      alt={a['имя файла'] ?? ''}
+                      className="h-20 w-20 rounded-lg border border-premium-border object-cover"
+                    />
+                  ))}
+                </div>
+              )}
+            </button>
+          )
+        })}
       </div>
     </div>
   )

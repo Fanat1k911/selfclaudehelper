@@ -15,9 +15,15 @@ import {
   Wrench,
   type LucideIcon,
 } from 'lucide-react'
+import { apiFetch } from '../lib/api'
 import { useAuth, defaultPathForRole } from '../lib/auth'
 import type { User } from '../types'
 import { Brand } from './Brand'
+
+// Точка-индикатор новых обращений у "Обратная связь" (2026-07-27, запрос Александра) —
+// только для developer (только он видит список обращений). Поллинг раз в минуту — тот же
+// компромисс, что у UpdateBanner (нет websocket/push в приложении, см. CLAUDE.md).
+const UNREAD_FEEDBACK_POLL_MS = 60_000
 
 const ROLE_LABEL: Record<User['role'], string> = {
   founder: 'Founder',
@@ -61,7 +67,27 @@ export function Sidebar({ mobileOpen = false, onCloseMobile }: { mobileOpen?: bo
   const [menuOpen, setMenuOpen] = useState(false)
   const [switching, setSwitching] = useState(false)
   const [switchError, setSwitchError] = useState<string | null>(null)
+  const [hasUnreadFeedback, setHasUnreadFeedback] = useState(false)
   const menuRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    if (!isDeveloper) return
+    let cancelled = false
+    async function poll() {
+      try {
+        const { count } = await apiFetch<{ count: number }>('/feedback/unread-count')
+        if (!cancelled) setHasUnreadFeedback(count > 0)
+      } catch {
+        // Не критично для работы сайдбара — тихо пропускаем, попробуем на следующем тике.
+      }
+    }
+    poll()
+    const interval = setInterval(poll, UNREAD_FEEDBACK_POLL_MS)
+    return () => {
+      cancelled = true
+      clearInterval(interval)
+    }
+  }, [isDeveloper])
 
   async function handleSwitchCompany(companyId: string) {
     setSwitching(true)
@@ -238,7 +264,7 @@ export function Sidebar({ mobileOpen = false, onCloseMobile }: { mobileOpen?: bo
                 onCloseMobile?.()
               }}
               className={({ isActive }) =>
-                `block px-4 py-2.5 text-sm font-medium transition-colors ${
+                `flex items-center gap-2 px-4 py-2.5 text-sm font-medium transition-colors ${
                   isActive
                     ? 'bg-premium-gold/16 text-premium-gold-hi'
                     : 'text-premium-text/80 hover:bg-premium-surface-2 hover:text-premium-text'
@@ -246,6 +272,9 @@ export function Sidebar({ mobileOpen = false, onCloseMobile }: { mobileOpen?: bo
               }
             >
               Обратная связь
+              {isDeveloper && hasUnreadFeedback && (
+                <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-premium-gold" aria-label="Есть новые обращения" />
+              )}
             </NavLink>
             <button
               onClick={() => {
