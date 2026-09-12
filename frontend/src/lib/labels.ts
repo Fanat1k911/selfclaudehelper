@@ -13,3 +13,18 @@ export function materialCategoryLabel(raw: string): string {
   if (!raw) return raw
   return MATERIAL_CATEGORY_LABELS[raw] ?? raw
 }
+
+// Единица измерения хранится в БД сокращённо (г/шт/кг/мл/л) — здесь только отображение,
+// само значение не трогаем.
+const UNIT_LABELS: Record<string, string> = {
+  'г': 'гр.',
+  'кг': 'кг',
+  'шт': 'шт',
+  'мл': 'мл',
+  'л': 'л',
+}
+
+export function unitLabel(raw: string): string {
+  if (!raw) return raw
+  return UNIT_LABELS[raw] ?? raw
+}

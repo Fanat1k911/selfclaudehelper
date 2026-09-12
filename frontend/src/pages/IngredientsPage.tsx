@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { AlertTriangle, Download, Plus, Truck, Upload } from 'lucide-react'
 import { apiFetch, apiDownload } from '../lib/api'
 import { useAuth } from '../lib/auth'
-import { materialCategoryLabel } from '../lib/labels'
+import { materialCategoryLabel, unitLabel } from '../lib/labels'
 import { usePremiumBackground } from '../lib/usePremiumBackground'
 import { useCountUp } from '../lib/useCountUp'
 import type { Ingredient, User } from '../types'
@@ -69,6 +69,9 @@ function DeskRow({ ing, onClick, index }: { ing: Ingredient; onClick: () => void
       <td className="px-4 py-3 text-premium-text/60">{materialCategoryLabel(ing['категория'])}</td>
       <td className="px-4 py-3 text-right font-medium text-premium-text">
         {ing['остаток']} {ing['ед.измерения']}
+      </td>
+      <td className="px-4 py-3 text-right text-premium-text/50">
+        {ing['себестоимость 1 шт'] === null ? '—' : `${ing['себестоимость 1 шт']} ₽/${unitLabel(ing['ед.измерения'])}`}
       </td>
       <td className="px-4 py-3 text-right text-premium-text/50">
         {ing['мин.остаток']} {ing['ед.измерения']}
@@ -247,6 +250,7 @@ export function IngredientsPage() {
                   <th className="px-4 py-3 font-medium">Название</th>
                   <th className="px-4 py-3 font-medium">Категория</th>
                   <th className="px-4 py-3 font-medium text-right">Остаток</th>
+                  <th className="px-4 py-3 font-medium text-right">СС 1 ед.</th>
                   <th className="px-4 py-3 font-medium text-right">Мин.</th>
                   <th className="px-4 py-3 font-medium">Обновлено</th>
                 </tr>
