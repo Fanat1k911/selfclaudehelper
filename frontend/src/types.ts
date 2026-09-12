@@ -169,6 +169,7 @@ export interface ProducibleProduct {
 export interface ProductionLogEntry {
   id: string
   'дата': string
+  'время': string
   worker_id: string
   'ФИО сотрудника': string
   recipe_id: string

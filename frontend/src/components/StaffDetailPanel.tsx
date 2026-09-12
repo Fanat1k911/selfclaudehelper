@@ -2,7 +2,9 @@ import { useEffect, useState, type FormEvent } from 'react'
 import { apiFetch, ApiError } from '../lib/api'
 import { useAuth } from '../lib/auth'
 import { sanitizePhone } from '../lib/validators'
-import type { CompanyMembership, StaffUser } from '../types'
+import type { CompanyMembership, ProductionLogEntry, StaffUser } from '../types'
+
+const RECENT_ACTIONS_LIMIT = 10
 
 const ROLES: { value: StaffUser['role']; label: string }[] = [
   { value: 'worker', label: 'Сотрудник' },
@@ -20,6 +22,12 @@ function formatDate(value: string) {
   const d = new Date(value)
   if (Number.isNaN(d.getTime())) return '—'
   return d.toLocaleDateString('ru-RU')
+}
+
+function formatDateTime(value: string) {
+  const d = new Date(value)
+  if (Number.isNaN(d.getTime())) return '—'
+  return `${d.toLocaleDateString('ru-RU')}, ${d.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })}`
 }
 
 export function StaffDetailPanel({
@@ -74,6 +82,25 @@ export function StaffDetailPanel({
       .then(setOtherCompanies)
       .catch(() => setOtherCompanies(null))
   }, [staff.id, currentUser?.role])
+
+  // Отдельного журнала действий в проекте нет — берём ProductionLog (см. backend/CLAUDE.md
+  // → ProductionLog), это единственная запись, которая хранит "кто и когда" с точностью
+  // до времени (см. production.py::_log_dict, поле "время" — момент внесения записи).
+  // Founder/Developer видят все записи компании через тот же /api/production, что и
+  // ProductionPage.tsx — фильтруем на клиенте по worker_id этой карточки.
+  const [recentActions, setRecentActions] = useState<ProductionLogEntry[] | null>(null)
+  useEffect(() => {
+    apiFetch<ProductionLogEntry[]>('/production')
+      .then((entries) =>
+        setRecentActions(
+          entries
+            .filter((e) => e.worker_id === staff.id)
+            .sort((a, b) => new Date(b['время']).getTime() - new Date(a['время']).getTime())
+            .slice(0, RECENT_ACTIONS_LIMIT),
+        ),
+      )
+      .catch(() => setRecentActions(null))
+  }, [staff.id])
 
   async function handleSave(e: FormEvent) {
     e.preventDefault()
@@ -218,6 +245,27 @@ export function StaffDetailPanel({
             >
               Редактировать
             </button>
+
+            <div className="pt-3 border-t border-premium-border">
+              <div className="text-xs text-premium-text/50 mb-2">Последние действия</div>
+              {recentActions === null ? (
+                <div className="text-sm text-premium-text/40">—</div>
+              ) : recentActions.length === 0 ? (
+                <div className="text-sm text-premium-text/40">Пока ничего не внесено.</div>
+              ) : (
+                <div className="space-y-2">
+                  {recentActions.map((entry) => (
+                    <div key={entry.id} className="text-sm">
+                      <div className="text-premium-text">
+                        {entry['название рецепта']}: {entry['кол-во продукта']} шт
+                        {entry['брак'] > 0 && `, брак ${entry['брак']}`}
+                      </div>
+                      <div className="text-xs text-premium-text/50">{formatDateTime(entry['время'])}</div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
         ) : (
           <form onSubmit={handleSave} className="px-6 py-4 border-b border-premium-border space-y-3">

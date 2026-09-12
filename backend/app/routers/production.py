@@ -101,6 +101,10 @@ def _log_dict(entry: ProductionLog) -> dict:
     return {
         "id": entry.id,
         "дата": entry.date.isoformat(),
+        # finished_at (2026-07-18) — момент внесения записи, автоматический, не введённый
+        # руками (см. create_production ниже); единственное поле в этом журнале с точностью
+        # до времени, не только до дня.
+        "время": entry.finished_at.isoformat(),
         "worker_id": entry.worker_id,
         "ФИО сотрудника": entry.worker.fio,
         "recipe_id": entry.recipe_id,

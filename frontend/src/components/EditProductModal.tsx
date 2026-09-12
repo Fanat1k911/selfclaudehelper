@@ -217,6 +217,7 @@ export function EditProductModal({
               type="date"
               value={declarationExpires}
               onChange={(e) => setDeclarationExpires(e.target.value)}
+              onClick={(e) => e.currentTarget.showPicker?.()}
               className="absolute inset-0 h-full w-full cursor-pointer opacity-0"
             />
             <div className="pointer-events-none w-full rounded-lg border border-premium-border bg-premium-bg px-3 py-2 text-sm text-premium-text">

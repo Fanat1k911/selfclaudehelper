@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { AlertTriangle, Download, Plus, Truck, Upload } from 'lucide-react'
 import { apiFetch, apiDownload } from '../lib/api'
 import { useAuth } from '../lib/auth'
-import { materialCategoryLabel, unitLabel } from '../lib/labels'
+import { materialCategoryLabel } from '../lib/labels'
 import { usePremiumBackground } from '../lib/usePremiumBackground'
 import { useCountUp } from '../lib/useCountUp'
 import type { Ingredient, User } from '../types'
@@ -82,7 +82,7 @@ function DeskRow({
       </td>
       {showCost && (
         <td className="px-4 py-3 text-right text-premium-text/50">
-          {ing['себестоимость 1 шт'] === null ? '—' : `${ing['себестоимость 1 шт'].toFixed(2)} ₽/${unitLabel(ing['ед.измерения'])}`}
+          {ing['себестоимость 1 шт'] === null ? '—' : `${ing['себестоимость 1 шт'].toFixed(2)} ₽`}
         </td>
       )}
       <td className="px-4 py-3 text-right text-premium-text/50">
