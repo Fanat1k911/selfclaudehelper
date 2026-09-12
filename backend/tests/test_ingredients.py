@@ -150,6 +150,26 @@ def test_patch_updates_purchase_attrs_partially(client, db_session):
     assert row["INCI"] == "Glycerin"
 
 
+def test_worker_does_not_see_cost_founder_does(client, db_session):
+    """Себестоимость — финансовые данные (CLAUDE.md, "Роли и права"): Worker не должен
+    видеть её в списке компонентов, хотя сама запись — общая для всей компании."""
+    founder = make_user(db_session, login="iw3c", role=FOUNDER)
+    resp = client.post(
+        "/api/ingredients", json={"name": "Масло", "category": "жидкое", "unit": "г"}, headers=auth_headers(founder)
+    )
+    material_id = resp.json()["id"]
+    client.patch(f"/api/ingredients/{material_id}", json={"unit_cost": 0.5}, headers=auth_headers(founder))
+
+    worker = make_user(db_session, login="iw3d", role=WORKER, company_id=founder.company_id)
+    resp = client.get("/api/ingredients", headers=auth_headers(worker))
+    row = next(r for r in resp.json() if r["id"] == material_id)
+    assert row["себестоимость 1 шт"] is None
+
+    resp = client.get("/api/ingredients", headers=auth_headers(founder))
+    row = next(r for r in resp.json() if r["id"] == material_id)
+    assert row["себестоимость 1 шт"] == 0.5
+
+
 def test_patch_renames_material(client, db_session):
     founder = make_user(db_session, login="iw3b", role=FOUNDER)
     headers = auth_headers(founder)

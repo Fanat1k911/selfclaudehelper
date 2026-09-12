@@ -51,7 +51,7 @@ def _color(balance: float, min_stock: float) -> str:
     return "зелёный"
 
 
-def _material_dict(material: Material, balance: float, last_movement: date | None) -> dict:
+def _material_dict(material: Material, balance: float, last_movement: date | None, show_cost: bool) -> dict:
     min_stock = float(material.min_stock)
     return {
         "id": material.id,
@@ -63,7 +63,7 @@ def _material_dict(material: Material, balance: float, last_movement: date | Non
         "ниже минимума": balance < min_stock,
         "цвет": _color(balance, min_stock),
         "последнее движение": last_movement.isoformat() if last_movement else None,
-        "себестоимость 1 шт": float(material.unit_cost) if material.unit_cost is not None else None,
+        "себестоимость 1 шт": float(material.unit_cost) if show_cost and material.unit_cost is not None else None,
         "минимальная партия для закупки": (
             float(material.min_purchase_batch_qty) if material.min_purchase_batch_qty is not None else None
         ),
@@ -123,7 +123,8 @@ def list_ingredients(
         select(Material).where(Material.company_id == user["company_id"], Material.archived == archived)
     ).all()
     balances, last_movement = _balances_and_last_movement(db, user["company_id"])
-    return [_material_dict(m, balances.get(m.id, 0.0), last_movement.get(m.id)) for m in materials]
+    show_cost = user["role"] in (FOUNDER, DEVELOPER)
+    return [_material_dict(m, balances.get(m.id, 0.0), last_movement.get(m.id), show_cost) for m in materials]
 
 
 @router.get("/categories")

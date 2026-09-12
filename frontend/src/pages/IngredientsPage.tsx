@@ -54,7 +54,17 @@ function MobileCard({ ing, onClick, index }: { ing: Ingredient; onClick: () => v
   )
 }
 
-function DeskRow({ ing, onClick, index }: { ing: Ingredient; onClick: () => void; index: number }) {
+function DeskRow({
+  ing,
+  onClick,
+  index,
+  showCost,
+}: {
+  ing: Ingredient
+  onClick: () => void
+  index: number
+  showCost: boolean
+}) {
   return (
     <tr
       onClick={onClick}
@@ -70,9 +80,11 @@ function DeskRow({ ing, onClick, index }: { ing: Ingredient; onClick: () => void
       <td className="px-4 py-3 text-right font-medium text-premium-text">
         {ing['остаток']} {ing['ед.измерения']}
       </td>
-      <td className="px-4 py-3 text-right text-premium-text/50">
-        {ing['себестоимость 1 шт'] === null ? '—' : `${ing['себестоимость 1 шт']} ₽/${unitLabel(ing['ед.измерения'])}`}
-      </td>
+      {showCost && (
+        <td className="px-4 py-3 text-right text-premium-text/50">
+          {ing['себестоимость 1 шт'] === null ? '—' : `${ing['себестоимость 1 шт'].toFixed(2)} ₽/${unitLabel(ing['ед.измерения'])}`}
+        </td>
+      )}
       <td className="px-4 py-3 text-right text-premium-text/50">
         {ing['мин.остаток']} {ing['ед.измерения']}
       </td>
@@ -227,7 +239,7 @@ export function IngredientsPage() {
             <table className="w-full text-sm">
               <tbody>
                 {belowMin.map((ing, i) => (
-                  <DeskRow key={ing.id} ing={ing} index={i} onClick={() => handleRowClick(ing)} />
+                  <DeskRow key={ing.id} ing={ing} index={i} onClick={() => handleRowClick(ing)} showCost={canManage} />
                 ))}
               </tbody>
             </table>
@@ -250,14 +262,14 @@ export function IngredientsPage() {
                   <th className="px-4 py-3 font-medium">Название</th>
                   <th className="px-4 py-3 font-medium">Категория</th>
                   <th className="px-4 py-3 font-medium text-right">Остаток</th>
-                  <th className="px-4 py-3 font-medium text-right">СС 1 ед.</th>
+                  {canManage && <th className="px-4 py-3 font-medium text-right">СС 1 ед.</th>}
                   <th className="px-4 py-3 font-medium text-right">Мин.</th>
                   <th className="px-4 py-3 font-medium">Обновлено</th>
                 </tr>
               </thead>
               <tbody>
                 {rest.map((ing, i) => (
-                  <DeskRow key={ing.id} ing={ing} index={i} onClick={() => handleRowClick(ing)} />
+                  <DeskRow key={ing.id} ing={ing} index={i} onClick={() => handleRowClick(ing)} showCost={canManage} />
                 ))}
               </tbody>
             </table>
