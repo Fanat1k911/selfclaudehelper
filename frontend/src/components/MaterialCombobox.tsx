@@ -11,7 +11,7 @@ export function MaterialCombobox({
   ingredients,
   value,
   onChange,
-  placeholder = 'Введите название материала…',
+  placeholder = 'Введите название компонента…',
 }: {
   ingredients: Ingredient[]
   value: string

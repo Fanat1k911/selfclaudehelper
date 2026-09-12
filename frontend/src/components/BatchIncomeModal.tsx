@@ -98,7 +98,7 @@ export function BatchIncomeModal({
             <div>
               <div className="text-lg font-semibold text-premium-text">Поставка</div>
               <div className="mt-0.5 text-xs text-premium-text/50">
-                Несколько материалов одним приходом — транспортные расходы разделятся между ними по весу.
+                Несколько компонентов одним приходом — транспортные расходы разделятся между ними по весу.
               </div>
             </div>
           </div>
@@ -161,7 +161,7 @@ export function BatchIncomeModal({
             disabled={rows.length >= ingredients.length}
             className="text-sm font-medium text-premium-gold-hi hover:text-premium-gold disabled:opacity-40"
           >
-            + добавить материал
+            + добавить компонент
           </button>
 
           <div className="pt-2 border-t border-premium-border">
