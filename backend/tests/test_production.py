@@ -300,6 +300,22 @@ def test_production_response_returns_product_quantity_not_batches(client, db_ses
     assert "время окончания" not in entry
 
 
+def test_production_time_field_marked_as_utc(client, db_session):
+    """finished_at хранится как datetime.utcnow() без tzinfo — без явного "Z" браузер
+    трактует ISO-строку как локальное время и сдвигает её (тот же баг уже был пойман
+    и исправлен для logged_in_at в auth.py)."""
+    material, recipe, product = _make_recipe_with_material(db_session, qty_per_batch=1.0, batch_yield=5.0)
+    company_id = default_company_id(db_session)
+    db_session.add(Transaction(company_id=company_id, material_id=material.id, type=TRANSACTION_INCOME, qty=100.0))
+    db_session.commit()
+
+    worker = make_user(db_session, login="time_field_worker", role=WORKER)
+    client.post("/api/production", json={"product_id": product.id, "recipe_id": recipe.id, "qty": 1}, headers=auth_headers(worker))
+
+    resp = client.get("/api/production", headers=auth_headers(worker))
+    assert resp.json()[0]["время"].endswith("Z")
+
+
 def test_production_zero_batch_yield_rejected(client, db_session):
     material, recipe, product = _make_recipe_with_material(db_session, batch_yield=0.0)
     company_id = default_company_id(db_session)
