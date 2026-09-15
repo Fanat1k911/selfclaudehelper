@@ -125,7 +125,10 @@ class Material(Base):
     # Карточка компонента (2026-07-19, запрос Founder/Александра) — закупочные атрибуты
     # из каталога поставщика, не связаны с остатком/движениями (те по-прежнему только в
     # Transactions). Все опциональны — не у каждого материала есть все эти данные.
-    unit_cost: Mapped[float | None] = mapped_column(Numeric(12, 4))
+    # Ручное поле "себестоимость 1 шт" убрано (2026-09-13, запрос Александра — только
+    # реальные данные, без прогнозов): себестоимость теперь считается исключительно из
+    # фактических поставок (app/costing.py::compute_active_lot_unit_costs), нет поставки
+    # с ценой — честно "—", не гадаем.
     min_purchase_batch_qty: Mapped[float | None] = mapped_column(Numeric(12, 3))
     min_purchase_batch_cost: Mapped[float | None] = mapped_column(Numeric(12, 2))
     min_purchase_batch_weight: Mapped[float | None] = mapped_column(Numeric(12, 3))
@@ -138,7 +141,7 @@ class Material(Base):
     # Подкатегория тары (2026-07-23) — только для category="тара", см. PACKAGING_TYPES
     # в constants.py. Поля ниже общие для нескольких подтипов (короб/флакон делят
     # width_mm/height_mm), не у каждого материала заполнены все — справочные, в расчёт
-    # себестоимости не входят (себестоимость по-прежнему только unit_cost/лоты).
+    # себестоимости не входят (себестоимость по-прежнему только из лотов, см. costing.py).
     packaging_type: Mapped[str | None] = mapped_column(String(20))
     width_mm: Mapped[float | None] = mapped_column(Numeric(10, 2))
     height_mm: Mapped[float | None] = mapped_column(Numeric(10, 2))
@@ -201,6 +204,11 @@ class Transaction(Base):
     # created_at (2026-07-19) — отдельно от date (день без времени, вводится руками):
     # нужен для сортировки "последние события" на дашборде с точностью до секунды.
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    # created_by (2026-09-13) — кто внёс это движение, для "Последних действий" на карточке
+    # сотрудника (см. StaffDetailPanel.tsx). Nullable: существовавшие до этой миграции
+    # записи не бэкфиллятся, автора для них восстановить неоткуда — это не баг, у системы
+    # раньше просто не было такого понятия.
+    created_by: Mapped[str | None] = mapped_column(ForeignKey("users.id"))
 
     material: Mapped["Material"] = relationship(back_populates="transactions")
 

@@ -2,9 +2,39 @@ import { useEffect, useState, type FormEvent } from 'react'
 import { apiFetch, ApiError } from '../lib/api'
 import { useAuth } from '../lib/auth'
 import { sanitizePhone } from '../lib/validators'
-import type { CompanyMembership, ProductionLogEntry, StaffUser } from '../types'
+import type { CompanyMembership, ProductionLogEntry, StaffUser, WorkerTransactionEntry } from '../types'
 
 const RECENT_ACTIONS_LIMIT = 10
+
+interface RecentAction {
+  id: string
+  'время': string
+  описание: string
+}
+
+const TX_TYPE_LABEL: Record<WorkerTransactionEntry['тип'], string> = {
+  'приход': 'Приход',
+  'расход': 'Расход',
+  'корректировка': 'Корректировка',
+}
+
+function productionToAction(entry: ProductionLogEntry): RecentAction {
+  const brak = entry['брак'] > 0 ? `, брак ${entry['брак']}` : ''
+  return {
+    id: `production-${entry.id}`,
+    'время': entry['время'],
+    описание: `${entry['название рецепта']}: ${entry['кол-во продукта']} шт${brak}`,
+  }
+}
+
+function transactionToAction(entry: WorkerTransactionEntry): RecentAction {
+  const sign = entry['тип'] === 'расход' ? '-' : '+'
+  return {
+    id: `transaction-${entry.id}`,
+    'время': entry['время'],
+    описание: `${TX_TYPE_LABEL[entry['тип']]}: ${sign}${entry['кол-во']} ${entry['ед.измерения']} — ${entry['название']}`,
+  }
+}
 
 const ROLES: { value: StaffUser['role']; label: string }[] = [
   { value: 'worker', label: 'Сотрудник' },
@@ -83,18 +113,20 @@ export function StaffDetailPanel({
       .catch(() => setOtherCompanies(null))
   }, [staff.id, currentUser?.role])
 
-  // Отдельного журнала действий в проекте нет — берём ProductionLog (см. backend/CLAUDE.md
-  // → ProductionLog), это единственная запись, которая хранит "кто и когда" с точностью
-  // до времени (см. production.py::_log_dict, поле "время" — момент внесения записи).
-  // Founder/Developer видят все записи компании через тот же /api/production, что и
-  // ProductionPage.tsx — фильтруем на клиенте по worker_id этой карточки.
-  const [recentActions, setRecentActions] = useState<ProductionLogEntry[] | null>(null)
+  // Отдельного единого журнала действий в проекте нет — собираем из двух источников:
+  // ProductionLog (что произвёл) и Transaction (какие компоненты принял/списал/
+  // скорректировал, created_by — 2026-09-13, см. backend/CLAUDE.md). Оба эндпоинта уже
+  // фильтруют/лимитируют по worker_id на сервере (не на клиенте), Founder/Developer-only,
+  // как и весь раздел «Сотрудники».
+  const [recentActions, setRecentActions] = useState<RecentAction[] | null>(null)
   useEffect(() => {
-    apiFetch<ProductionLogEntry[]>('/production')
-      .then((entries) =>
+    Promise.all([
+      apiFetch<ProductionLogEntry[]>(`/production?worker_id=${staff.id}&limit=${RECENT_ACTIONS_LIMIT}`),
+      apiFetch<WorkerTransactionEntry[]>(`/ingredients/transactions?worker_id=${staff.id}&limit=${RECENT_ACTIONS_LIMIT}`),
+    ])
+      .then(([production, transactions]) =>
         setRecentActions(
-          entries
-            .filter((e) => e.worker_id === staff.id)
+          [...production.map(productionToAction), ...transactions.map(transactionToAction)]
             .sort((a, b) => new Date(b['время']).getTime() - new Date(a['время']).getTime())
             .slice(0, RECENT_ACTIONS_LIMIT),
         ),
@@ -256,10 +288,7 @@ export function StaffDetailPanel({
                 <div className="space-y-2">
                   {recentActions.map((entry) => (
                     <div key={entry.id} className="text-sm">
-                      <div className="text-premium-text">
-                        {entry['название рецепта']}: {entry['кол-во продукта']} шт
-                        {entry['брак'] > 0 && `, брак ${entry['брак']}`}
-                      </div>
+                      <div className="text-premium-text">{entry.описание}</div>
                       <div className="text-xs text-premium-text/50">{formatDateTime(entry['время'])}</div>
                     </div>
                   ))}

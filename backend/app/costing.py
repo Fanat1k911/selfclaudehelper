@@ -66,8 +66,9 @@ def compute_product_costs(
 ) -> tuple[float | None, float | None]:
     """(себестоимость партии, себестоимость единицы) — None/None, если продукт не
     привязан к рецепту, у рецепта нет состава, или хотя бы по одному материалу
-    рецепта нет ни лота, ни ручной "себестоимости 1 шт" на карточке компонента
-    (осознанно не показываем частично посчитанную цифру, которая ввела бы в заблуждение)."""
+    рецепта нет активного лота с ценой (осознанно не показываем частично посчитанную
+    или прогнозную цифру, которая ввела бы в заблуждение — только реальные поставки,
+    2026-09-13, запрос Александра)."""
     if not product.recipe_id or not product.recipe:
         return None, None
 
@@ -82,8 +83,6 @@ def compute_product_costs(
     total = 0.0
     for item in items:
         unit_cost = lot_unit_costs.get(item.material_id)
-        if unit_cost is None and item.material.unit_cost is not None:
-            unit_cost = float(item.material.unit_cost)
         if unit_cost is None:
             return None, None
         total += unit_cost * float(item.qty_per_batch) * loss_factor

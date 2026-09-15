@@ -2,6 +2,58 @@ from app.constants import FOUNDER, WORKER
 from tests.conftest import auth_headers, make_user
 
 
+def test_worker_actions_endpoint_requires_management_role(client, db_session):
+    worker = make_user(db_session, login="txw1", role=WORKER)
+    resp = client.get("/api/ingredients/transactions", headers=auth_headers(worker))
+    assert resp.status_code == 403
+
+
+def test_worker_actions_endpoint_filters_by_worker_id(client, db_session):
+    founder = make_user(db_session, login="txw2f", role=FOUNDER)
+    w1 = make_user(db_session, login="txw2a", role=WORKER, company_id=founder.company_id)
+    w2 = make_user(db_session, login="txw2b", role=WORKER, company_id=founder.company_id)
+
+    resp = client.post("/api/ingredients", json={"name": "М1", "category": "жидкое", "unit": "г"}, headers=auth_headers(w1))
+    m1 = resp.json()["id"]
+    client.post(f"/api/ingredients/{m1}/income", json={"qty": 5}, headers=auth_headers(w1))
+
+    resp = client.post("/api/ingredients", json={"name": "М2", "category": "жидкое", "unit": "г"}, headers=auth_headers(w2))
+    m2 = resp.json()["id"]
+    client.post(f"/api/ingredients/{m2}/income", json={"qty": 7}, headers=auth_headers(w2))
+
+    resp = client.get(f"/api/ingredients/transactions?worker_id={w1.id}", headers=auth_headers(founder))
+    rows = resp.json()
+    assert len(rows) == 1
+    assert rows[0]["название"] == "М1"
+    assert rows[0]["время"].endswith("Z")
+
+
+def test_worker_actions_endpoint_covers_income_expense_adjustment_and_batch(client, db_session):
+    founder = make_user(db_session, login="txw3f", role=FOUNDER)
+    worker = make_user(db_session, login="txw3a", role=WORKER, company_id=founder.company_id)
+    headers = auth_headers(worker)
+
+    resp = client.post("/api/ingredients", json={"name": "Ш1", "category": "жидкое", "unit": "г"}, headers=headers)
+    m1 = resp.json()["id"]
+    resp = client.post("/api/ingredients", json={"name": "Ш2", "category": "жидкое", "unit": "г"}, headers=headers)
+    m2 = resp.json()["id"]
+
+    client.post(f"/api/ingredients/{m1}/income", json={"qty": 5}, headers=headers)
+    client.post(f"/api/ingredients/{m1}/expense", json={"qty": 1}, headers=headers)
+    client.post(f"/api/ingredients/{m1}/adjustment", json={"actual_qty": 2}, headers=headers)
+    client.post(
+        "/api/ingredients/income/batch",
+        json={"items": [{"material_id": m2, "qty": 3}], "transport_cost": 0},
+        headers=headers,
+    )
+
+    resp = client.get(f"/api/ingredients/transactions?worker_id={worker.id}", headers=auth_headers(founder))
+    rows = resp.json()
+    # начальный остаток (initial_qty=0 по умолчанию не создаёт транзакцию) + 4 действия выше
+    assert len(rows) == 4
+    assert {r["тип"] for r in rows} == {"приход", "расход", "корректировка"}
+
+
 def test_balance_reflects_income_expense_adjustment(client, db_session):
     worker = make_user(db_session, login="iw1", role=WORKER)
     headers = auth_headers(worker)
@@ -131,22 +183,21 @@ def test_patch_updates_purchase_attrs_partially(client, db_session):
 
     resp = client.patch(
         f"/api/ingredients/{material_id}",
-        json={"unit_cost": 0.25, "supplier": "ИП Иванов"},
+        json={"supplier": "ИП Иванов"},
         headers=headers,
     )
     assert resp.status_code == 200
 
     resp = client.get("/api/ingredients", headers=headers)
     row = next(r for r in resp.json() if r["id"] == material_id)
-    assert row["себестоимость 1 шт"] == 0.25
     assert row["поставщик"] == "ИП Иванов"
     assert row["INCI"] == ""  # не тронуто — не было в теле запроса
 
-    # второй PATCH меняет только INCI, unit_cost должен остаться прежним
+    # второй PATCH меняет только INCI, поставщик должен остаться прежним
     client.patch(f"/api/ingredients/{material_id}", json={"inci": "Glycerin"}, headers=headers)
     resp = client.get("/api/ingredients", headers=headers)
     row = next(r for r in resp.json() if r["id"] == material_id)
-    assert row["себестоимость 1 шт"] == 0.25
+    assert row["поставщик"] == "ИП Иванов"
     assert row["INCI"] == "Glycerin"
 
 
@@ -158,7 +209,9 @@ def test_worker_does_not_see_cost_founder_does(client, db_session):
         "/api/ingredients", json={"name": "Масло", "category": "жидкое", "unit": "г"}, headers=auth_headers(founder)
     )
     material_id = resp.json()["id"]
-    client.patch(f"/api/ingredients/{material_id}", json={"unit_cost": 0.5}, headers=auth_headers(founder))
+    client.post(
+        f"/api/ingredients/{material_id}/income", json={"qty": 10, "price": 0.5}, headers=auth_headers(founder)
+    )
 
     worker = make_user(db_session, login="iw3d", role=WORKER, company_id=founder.company_id)
     resp = client.get("/api/ingredients", headers=auth_headers(worker))
@@ -232,7 +285,7 @@ def test_patch_rejects_foreign_material(client, db_session):
 
     other_company = make_company(db_session, name="Другая мастерская")
     founder2 = make_user(db_session, login="iw5", role=FOUNDER, company_id=other_company.id)
-    resp = client.patch(f"/api/ingredients/{material_id}", json={"unit_cost": 1}, headers=auth_headers(founder2))
+    resp = client.patch(f"/api/ingredients/{material_id}", json={"supplier": "x"}, headers=auth_headers(founder2))
     assert resp.status_code == 404
 
 
@@ -242,7 +295,7 @@ def test_patch_forbidden_for_worker(client, db_session):
     resp = client.post("/api/ingredients", json={"name": "Сода3", "category": "сыпучее", "unit": "кг"}, headers=headers)
     material_id = resp.json()["id"]
 
-    resp = client.patch(f"/api/ingredients/{material_id}", json={"unit_cost": 1}, headers=headers)
+    resp = client.patch(f"/api/ingredients/{material_id}", json={"supplier": "x"}, headers=headers)
     assert resp.status_code == 403
 
 

@@ -7,7 +7,7 @@ Worker видит только свои записи журнала, founder/dev
 from datetime import date as date_
 from datetime import datetime
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
@@ -122,10 +122,21 @@ def _log_dict(entry: ProductionLog) -> dict:
 
 
 @router.get("")
-def list_production(user: dict = Depends(get_current_user), db: Session = Depends(get_db)) -> list[dict]:
+def list_production(
+    worker_id: str | None = Query(None),
+    limit: int | None = Query(None, ge=1, le=500),
+    user: dict = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> list[dict]:
     stmt = select(ProductionLog).where(ProductionLog.company_id == user["company_id"]).order_by(ProductionLog.date.desc())
     if user["role"] not in (FOUNDER, DEVELOPER):
+        # Worker не может подсунуть чужой worker_id в query — сервер всё равно
+        # фильтрует по его собственному id, параметр для этой роли просто игнорируется.
         stmt = stmt.where(ProductionLog.worker_id == user["id"])
+    elif worker_id:
+        stmt = stmt.where(ProductionLog.worker_id == worker_id)
+    if limit is not None:
+        stmt = stmt.limit(limit)
     return [_log_dict(entry) for entry in db.scalars(stmt)]
 
 
@@ -228,6 +239,7 @@ def create_production(
                 qty=float(item.qty_per_batch) * batches * loss_factor,
                 recipe_id=body.recipe_id,
                 comment=f"списание по производству: {recipe.name}",
+                created_by=user["id"],
             )
         )
 
@@ -239,6 +251,7 @@ def create_production(
                 type=TRANSACTION_EXPENSE,
                 qty=body.packaged_qty,
                 comment=f"списание тары при упаковке: {product.name}",
+                created_by=user["id"],
             )
         )
         # Запоминаем выбор — не привязка, просто подсказка для предзаполнения формы в

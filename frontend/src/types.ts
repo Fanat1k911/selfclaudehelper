@@ -73,6 +73,15 @@ export interface Transaction {
   'комментарий': string
 }
 
+// GET /api/ingredients/transactions?worker_id= — движения компонентов конкретного
+// сотрудника, для "Последних действий" на его карточке (см. StaffDetailPanel.tsx).
+export interface WorkerTransactionEntry extends Transaction {
+  worker_id: string
+  'название': string
+  'ед.измерения': string
+  'время': string
+}
+
 export interface EquipmentItem {
   id: string
   'название': string
@@ -322,6 +331,7 @@ export interface ComponentCostValue {
   'тара': number
   'материалов учтено': number
   'материалов без цены': number
+  'топ материалов': { material_id: string; 'название': string; 'сумма': number }[]
 }
 
 export interface DashboardEvent {

@@ -24,6 +24,7 @@ from app.constants import (
     TRANSACTION_INCOME,
 )
 
+from app.costing import compute_active_lot_unit_costs
 from app.db import get_db
 from app.models import Material, Transaction
 from app.schemas import (
@@ -51,7 +52,9 @@ def _color(balance: float, min_stock: float) -> str:
     return "зелёный"
 
 
-def _material_dict(material: Material, balance: float, last_movement: date | None, show_cost: bool) -> dict:
+def _material_dict(
+    material: Material, balance: float, last_movement: date | None, show_cost: bool, lot_unit_cost: float | None
+) -> dict:
     min_stock = float(material.min_stock)
     return {
         "id": material.id,
@@ -63,7 +66,11 @@ def _material_dict(material: Material, balance: float, last_movement: date | Non
         "ниже минимума": balance < min_stock,
         "цвет": _color(balance, min_stock),
         "последнее движение": last_movement.isoformat() if last_movement else None,
-        "себестоимость 1 шт": float(material.unit_cost) if show_cost and material.unit_cost is not None else None,
+        # Себестоимость 1 ед. — не ручное поле, а расчёт по фактическим поставкам
+        # (та же система "дешёвый лот первым", что считает себестоимость продукта,
+        # см. app/costing.py). Нет ни одной поставки с ценой — None, честно "—" на
+        # фронте, без прогноза (2026-09-13, запрос Александра).
+        "себестоимость 1 шт": lot_unit_cost if show_cost else None,
         "минимальная партия для закупки": (
             float(material.min_purchase_batch_qty) if material.min_purchase_batch_qty is not None else None
         ),
@@ -124,7 +131,11 @@ def list_ingredients(
     ).all()
     balances, last_movement = _balances_and_last_movement(db, user["company_id"])
     show_cost = user["role"] in (FOUNDER, DEVELOPER)
-    return [_material_dict(m, balances.get(m.id, 0.0), last_movement.get(m.id), show_cost) for m in materials]
+    lot_unit_costs = compute_active_lot_unit_costs(db, user["company_id"])
+    return [
+        _material_dict(m, balances.get(m.id, 0.0), last_movement.get(m.id), show_cost, lot_unit_costs.get(m.id))
+        for m in materials
+    ]
 
 
 @router.get("/categories")
@@ -154,6 +165,37 @@ def list_transactions(
     return [_transaction_dict(tx) for tx in rows]
 
 
+@router.get("/transactions", dependencies=[Depends(require_roles(FOUNDER, DEVELOPER))])
+def list_transactions_by_worker(
+    worker_id: str | None = Query(None),
+    limit: int = Query(10, ge=1, le=100),
+    user: dict = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> list[dict]:
+    """"Последние действия" на карточке сотрудника (StaffDetailPanel.tsx) — движения
+    компонентов (приход/расход/корректировка), которые внёс конкретный сотрудник.
+    Founder/Developer-only, как и остальной раздел «Сотрудники»."""
+    stmt = select(Transaction).where(Transaction.company_id == user["company_id"])
+    if worker_id:
+        stmt = stmt.where(Transaction.created_by == worker_id)
+    stmt = stmt.order_by(Transaction.created_at.desc()).limit(limit)
+    txs = db.scalars(stmt).all()
+    material_ids = {tx.material_id for tx in txs}
+    materials = {m.id: m for m in db.scalars(select(Material).where(Material.id.in_(material_ids)))}
+    return [
+        {
+            **_transaction_dict(tx),
+            "название": materials[tx.material_id].name if tx.material_id in materials else tx.material_id,
+            "ед.измерения": materials[tx.material_id].unit if tx.material_id in materials else "",
+            # created_at (2026-07-19) хранится как datetime.utcnow() без tzinfo — явно
+            # помечаем "Z" (тот же фикс, что и logged_in_at в auth.py, "время" в production.py).
+            "время": tx.created_at.isoformat() + "Z",
+            "worker_id": tx.created_by,
+        }
+        for tx in txs
+    ]
+
+
 @router.post("")
 def create_ingredient(
     body: NewMaterialRequest, user: dict = Depends(get_current_user), db: Session = Depends(get_db)
@@ -170,7 +212,7 @@ def create_ingredient(
         db.add(
             Transaction(
                 company_id=user["company_id"], material_id=material.id, type=TRANSACTION_INCOME,
-                qty=body.initial_qty, comment="начальный остаток",
+                qty=body.initial_qty, comment="начальный остаток", created_by=user["id"],
             )
         )
     db.commit()
@@ -204,7 +246,7 @@ def add_income(
     db.add(
         Transaction(
             company_id=user["company_id"], material_id=material_id, type=TRANSACTION_INCOME,
-            qty=body.qty, price=body.price, comment=body.comment,
+            qty=body.qty, price=body.price, comment=body.comment, created_by=user["id"],
         )
     )
     db.commit()
@@ -252,7 +294,7 @@ def add_income_batch(
             Transaction(
                 company_id=user["company_id"], material_id=item.material_id, type=TRANSACTION_INCOME,
                 qty=item.qty, price=item.price, freight_cost=round(freight_share, 2) if body.transport_cost else None,
-                comment=body.comment,
+                comment=body.comment, created_by=user["id"],
             )
         )
     db.commit()
@@ -268,7 +310,7 @@ def add_expense(
     db.add(
         Transaction(
             company_id=user["company_id"], material_id=material_id, type=TRANSACTION_EXPENSE,
-            qty=body.qty, comment=body.comment,
+            qty=body.qty, comment=body.comment, created_by=user["id"],
         )
     )
     db.commit()
@@ -288,7 +330,7 @@ def add_adjustment(
     db.add(
         Transaction(
             company_id=user["company_id"], material_id=material_id, type=TRANSACTION_ADJUSTMENT,
-            qty=delta, comment=body.comment or "инвентаризация",
+            qty=delta, comment=body.comment or "инвентаризация", created_by=user["id"],
         )
     )
     db.commit()
@@ -447,6 +489,7 @@ def import_commit(
                 type=TRANSACTION_ADJUSTMENT,
                 qty=delta,
                 comment=body.comment or "импорт из файла",
+                created_by=user["id"],
             )
         )
         balances[row.material_id] = row.new_qty

@@ -22,7 +22,9 @@
                             ингредиентов на глаз надёжно не классифицировать)
   unit                    = "шт" для тара (в источнике объём фасовки всегда "1" —
                             штучный товар), иначе "г"
-  unit_cost               = сс за ед. объёма
+  price (Transaction)     = сс за ед. объёма — не поле Material (убрано 2026-09-13,
+                            себестоимость теперь только из поставок), а цена
+                            открывающего прихода, из которого и считается лот
   min_purchase_batch_weight = объём, г/мл (фасовка)
   min_purchase_batch_qty  = тоже объём, г/мл (фасовка) — отдельной колонки под это
                             в источнике нет, поле дублирует вес до уточнения
@@ -154,7 +156,6 @@ def main() -> None:
                 category=r["category"],
                 unit=unit,
                 min_stock=0,
-                unit_cost=r["unit_cost"],
                 min_purchase_batch_weight=r["weight"],
                 min_purchase_batch_qty=r["weight"],
                 min_purchase_batch_cost=r["price"],

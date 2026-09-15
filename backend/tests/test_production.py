@@ -110,6 +110,82 @@ def test_production_worker_sees_only_own_log(client, db_session):
     assert len(resp.json()) == 2
 
 
+def test_production_writeoff_transaction_records_created_by(client, db_session):
+    material, recipe, product = _make_recipe_with_material(db_session, qty_per_batch=1.0, batch_yield=1.0)
+    company_id = default_company_id(db_session)
+    db_session.add(Transaction(company_id=company_id, material_id=material.id, type=TRANSACTION_INCOME, qty=100.0))
+    db_session.commit()
+
+    founder = make_user(db_session, login="wofb_founder", role=FOUNDER, company_id=company_id)
+    worker = make_user(db_session, login="wofb_worker", role=WORKER, company_id=company_id)
+    client.post("/api/production", json={"product_id": product.id, "recipe_id": recipe.id, "qty": 1}, headers=auth_headers(worker))
+
+    resp = client.get(f"/api/ingredients/transactions?worker_id={worker.id}", headers=auth_headers(founder))
+    rows = resp.json()
+    assert len(rows) == 1
+    assert rows[0]["тип"] == "расход"
+
+
+def test_production_list_worker_id_param_filters_for_management(client, db_session):
+    _, recipe, product = _make_recipe_with_material(db_session)
+    w1 = make_user(db_session, login="wid1", role=WORKER)
+    w2 = make_user(db_session, login="wid2", role=WORKER)
+    founder = make_user(db_session, login="widf", role=FOUNDER)
+
+    company_id = default_company_id(db_session)
+    for worker in (w1, w2):
+        m = Material(company_id=company_id, name=f"сырьё {worker.id}", category="жидкое", unit="кг")
+        db_session.add(m)
+        db_session.flush()
+        r = Recipe(company_id=company_id, name=f"рецепт {worker.id}", category="мыло", produces="мыло", batch_yield=1.0)
+        db_session.add(r)
+        db_session.flush()
+        db_session.add(RecipeItem(recipe_id=r.id, material_id=m.id, qty_per_batch=1.0))
+        p = Product(company_id=company_id, name=f"продукт {worker.id}", category="мыло", gtin=worker.id, recipe_id=r.id)
+        db_session.add(p)
+        db_session.add(Transaction(company_id=company_id, material_id=m.id, type=TRANSACTION_INCOME, qty=100.0))
+        db_session.commit()
+        client.post("/api/production", json={"product_id": p.id, "recipe_id": r.id, "qty": 1}, headers=auth_headers(worker))
+
+    resp = client.get(f"/api/production?worker_id={w1.id}", headers=auth_headers(founder))
+    rows = resp.json()
+    assert len(rows) == 1
+    assert rows[0]["worker_id"] == w1.id
+
+
+def test_production_list_worker_id_param_ignored_for_worker_role(client, db_session):
+    """Worker не может подсунуть чужой worker_id в query — сервер всё равно фильтрует
+    по его собственному id (см. list_production в production.py)."""
+    material, recipe, product = _make_recipe_with_material(db_session, qty_per_batch=1.0, batch_yield=1.0)
+    company_id = default_company_id(db_session)
+    db_session.add(Transaction(company_id=company_id, material_id=material.id, type=TRANSACTION_INCOME, qty=100.0))
+    db_session.commit()
+
+    w1 = make_user(db_session, login="widown", role=WORKER, company_id=company_id)
+    w2 = make_user(db_session, login="widother", role=WORKER, company_id=company_id)
+    client.post("/api/production", json={"product_id": product.id, "recipe_id": recipe.id, "qty": 1}, headers=auth_headers(w1))
+
+    # w1 просит выдать записи w2 через query — сервер игнорирует параметр для не-management
+    # ролей и всё равно возвращает только записи самого w1 (не пусто, не чужие записи).
+    resp = client.get(f"/api/production?worker_id={w2.id}", headers=auth_headers(w1))
+    rows = resp.json()
+    assert len(rows) == 1
+    assert rows[0]["worker_id"] == w1.id
+
+
+def test_production_list_limit_param(client, db_session):
+    material, recipe, product = _make_recipe_with_material(db_session, qty_per_batch=1.0, batch_yield=1.0)
+    company_id = default_company_id(db_session)
+    db_session.add(Transaction(company_id=company_id, material_id=material.id, type=TRANSACTION_INCOME, qty=100.0))
+    db_session.commit()
+    worker = make_user(db_session, login="limtest", role=WORKER)
+    for _ in range(3):
+        client.post("/api/production", json={"product_id": product.id, "recipe_id": recipe.id, "qty": 1}, headers=auth_headers(worker))
+
+    resp = client.get("/api/production?limit=2", headers=auth_headers(worker))
+    assert len(resp.json()) == 2
+
+
 def test_production_rejected_for_archived_recipe(client, db_session):
     material, recipe, product = _make_recipe_with_material(db_session, qty_per_batch=1.0)
     recipe.archived = True

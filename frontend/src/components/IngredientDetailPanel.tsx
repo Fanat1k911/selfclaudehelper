@@ -54,7 +54,6 @@ export function IngredientDetailPanel({
   const isTara = ingredient['категория'] === 'тара'
   const [editingAttrs, setEditingAttrs] = useState(false)
   const [attrs, setAttrs] = useState({
-    unitCost: ingredient['себестоимость 1 шт']?.toString() ?? '',
     minBatchQty: ingredient['минимальная партия для закупки']?.toString() ?? '',
     minBatchCost: ingredient['себестоимость минимальной партии']?.toString() ?? '',
     minBatchWeight: ingredient['вес минимальной партии']?.toString() ?? '',
@@ -186,7 +185,6 @@ export function IngredientDetailPanel({
       await apiFetch(`/ingredients/${ingredient.id}`, {
         method: 'PATCH',
         body: JSON.stringify({
-          unit_cost: attrs.unitCost === '' ? null : Number(attrs.unitCost),
           min_purchase_batch_qty: attrs.minBatchQty === '' ? null : Number(attrs.minBatchQty),
           min_purchase_batch_cost: attrs.minBatchCost === '' ? null : Number(attrs.minBatchCost),
           min_purchase_batch_weight: attrs.minBatchWeight === '' ? null : Number(attrs.minBatchWeight),
@@ -441,7 +439,7 @@ export function IngredientDetailPanel({
           {!editingAttrs || !canEditAttrs ? (
             <div className="space-y-1.5 text-sm text-premium-text">
               <div className="flex items-center justify-between">
-                <span className="text-premium-text/60">Себестоимость 1 {ingredient['ед.измерения']}</span>
+                <span className="text-premium-text/60">Себестоимость 1 {ingredient['ед.измерения']} (по поставкам)</span>
                 <span>{ingredient['себестоимость 1 шт'] ?? '—'} ₽</span>
               </div>
               <div className="flex items-center justify-between">
@@ -470,14 +468,6 @@ export function IngredientDetailPanel({
           ) : (
             <form onSubmit={handleSaveAttrs} className="space-y-3">
               <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs text-premium-text/60 mb-1">Себестоимость 1 {ingredient['ед.измерения']}</label>
-                  <input
-                    type="number" onKeyDown={blockNonNumericKeys} step="any" value={attrs.unitCost}
-                    onChange={(e) => setAttrs({ ...attrs, unitCost: clampNumericInput(e.target.value) })}
-                    className="w-full rounded-lg border border-premium-border bg-premium-bg px-3 py-2 text-sm text-premium-text outline-none focus:border-premium-gold"
-                  />
-                </div>
                 <div>
                   <label className="block text-xs text-premium-text/60 mb-1">Мин. партия для закупки</label>
                   <input

@@ -207,6 +207,7 @@ def _component_cost_value(db: Session, company_id: str) -> dict:
     packaging_total = 0.0
     priced_count = 0
     unpriced_count = 0
+    by_material: list[dict] = []
     for m in materials:
         balance = balances.get(m.id, 0.0)
         if balance <= 0:
@@ -220,6 +221,12 @@ def _component_cost_value(db: Session, company_id: str) -> dict:
         if m.category == "тара":
             packaging_total += value
         priced_count += 1
+        by_material.append({"material_id": m.id, "название": m.name, "сумма": round(value, 2)})
+
+    # Топ-10 по вкладу в сумму (2026-09-13, запрос Александра — неожиданно большая
+    # итоговая цифра, нужно быстро увидеть, какие компоненты её формируют, без
+    # прямого доступа к базе).
+    by_material.sort(key=lambda r: r["сумма"], reverse=True)
 
     return {
         "сумма": round(total, 2),
@@ -227,6 +234,7 @@ def _component_cost_value(db: Session, company_id: str) -> dict:
         "тара": round(packaging_total, 2),
         "материалов учтено": priced_count,
         "материалов без цены": unpriced_count,
+        "топ материалов": by_material[:10],
     }
 
 
